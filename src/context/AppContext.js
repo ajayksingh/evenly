@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import {
   getCurrentUser, loginUser, registerUser, logoutUser,
   getGroups, getFriends, calculateBalances,
-  getActivity, seedDemoData,
+  getActivity, seedDemoData, syncFromSupabase,
 } from '../services/storage';
 import { loadSelectedCurrency, saveSelectedCurrency, detectDefaultCurrency } from '../services/currency';
 import { flushQueue, getQueueLength } from '../services/syncService';
 import { Analytics, setAnalyticsUser } from '../services/analytics';
-import { isSupabaseConfigured } from '../services/supabase';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 
 const AppContext = createContext({});
 
@@ -45,8 +46,36 @@ export const AppProvider = ({ children }) => {
     restore();
   }, []);
 
+  // Supabase auth state listener — handles session expiry and sign-out across devices
+  useEffect(() => {
+    if (!supabase) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSyncStatus(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Network listener — auto-sync when coming back online
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleOnline = async () => {
+        setIsOnline(true);
+        if (isSupabaseConfigured()) {
+          const count = await getQueueLength();
+          if (count > 0) triggerSync();
+        }
+      };
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
     const unsubscribe = NetInfo.addEventListener(async (state) => {
       const online = state.isConnected && state.isInternetReachable !== false;
       setIsOnline(online);
@@ -135,6 +164,12 @@ export const AppProvider = ({ children }) => {
     setRefreshTrigger(t => t + 1);
   }, []);
 
+  const syncData = useCallback(async () => {
+    if (!user || !isSupabaseConfigured()) return;
+    await syncFromSupabase(user.id);
+    await loadData();
+  }, [user, loadData]);
+
   const setCurrency = async (code) => {
     setCurrencyState(code);
     await saveSelectedCurrency(code);
@@ -172,7 +207,7 @@ export const AppProvider = ({ children }) => {
       groups, friends, balances, activity,
       totalBalance, currency, setCurrency,
       login, register, logout,
-      refresh, loadData,
+      refresh, loadData, syncData,
       // Sync & network
       isOnline, syncStatus, pendingCount,
       notifyWrite, triggerSync,

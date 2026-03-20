@@ -2,15 +2,18 @@
  * Contacts Service - expo-contacts based
  * Allows importing phone contacts as friends
  */
+import { Platform } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import * as Linking from 'expo-linking';
 
 export const requestContactsPermission = async () => {
+  if (Platform.OS === 'web') return false;
   const { status } = await Contacts.requestPermissionsAsync();
   return status === 'granted';
 };
 
 export const getContacts = async () => {
+  if (Platform.OS === 'web') return [];
   const granted = await requestContactsPermission();
   if (!granted) throw new Error('Contacts permission denied');
 
