@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 
 const linking = {
@@ -82,30 +82,55 @@ const MainTabs = () => (
 
 const AppNavigator = () => {
   const { user, loading, syncStatus } = useApp();
+  const { width } = useWindowDimensions();
+  const isDesktop = Platform.OS === 'web' && width > 768;
 
   if (loading) return null;
 
   return (
-    <NavigationContainer linking={linking}>
-      <View style={{ flex: 1 }}>
-        <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
-          {!user ? (
-            <Stack.Screen name="Auth" component={AuthScreen} />
-          ) : (
-            <>
-              <Stack.Screen name="Main" component={MainTabs} />
-              <Stack.Screen name="GroupDetail" component={GroupDetailScreen} options={{ presentation: 'card' }} />
-              <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ presentation: 'modal' }} />
-              <Stack.Screen name="SettleUp" component={SettleUpScreen} options={{ presentation: 'modal' }} />
-              <Stack.Screen name="Profile" component={ProfileScreen} options={{ presentation: 'card' }} />
-              <Stack.Screen name="Currency" component={CurrencyScreen} options={{ presentation: 'card' }} />
-            </>
-          )}
-        </Stack.Navigator>
-        <SyncBanner status={syncStatus} />
+    <View style={isDesktop ? styles.desktopContainer : { flex: 1 }}>
+      <View style={isDesktop ? styles.desktopApp : { flex: 1 }}>
+        <NavigationContainer linking={linking}>
+          <View style={{ flex: 1 }}>
+            <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
+              {!user ? (
+                <Stack.Screen name="Auth" component={AuthScreen} />
+              ) : (
+                <>
+                  <Stack.Screen name="Main" component={MainTabs} />
+                  <Stack.Screen name="GroupDetail" component={GroupDetailScreen} options={{ presentation: 'card' }} />
+                  <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ presentation: 'modal' }} />
+                  <Stack.Screen name="SettleUp" component={SettleUpScreen} options={{ presentation: 'modal' }} />
+                  <Stack.Screen name="Profile" component={ProfileScreen} options={{ presentation: 'card' }} />
+                  <Stack.Screen name="Currency" component={CurrencyScreen} options={{ presentation: 'card' }} />
+                </>
+              )}
+            </Stack.Navigator>
+            <SyncBanner status={syncStatus} />
+          </View>
+        </NavigationContainer>
       </View>
-    </NavigationContainer>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  desktopContainer: {
+    flex: 1,
+    backgroundColor: '#E8EAF6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  desktopApp: {
+    width: 430,
+    maxWidth: '100%',
+    flex: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+  },
+});
 
 export default AppNavigator;
