@@ -50,7 +50,7 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const MenuRow = ({ icon, iconColor = COLORS.primary, title, subtitle, onPress, rightElement, danger }) => (
-    <TouchableOpacity style={styles.menuRow} onPress={onPress} disabled={!onPress && !rightElement}>
+    <TouchableOpacity activeOpacity={0.7} style={styles.menuRow} onPress={onPress} disabled={!onPress && !rightElement}>
       <View style={[styles.menuIcon, { backgroundColor: (danger ? COLORS.danger : iconColor) + '15' }]}>
         <Ionicons name={icon} size={20} color={danger ? COLORS.danger : iconColor} />
       </View>
@@ -66,10 +66,10 @@ const ProfileScreen = ({ navigation }) => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <LinearGradient colors={COLORS.primaryGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.profileTop} onPress={() => setShowEdit(true)}>
+        <TouchableOpacity activeOpacity={0.7} style={styles.profileTop} onPress={() => setShowEdit(true)}>
           <Avatar name={user?.name} avatar={user?.avatar} size={80} />
           <View style={styles.editBadge}><Ionicons name="pencil" size={12} color="#fff" /></View>
         </TouchableOpacity>
@@ -139,11 +139,11 @@ const ProfileScreen = ({ navigation }) => {
       <Modal visible={showEdit} animationType="slide" presentationStyle="formSheet">
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowEdit(false)}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => setShowEdit(false)}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Edit Profile</Text>
-            <TouchableOpacity onPress={handleSave} disabled={saving}>
+            <TouchableOpacity activeOpacity={0.7} onPress={handleSave} disabled={saving}>
               <Text style={[styles.saveText, saving && { opacity: 0.5 }]}>{saving ? 'Saving...' : 'Save'}</Text>
             </TouchableOpacity>
           </View>
@@ -161,6 +161,7 @@ const ProfileScreen = ({ navigation }) => {
               onChangeText={setEditName}
               placeholder="Your name"
               placeholderTextColor={COLORS.textMuted}
+              autoComplete="name"
             />
           </View>
 
@@ -174,6 +175,7 @@ const ProfileScreen = ({ navigation }) => {
               placeholder="+1 555 0123"
               keyboardType="phone-pad"
               placeholderTextColor={COLORS.textMuted}
+              autoComplete="tel"
             />
           </View>
         </View>

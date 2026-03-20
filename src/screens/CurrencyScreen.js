@@ -42,7 +42,7 @@ const CurrencyScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Currency Settings</Text>
@@ -75,6 +75,7 @@ const CurrencyScreen = ({ navigation }) => {
             const isSelected = item.code === currency;
             return (
               <TouchableOpacity
+                activeOpacity={0.7}
                 style={[styles.currencyRow, isSelected && styles.currencyRowSelected]}
                 onPress={() => handleSelect(item.code)}
               >

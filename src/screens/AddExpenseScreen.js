@@ -150,15 +150,15 @@ const AddExpenseScreen = ({ route, navigation }) => {
   const splits = getSplits();
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cancelBtn}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.cancelBtn}>
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Add Expense</Text>
-          <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={saving}>
+          <TouchableOpacity activeOpacity={0.7} onPress={handleSave} style={styles.saveBtn} disabled={saving}>
             <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text>
           </TouchableOpacity>
         </View>
@@ -166,7 +166,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Amount Input */}
           <View style={styles.amountSection}>
-            <TouchableOpacity style={styles.catBtn} onPress={() => setShowCatPicker(true)}>
+            <TouchableOpacity activeOpacity={0.7} style={styles.catBtn} onPress={() => setShowCatPicker(true)}>
               <Ionicons name={catInfo.icon} size={24} color={catInfo.color} />
             </TouchableOpacity>
             <View style={styles.amountInputContainer}>
@@ -194,7 +194,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
           </View>
 
           {/* Group */}
-          <TouchableOpacity style={styles.fieldRow} onPress={() => setShowGroupPicker(true)}>
+          <TouchableOpacity activeOpacity={0.7} style={styles.fieldRow} onPress={() => setShowGroupPicker(true)}>
             <View style={styles.fieldIcon}><Ionicons name="people" size={20} color={COLORS.primary} /></View>
             <Text style={[styles.fieldText, !selectedGroup && styles.placeholder]}>
               {selectedGroup ? selectedGroup.name : 'Select a group'}
@@ -210,6 +210,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.paidByScroll}>
                 {participants.map(m => (
                   <TouchableOpacity
+                    activeOpacity={0.7}
                     key={m.id}
                     style={[styles.paidByBtn, paidBy?.id === m.id && styles.paidByActive]}
                     onPress={() => setPaidBy(m)}
@@ -225,7 +226,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
 
           {/* Split Type */}
           {selectedGroup && (
-            <TouchableOpacity style={styles.fieldRow} onPress={() => setShowSplitOptions(true)}>
+            <TouchableOpacity activeOpacity={0.7} style={styles.fieldRow} onPress={() => setShowSplitOptions(true)}>
               <View style={styles.fieldIcon}><Ionicons name="git-branch" size={20} color={COLORS.primary} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fieldLabel}>Split</Text>
@@ -286,11 +287,11 @@ const AddExpenseScreen = ({ route, navigation }) => {
                   <Avatar name={m.name} size={32} />
                   <Text style={styles.splitName}>{m.id === user.id ? 'You' : m.name.split(' ')[0]}</Text>
                   <View style={styles.sharesControl}>
-                    <TouchableOpacity onPress={() => setShares(prev => ({ ...prev, [m.id]: Math.max(0, (prev[m.id] || 1) - 1) }))}>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => setShares(prev => ({ ...prev, [m.id]: Math.max(0, (prev[m.id] || 1) - 1) }))}>
                       <Ionicons name="remove-circle" size={28} color={COLORS.primary} />
                     </TouchableOpacity>
                     <Text style={styles.sharesCount}>{shares[m.id] || 0}</Text>
-                    <TouchableOpacity onPress={() => setShares(prev => ({ ...prev, [m.id]: (prev[m.id] || 0) + 1 }))}>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => setShares(prev => ({ ...prev, [m.id]: (prev[m.id] || 0) + 1 }))}>
                       <Ionicons name="add-circle" size={28} color={COLORS.primary} />
                     </TouchableOpacity>
                   </View>
@@ -314,14 +315,14 @@ const AddExpenseScreen = ({ route, navigation }) => {
         <Modal visible={showGroupPicker} animationType="slide" presentationStyle="formSheet">
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowGroupPicker(false)}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setShowGroupPicker(false)}>
                 <Text style={styles.cancelText}>Close</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Select Group</Text>
               <View style={{ width: 50 }} />
             </View>
             {groups.map(g => (
-              <TouchableOpacity key={g.id} style={styles.pickerItem} onPress={() => { setSelectedGroup(g); setShowGroupPicker(false); }}>
+              <TouchableOpacity activeOpacity={0.7} key={g.id} style={styles.pickerItem} onPress={() => { setSelectedGroup(g); setShowGroupPicker(false); }}>
                 <View style={styles.pickerIcon}><Ionicons name="people" size={20} color={COLORS.primary} /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.pickerName}>{g.name}</Text>
@@ -337,7 +338,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
         <Modal visible={showCatPicker} animationType="slide" presentationStyle="formSheet">
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowCatPicker(false)}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setShowCatPicker(false)}>
                 <Text style={styles.cancelText}>Close</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Category</Text>
@@ -346,6 +347,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
             <View style={styles.catGrid}>
               {CATEGORIES.map(c => (
                 <TouchableOpacity
+                  activeOpacity={0.7}
                   key={c.id}
                   style={[styles.catItem, category === c.id && { borderColor: c.color, borderWidth: 2 }]}
                   onPress={() => { setCategory(c.id); setShowCatPicker(false); }}
@@ -364,7 +366,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
         <Modal visible={showSplitOptions} animationType="slide" presentationStyle="formSheet">
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowSplitOptions(false)}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setShowSplitOptions(false)}>
                 <Text style={styles.cancelText}>Close</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Split Type</Text>
@@ -377,6 +379,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
               { type: SPLIT_TYPES.SHARES, icon: 'grid', title: 'Shares', desc: 'Split proportionally by shares' },
             ].map(opt => (
               <TouchableOpacity
+                activeOpacity={0.7}
                 key={opt.type}
                 style={[styles.splitOption, splitType === opt.type && styles.splitOptionActive]}
                 onPress={() => { setSplitType(opt.type); setShowSplitOptions(false); }}

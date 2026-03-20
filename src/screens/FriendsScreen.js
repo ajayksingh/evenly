@@ -113,6 +113,7 @@ const FriendsScreen = ({ navigation }) => {
     const hasBalance = balance && Math.abs(balance.amount) > 0.01;
     return (
       <TouchableOpacity
+        activeOpacity={0.7}
         style={styles.friendCard}
         onPress={() => hasBalance && navigation.navigate('SettleUp', {
           preselectedPayer: balance.amount < 0 ? user.id : item.id,
@@ -141,7 +142,7 @@ const FriendsScreen = ({ navigation }) => {
             )}
           </View>
           {item.phone && (
-            <TouchableOpacity style={styles.waBtn} onPress={() => handleWhatsAppBalance(item)}>
+            <TouchableOpacity activeOpacity={0.7} style={styles.waBtn} onPress={() => handleWhatsAppBalance(item)}>
               <Text style={styles.waIcon}>💬</Text>
             </TouchableOpacity>
           )}
@@ -157,7 +158,7 @@ const FriendsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Friends</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
+        <TouchableOpacity activeOpacity={0.7} style={styles.addBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
           <Ionicons name="person-add" size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -185,12 +186,12 @@ const FriendsScreen = ({ navigation }) => {
           <Text style={styles.emptyTitle}>No friends yet</Text>
           <Text style={styles.emptyText}>Add friends by email or import from contacts</Text>
           <View style={styles.emptyBtns}>
-            <TouchableOpacity style={styles.addFriendBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
+            <TouchableOpacity activeOpacity={0.7} style={styles.addFriendBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
               <Ionicons name="mail" size={16} color="#fff" />
               <Text style={styles.addFriendBtnText}>Add by Email</Text>
             </TouchableOpacity>
             {Platform.OS !== 'web' && (
-              <TouchableOpacity style={[styles.addFriendBtn, { backgroundColor: '#25D366' }]} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
+              <TouchableOpacity activeOpacity={0.7} style={[styles.addFriendBtn, { backgroundColor: '#25D366' }]} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
                 <Ionicons name="people" size={16} color="#fff" />
                 <Text style={styles.addFriendBtnText}>From Contacts</Text>
               </TouchableOpacity>
@@ -206,7 +207,7 @@ const FriendsScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
             Platform.OS !== 'web' ? (
-              <TouchableOpacity style={styles.importContactsRow} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
+              <TouchableOpacity activeOpacity={0.7} style={styles.importContactsRow} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
                 <Ionicons name="people" size={18} color={COLORS.primary} />
                 <Text style={styles.importContactsText}>Import from Contacts</Text>
               </TouchableOpacity>
@@ -219,12 +220,12 @@ const FriendsScreen = ({ navigation }) => {
       <Modal visible={showAdd} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => { setShowAdd(false); setEmail(''); setContacts([]); setContactSearch(''); }}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowAdd(false); setEmail(''); setContacts([]); setContactSearch(''); }}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Friend</Text>
             {addMode === 'email' ? (
-              <TouchableOpacity onPress={handleAddFriend} disabled={adding || !email.trim()}>
+              <TouchableOpacity activeOpacity={0.7} onPress={handleAddFriend} disabled={adding || !email.trim()}>
                 {adding ? <ActivityIndicator color={COLORS.primary} size="small" /> : (
                   <Text style={[styles.saveText, !email.trim() && { opacity: 0.4 }]}>Add</Text>
                 )}
@@ -235,6 +236,7 @@ const FriendsScreen = ({ navigation }) => {
           {/* Mode Toggle */}
           <View style={styles.modeToggle}>
             <TouchableOpacity
+              activeOpacity={0.7}
               style={[styles.modeBtn, addMode === 'email' && styles.modeBtnActive]}
               onPress={() => setAddMode('email')}
             >
@@ -243,6 +245,7 @@ const FriendsScreen = ({ navigation }) => {
             </TouchableOpacity>
             {Platform.OS !== 'web' && (
               <TouchableOpacity
+                activeOpacity={0.7}
                 style={[styles.modeBtn, addMode === 'contacts' && styles.modeBtnActive]}
                 onPress={() => { setAddMode('contacts'); if (contacts.length === 0) loadContacts(); }}
               >
@@ -265,6 +268,7 @@ const FriendsScreen = ({ navigation }) => {
                   autoCapitalize="none"
                   autoFocus
                   placeholderTextColor={COLORS.textMuted}
+                  autoComplete="email"
                 />
               </View>
               <View style={styles.hintBox}>
@@ -300,6 +304,7 @@ const FriendsScreen = ({ navigation }) => {
                       const isAlreadyFriend = friends.some(f => f.email === item.email);
                       return (
                         <TouchableOpacity
+                          activeOpacity={0.7}
                           style={[styles.contactRow, isAlreadyFriend && styles.contactRowAdded]}
                           onPress={() => !isAlreadyFriend && handleAddFromContact(item)}
                           disabled={isAlreadyFriend}

@@ -45,7 +45,7 @@ const AuthScreen = () => {
 
   return (
     <LinearGradient colors={COLORS.primaryGradient} style={styles.gradient}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {/* Logo */}
           <View style={styles.logoContainer}>
@@ -59,10 +59,10 @@ const AuthScreen = () => {
           <View style={styles.card}>
             {/* Tab Toggle */}
             <View style={styles.toggle}>
-              <TouchableOpacity style={[styles.toggleBtn, mode === 'login' && styles.toggleActive]} onPress={() => setMode('login')}>
+              <TouchableOpacity activeOpacity={0.7} style={[styles.toggleBtn, mode === 'login' && styles.toggleActive]} onPress={() => setMode('login')}>
                 <Text style={[styles.toggleText, mode === 'login' && styles.toggleTextActive]}>Sign In</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.toggleBtn, mode === 'register' && styles.toggleActive]} onPress={() => setMode('register')}>
+              <TouchableOpacity activeOpacity={0.7} style={[styles.toggleBtn, mode === 'register' && styles.toggleActive]} onPress={() => setMode('register')}>
                 <Text style={[styles.toggleText, mode === 'register' && styles.toggleTextActive]}>Sign Up</Text>
               </TouchableOpacity>
             </View>
@@ -77,6 +77,7 @@ const AuthScreen = () => {
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
+                  autoComplete="name"
                 />
               </View>
             )}
@@ -91,6 +92,7 @@ const AuthScreen = () => {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoComplete="email"
               />
             </View>
 
@@ -103,8 +105,9 @@ const AuthScreen = () => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPass}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               />
-              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
                 <Ionicons name={showPass ? 'eye-off' : 'eye'} size={20} color={COLORS.textLight} />
               </TouchableOpacity>
             </View>
@@ -119,18 +122,19 @@ const AuthScreen = () => {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showPass}
+                  autoComplete="new-password"
                 />
               </View>
             )}
 
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
+            <TouchableOpacity activeOpacity={0.7} style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : (
                 <Text style={styles.submitText}>{mode === 'login' ? 'Sign In' : 'Create Account'}</Text>
               )}
             </TouchableOpacity>
 
             {mode === 'login' && (
-              <TouchableOpacity style={styles.demoBtn} onPress={fillDemo}>
+              <TouchableOpacity activeOpacity={0.7} style={styles.demoBtn} onPress={fillDemo}>
                 <Ionicons name="flash" size={16} color={COLORS.primary} />
                 <Text style={styles.demoText}>Use Demo Account (alice@demo.com)</Text>
               </TouchableOpacity>

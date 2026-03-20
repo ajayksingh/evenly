@@ -90,7 +90,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -98,6 +98,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           <Text style={styles.memberCount}>{group.members.length} members</Text>
         </View>
         <TouchableOpacity
+          activeOpacity={0.7}
           style={styles.addExpBtn}
           onPress={() => navigation.navigate('AddExpense', { groupId, groupName: group.name, members: group.members })}
         >
@@ -109,7 +110,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       {/* Tabs */}
       <View style={styles.tabs}>
         {['expenses', 'balances', 'members'].map(t => (
-          <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
+          <TouchableOpacity activeOpacity={0.7} key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
             <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t.charAt(0).toUpperCase() + t.slice(1)}</Text>
           </TouchableOpacity>
         ))}
@@ -124,6 +125,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
                 <Ionicons name="receipt-outline" size={56} color={COLORS.textMuted} />
                 <Text style={styles.emptyTitle}>No expenses yet</Text>
                 <TouchableOpacity
+                  activeOpacity={0.7}
                   style={styles.addFirstBtn}
                   onPress={() => navigation.navigate('AddExpense', { groupId, groupName: group.name, members: group.members })}
                 >
@@ -137,6 +139,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
                 const iPaid = exp.paidBy.id === user.id;
                 return (
                   <TouchableOpacity
+                    activeOpacity={0.7}
                     key={exp.id}
                     style={styles.expenseCard}
                     onLongPress={() => handleDeleteExpense(exp)}
@@ -210,6 +213,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
             )}
 
             <TouchableOpacity
+              activeOpacity={0.7}
               style={styles.settleBtn}
               onPress={() => navigation.navigate('SettleUp', { group, members: group.members })}
             >
@@ -235,7 +239,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
               </View>
             ))}
             {group.createdBy === user.id && (
-              <TouchableOpacity style={styles.addMemberBtn} onPress={() => setShowAddMember(true)}>
+              <TouchableOpacity activeOpacity={0.7} style={styles.addMemberBtn} onPress={() => setShowAddMember(true)}>
                 <Ionicons name="person-add" size={18} color={COLORS.primary} />
                 <Text style={styles.addMemberText}>Add Member</Text>
               </TouchableOpacity>
@@ -248,11 +252,11 @@ const GroupDetailScreen = ({ route, navigation }) => {
       <Modal visible={showAddMember} animationType="slide" presentationStyle="formSheet">
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => { setShowAddMember(false); setFoundUser(null); setSearchEmail(''); }}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowAddMember(false); setFoundUser(null); setSearchEmail(''); }}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Member</Text>
-            <TouchableOpacity onPress={handleAddMember} disabled={!foundUser}>
+            <TouchableOpacity activeOpacity={0.7} onPress={handleAddMember} disabled={!foundUser}>
               <Text style={[styles.saveText, !foundUser && { opacity: 0.4 }]}>Add</Text>
             </TouchableOpacity>
           </View>
@@ -265,7 +269,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <TouchableOpacity style={styles.searchBtn} onPress={handleSearchUser}>
+            <TouchableOpacity activeOpacity={0.7} style={styles.searchBtn} onPress={handleSearchUser}>
               {searching ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.searchBtnText}>Find</Text>}
             </TouchableOpacity>
           </View>

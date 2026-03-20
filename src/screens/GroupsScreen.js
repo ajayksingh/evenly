@@ -58,6 +58,7 @@ const GroupsScreen = ({ navigation }) => {
     const typeInfo = GROUP_TYPES.find(t => t.id === item.type) || GROUP_TYPES[3];
     return (
       <TouchableOpacity
+        activeOpacity={0.7}
         style={styles.groupCard}
         onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
       >
@@ -90,7 +91,7 @@ const GroupsScreen = ({ navigation }) => {
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <Text style={styles.title}>Groups</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowCreate(true)}>
+        <TouchableOpacity activeOpacity={0.7} style={styles.addBtn} onPress={() => setShowCreate(true)}>
           <Ionicons name="add" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -100,7 +101,7 @@ const GroupsScreen = ({ navigation }) => {
           <Ionicons name="people-outline" size={64} color={COLORS.textMuted} />
           <Text style={styles.emptyTitle}>No groups yet</Text>
           <Text style={styles.emptyText}>Create a group to start splitting expenses</Text>
-          <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreate(true)}>
+          <TouchableOpacity activeOpacity={0.7} style={styles.createBtn} onPress={() => setShowCreate(true)}>
             <Ionicons name="add" size={20} color="#fff" />
             <Text style={styles.createBtnText}>New Group</Text>
           </TouchableOpacity>
@@ -119,11 +120,11 @@ const GroupsScreen = ({ navigation }) => {
       <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowCreate(false)}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => setShowCreate(false)}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>New Group</Text>
-            <TouchableOpacity onPress={handleCreateGroup} disabled={creating}>
+            <TouchableOpacity activeOpacity={0.7} onPress={handleCreateGroup} disabled={creating}>
               <Text style={[styles.saveText, creating && { opacity: 0.5 }]}>Create</Text>
             </TouchableOpacity>
           </View>
@@ -141,6 +142,7 @@ const GroupsScreen = ({ navigation }) => {
           <View style={styles.typeRow}>
             {GROUP_TYPES.map(t => (
               <TouchableOpacity
+                activeOpacity={0.7}
                 key={t.id}
                 style={[styles.typeBtn, groupType === t.id && styles.typeBtnActive]}
                 onPress={() => setGroupType(t.id)}
@@ -156,7 +158,7 @@ const GroupsScreen = ({ navigation }) => {
             <Text style={styles.noFriendsText}>No friends yet. Add friends first from the Friends tab.</Text>
           ) : (
             friends.map(f => (
-              <TouchableOpacity key={f.id} style={styles.friendRow} onPress={() => toggleMember(f)}>
+              <TouchableOpacity activeOpacity={0.7} key={f.id} style={styles.friendRow} onPress={() => toggleMember(f)}>
                 <Avatar name={f.name} size={36} />
                 <View style={styles.friendInfo}>
                   <Text style={styles.friendName}>{f.name}</Text>
@@ -197,7 +199,7 @@ const styles = StyleSheet.create({
   groupMembersRow: { flexDirection: 'row', alignItems: 'center' },
   memberAvatar: { borderWidth: 2, borderColor: COLORS.white, borderRadius: 15 },
   memberMore: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
-  memberMoreText: { fontSize: 10, color: COLORS.textLight, fontWeight: '600' },
+  memberMoreText: { fontSize: 12, color: COLORS.textLight, fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyTitle: { fontSize: 22, fontWeight: '700', color: COLORS.text, marginTop: 16 },
   emptyText: { fontSize: 15, color: COLORS.textLight, textAlign: 'center', marginTop: 8 },

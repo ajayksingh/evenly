@@ -108,10 +108,10 @@ const SettleUpScreen = ({ route, navigation }) => {
   );
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={{ flex: 1 }}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color={COLORS.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Settle Up</Text>
@@ -125,6 +125,7 @@ const SettleUpScreen = ({ route, navigation }) => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {allParties.map(p => (
                 <TouchableOpacity
+                  activeOpacity={0.7}
                   key={p.id}
                   style={[styles.personBtn, payer?.id === p.id && styles.personBtnActive]}
                   onPress={() => { setPayer(p); if (receiver?.id === p.id) setReceiver(null); }}
@@ -153,6 +154,7 @@ const SettleUpScreen = ({ route, navigation }) => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {allParties.filter(p => p.id !== payer?.id).map(p => (
                 <TouchableOpacity
+                  activeOpacity={0.7}
                   key={p.id}
                   style={[styles.personBtn, receiver?.id === p.id && styles.personBtnActive]}
                   onPress={() => setReceiver(p)}
@@ -204,6 +206,7 @@ const SettleUpScreen = ({ route, navigation }) => {
               <Text style={styles.sectionLabel}>Outstanding Balances</Text>
               {debts.map((d, idx) => (
                 <TouchableOpacity
+                  activeOpacity={0.7}
                   key={idx}
                   style={styles.debtRow}
                   onPress={() => {
@@ -230,7 +233,7 @@ const SettleUpScreen = ({ route, navigation }) => {
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.settleBtn} onPress={handleSettle} disabled={saving}>
+          <TouchableOpacity activeOpacity={0.7} style={styles.settleBtn} onPress={handleSettle} disabled={saving}>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
             <Text style={styles.settleBtnText}>{saving ? 'Recording...' : 'Record Payment'}</Text>
           </TouchableOpacity>

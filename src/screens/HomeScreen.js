@@ -63,7 +63,7 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.greeting}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'} 👋</Text>
               <Text style={styles.userName}>{user?.name?.split(' ')[0] || 'there'}</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Profile')}>
               <Avatar name={user?.name} avatar={user?.avatar} size={44} />
             </TouchableOpacity>
           </View>
@@ -107,7 +107,7 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Owed to you</Text>
             {oweMe.slice(0, 3).map(b => (
-              <TouchableOpacity key={b.userId} style={styles.balanceItem} onPress={() => navigation.navigate('Friends')}>
+              <TouchableOpacity activeOpacity={0.7} key={b.userId} style={styles.balanceItem} onPress={() => navigation.navigate('Friends')}>
                 <Avatar name={b.name} avatar={b.avatar} size={40} />
                 <View style={styles.balanceInfo}>
                   <Text style={styles.balanceName}>{b.name}</Text>
@@ -124,7 +124,7 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>You owe</Text>
             {iOwe.slice(0, 3).map(b => (
-              <TouchableOpacity key={b.userId} style={styles.balanceItem} onPress={() => navigation.navigate('Friends')}>
+              <TouchableOpacity activeOpacity={0.7} key={b.userId} style={styles.balanceItem} onPress={() => navigation.navigate('Friends')}>
                 <Avatar name={b.name} avatar={b.avatar} size={40} />
                 <View style={styles.balanceInfo}>
                   <Text style={styles.balanceName}>{b.name}</Text>
@@ -140,7 +140,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Activity')}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Activity')}>
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
@@ -174,7 +174,7 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.emptyStateEmoji}>💸</Text>
             <Text style={styles.emptyStateTitle}>Welcome to SplitWise!</Text>
             <Text style={styles.emptyStateText}>Create a group and start splitting expenses with friends.</Text>
-            <TouchableOpacity style={styles.emptyStateBtn} onPress={() => navigation.navigate('Groups')}>
+            <TouchableOpacity activeOpacity={0.7} style={styles.emptyStateBtn} onPress={() => navigation.navigate('Groups')}>
               <Text style={styles.emptyStateBtnText}>Create a Group</Text>
             </TouchableOpacity>
           </View>
@@ -184,7 +184,7 @@ const HomeScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('AddExpense', {})}>
+      <TouchableOpacity activeOpacity={0.7} style={styles.fab} onPress={() => navigation.navigate('AddExpense', {})}>
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
     </View>
