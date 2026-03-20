@@ -1,6 +1,25 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+
+const linking = {
+  prefixes: ['https://ajayksingh.github.io/splitwise', 'splitwise://'],
+  config: {
+    screens: {
+      Auth: 'login',
+      Main: {
+        screens: {
+          Home: 'home',
+          Groups: 'groups',
+          Friends: 'friends',
+          Activity: 'activity',
+        },
+      },
+      GroupDetail: 'group/:groupId',
+      Profile: 'profile',
+    },
+  },
+};
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,7 +86,7 @@ const AppNavigator = () => {
   if (loading) return null;
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <View style={{ flex: 1 }}>
         <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
           {!user ? (

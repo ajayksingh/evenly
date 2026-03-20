@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Alert, Modal, TextInput, ActivityIndicator, SectionList,
+  Alert, Modal, TextInput, ActivityIndicator, SectionList, Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -198,10 +198,12 @@ const FriendsScreen = ({ navigation }) => {
               <Ionicons name="mail" size={16} color="#fff" />
               <Text style={styles.addFriendBtnText}>Add by Email</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.addFriendBtn, { backgroundColor: '#25D366' }]} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
-              <Ionicons name="people" size={16} color="#fff" />
-              <Text style={styles.addFriendBtnText}>From Contacts</Text>
-            </TouchableOpacity>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity style={[styles.addFriendBtn, { backgroundColor: '#25D366' }]} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
+                <Ionicons name="people" size={16} color="#fff" />
+                <Text style={styles.addFriendBtnText}>From Contacts</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       ) : (
@@ -212,10 +214,12 @@ const FriendsScreen = ({ navigation }) => {
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
-            <TouchableOpacity style={styles.importContactsRow} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
-              <Ionicons name="people" size={18} color={COLORS.primary} />
-              <Text style={styles.importContactsText}>Import from Contacts</Text>
-            </TouchableOpacity>
+            Platform.OS !== 'web' ? (
+              <TouchableOpacity style={styles.importContactsRow} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
+                <Ionicons name="people" size={18} color={COLORS.primary} />
+                <Text style={styles.importContactsText}>Import from Contacts</Text>
+              </TouchableOpacity>
+            ) : null
           }
         />
       )}
@@ -246,13 +250,15 @@ const FriendsScreen = ({ navigation }) => {
               <Ionicons name="mail" size={16} color={addMode === 'email' ? '#fff' : COLORS.textLight} />
               <Text style={[styles.modeBtnText, addMode === 'email' && styles.modeBtnTextActive]}>By Email</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modeBtn, addMode === 'contacts' && styles.modeBtnActive]}
-              onPress={() => { setAddMode('contacts'); if (contacts.length === 0) loadContacts(); }}
-            >
-              <Ionicons name="people" size={16} color={addMode === 'contacts' ? '#fff' : COLORS.textLight} />
-              <Text style={[styles.modeBtnText, addMode === 'contacts' && styles.modeBtnTextActive]}>Contacts</Text>
-            </TouchableOpacity>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={[styles.modeBtn, addMode === 'contacts' && styles.modeBtnActive]}
+                onPress={() => { setAddMode('contacts'); if (contacts.length === 0) loadContacts(); }}
+              >
+                <Ionicons name="people" size={16} color={addMode === 'contacts' ? '#fff' : COLORS.textLight} />
+                <Text style={[styles.modeBtnText, addMode === 'contacts' && styles.modeBtnTextActive]}>Contacts</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {addMode === 'email' ? (

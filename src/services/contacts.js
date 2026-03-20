@@ -3,8 +3,12 @@
  * Allows importing phone contacts as friends
  */
 import { Platform } from 'react-native';
-import * as Contacts from 'expo-contacts';
 import * as Linking from 'expo-linking';
+
+let Contacts = null;
+if (Platform.OS !== 'web') {
+  Contacts = require('expo-contacts');
+}
 
 export const requestContactsPermission = async () => {
   if (Platform.OS === 'web') return false;
