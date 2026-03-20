@@ -10,6 +10,7 @@ import { COLORS, CATEGORIES } from '../constants/colors';
 import Avatar from '../components/Avatar';
 import { getGroup, getExpenses, calculateGroupBalances, addMemberToGroup, searchUsersByEmail, deleteExpense } from '../services/storage';
 import { formatCurrency, formatDate, getSimplifiedDebts } from '../utils/splitCalculator';
+import { confirmAlert } from '../utils/alert';
 
 const GroupDetailScreen = ({ route, navigation }) => {
   const { groupId } = route.params;
@@ -39,18 +40,18 @@ const GroupDetailScreen = ({ route, navigation }) => {
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const handleDeleteExpense = (expense) => {
-    Alert.alert('Delete Expense', `Delete "${expense.description}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          await deleteExpense(expense.id);
-          notifyWrite('delete_expense');
-          globalRefresh();
-          loadData();
-        }
-      }
-    ]);
+    confirmAlert({
+      title: 'Delete Expense',
+      message: `Delete "${expense.description}"?`,
+      confirmText: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        await deleteExpense(expense.id);
+        notifyWrite('delete_expense');
+        globalRefresh();
+        loadData();
+      },
+    });
   };
 
   const handleSearchUser = async () => {

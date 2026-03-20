@@ -10,6 +10,7 @@ import { COLORS } from '../constants/colors';
 import Avatar from '../components/Avatar';
 import { updateUserProfile } from '../services/storage';
 import { formatAmount, SUPPORTED_CURRENCIES } from '../services/currency';
+import { confirmAlert } from '../utils/alert';
 
 const ProfileScreen = ({ navigation }) => {
   const { user, logout, setUser, balances, groups, currency, refresh } = useApp();
@@ -39,16 +40,13 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleLogout = async () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          logout();
-        },
-      },
-    ]);
+    confirmAlert({
+      title: 'Sign Out',
+      message: 'Are you sure you want to sign out?',
+      confirmText: 'Sign Out',
+      destructive: true,
+      onConfirm: () => { logout(); },
+    });
   };
 
   const MenuRow = ({ icon, iconColor = COLORS.primary, title, subtitle, onPress, rightElement, danger }) => (

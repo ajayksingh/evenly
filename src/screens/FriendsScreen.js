@@ -11,6 +11,7 @@ import Avatar from '../components/Avatar';
 import { addFriend, registerUser } from '../services/storage';
 import { getContacts, requestContactsPermission, sendWhatsAppMessage } from '../services/contacts';
 import { formatAmount } from '../services/currency';
+import { confirmAlert } from '../utils/alert';
 
 const FriendsScreen = ({ navigation }) => {
   const { user, friends, balances, currency, refresh } = useApp();
@@ -55,20 +56,15 @@ const FriendsScreen = ({ navigation }) => {
 
   const handleAddFromContact = async (contact) => {
     if (!contact.email) {
-      Alert.alert(
-        'No Email Found',
-        `${contact.name} doesn't have an email in your contacts. Would you like to invite them via WhatsApp?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'WhatsApp Invite',
-            onPress: () => contact.phone && sendWhatsAppMessage(
-              contact.phone,
-              `Hey ${contact.name}! I'm using SplitWise to split expenses. Join me! 💸`
-            ),
-          },
-        ]
-      );
+      confirmAlert({
+        title: 'No Email Found',
+        message: `${contact.name} doesn't have an email in your contacts. Would you like to invite them via WhatsApp?`,
+        confirmText: 'WhatsApp Invite',
+        onConfirm: () => contact.phone && sendWhatsAppMessage(
+          contact.phone,
+          `Hey ${contact.name}! I'm using SplitWise to split expenses. Join me! 💸`
+        ),
+      });
       return;
     }
     setAdding(true);
@@ -78,20 +74,15 @@ const FriendsScreen = ({ navigation }) => {
       Alert.alert('Added!', `${contact.name} added as friend`);
     } catch (e) {
       // If user not found, offer to create them
-      Alert.alert(
-        'Not Registered',
-        `${contact.name} isn't on SplitWise yet. Invite via WhatsApp?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'WhatsApp',
-            onPress: () => contact.phone && sendWhatsAppMessage(
-              contact.phone,
-              `Hey ${contact.name}! Join me on SplitWise to split expenses easily! 💸`
-            ),
-          },
-        ]
-      );
+      confirmAlert({
+        title: 'Not Registered',
+        message: `${contact.name} isn't on SplitWise yet. Invite via WhatsApp?`,
+        confirmText: 'WhatsApp',
+        onConfirm: () => contact.phone && sendWhatsAppMessage(
+          contact.phone,
+          `Hey ${contact.name}! Join me on SplitWise to split expenses easily! 💸`
+        ),
+      });
     } finally { setAdding(false); }
   };
 

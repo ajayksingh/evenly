@@ -11,6 +11,7 @@ import { recordSettlement, calculateBalances, getFriends } from '../services/sto
 import { sendWhatsAppMessage, buildSettlementWhatsAppMessage } from '../services/contacts';
 import { formatAmount, getCurrencySymbol } from '../services/currency';
 import { formatCurrency, getSimplifiedDebts } from '../utils/splitCalculator';
+import { confirmAlert } from '../utils/alert';
 
 const SettleUpScreen = ({ route, navigation }) => {
   const { user, balances: globalBalances, friends, currency, refresh } = useApp();
@@ -69,26 +70,23 @@ const SettleUpScreen = ({ route, navigation }) => {
       const friendWithPhone = friends.find(f => f.id === otherParty.id && f.phone);
 
       if (friendWithPhone) {
-        Alert.alert(
-          'Payment Recorded!',
-          `${payer.id === user.id ? 'You' : payer.name} paid ${receiver.id === user.id ? 'you' : receiver.name} ${formatAmount(amt, currency)}`,
-          [
-            {
-              text: 'Notify via WhatsApp',
-              onPress: async () => {
-                const msg = buildSettlementWhatsAppMessage({
-                  payerName: payer.id === user.id ? user.name : payer.name,
-                  receiverName: receiver.id === user.id ? user.name : receiver.name,
-                  amount: amt,
-                  currency,
-                });
-                await sendWhatsAppMessage(friendWithPhone.phone, msg);
-                navigation.goBack();
-              },
-            },
-            { text: 'Done', onPress: () => navigation.goBack() },
-          ]
-        );
+        confirmAlert({
+          title: 'Payment Recorded!',
+          message: `${payer.id === user.id ? 'You' : payer.name} paid ${receiver.id === user.id ? 'you' : receiver.name} ${formatAmount(amt, currency)}`,
+          confirmText: 'Notify via WhatsApp',
+          cancelText: 'Done',
+          onConfirm: async () => {
+            const msg = buildSettlementWhatsAppMessage({
+              payerName: payer.id === user.id ? user.name : payer.name,
+              receiverName: receiver.id === user.id ? user.name : receiver.name,
+              amount: amt,
+              currency,
+            });
+            await sendWhatsAppMessage(friendWithPhone.phone, msg);
+            navigation.goBack();
+          },
+          onCancel: () => navigation.goBack(),
+        });
       } else {
         Alert.alert(
           'Payment Recorded!',

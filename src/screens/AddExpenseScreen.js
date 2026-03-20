@@ -11,6 +11,7 @@ import { addExpense, getGroups, getUserById } from '../services/storage';
 import { sendWhatsAppMessage, buildExpenseWhatsAppMessage } from '../services/contacts';
 import { SPLIT_TYPES, calculateEqualSplit, calculatePercentageSplit, calculateSharesSplit, formatCurrency } from '../utils/splitCalculator';
 import { formatAmount, getCurrencySymbol } from '../services/currency';
+import { confirmAlert } from '../utils/alert';
 
 const AddExpenseScreen = ({ route, navigation }) => {
   const { user, groups, friends, currency, refresh, notifyWrite } = useApp();
@@ -111,32 +112,29 @@ const AddExpenseScreen = ({ route, navigation }) => {
           otherSplits.some(s => s.userId === f.id) && f.phone
         );
         if (friendsWithPhone.length > 0) {
-          Alert.alert(
-            'Notify via WhatsApp?',
-            `Send expense split details to ${friendsWithPhone.length} friend${friendsWithPhone.length > 1 ? 's' : ''}?`,
-            [
-              { text: 'Skip', onPress: () => navigation.goBack() },
-              {
-                text: 'Send WhatsApp',
-                onPress: async () => {
-                  for (const friend of friendsWithPhone) {
-                    const split = splits.find(s => s.userId === friend.id);
-                    if (split) {
-                      const msg = buildExpenseWhatsAppMessage({
-                        expense: { description: description.trim(), amount: parseFloat(amount) },
-                        paidBy: paidBy.id === user.id ? 'You' : paidBy.name,
-                        splitAmount: split.amount,
-                        groupName: selectedGroup.name,
-                        currency,
-                      });
-                      await sendWhatsAppMessage(friend.phone, msg);
-                    }
-                  }
-                  navigation.goBack();
-                },
-              },
-            ]
-          );
+          confirmAlert({
+            title: 'Notify via WhatsApp?',
+            message: `Send expense split details to ${friendsWithPhone.length} friend${friendsWithPhone.length > 1 ? 's' : ''}?`,
+            confirmText: 'Send WhatsApp',
+            cancelText: 'Skip',
+            onCancel: () => navigation.goBack(),
+            onConfirm: async () => {
+              for (const friend of friendsWithPhone) {
+                const split = splits.find(s => s.userId === friend.id);
+                if (split) {
+                  const msg = buildExpenseWhatsAppMessage({
+                    expense: { description: description.trim(), amount: parseFloat(amount) },
+                    paidBy: paidBy.id === user.id ? 'You' : paidBy.name,
+                    splitAmount: split.amount,
+                    groupName: selectedGroup.name,
+                    currency,
+                  });
+                  await sendWhatsAppMessage(friend.phone, msg);
+                }
+              }
+              navigation.goBack();
+            },
+          });
           return;
         }
       }
