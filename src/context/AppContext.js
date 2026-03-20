@@ -124,6 +124,7 @@ export const AppProvider = ({ children }) => {
         calculateBalances(user.id),
         getActivity(user.id),
       ]);
+      console.log('[loadData] groups:', g.length, 'user:', user.id);
       setGroups(g); setFriends(f); setBalances(b); setActivity(a);
     } catch (e) {
       console.error('Load data error:', e);

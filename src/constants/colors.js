@@ -1,43 +1,51 @@
 export const COLORS = {
-  primary: '#1CC29F',
-  primaryDark: '#16A085',
-  primaryLight: '#E8FAF6',
-  secondary: '#FF6B6B',
-  accent: '#F39C12',
-  background: '#F5F5F5',
+  // Primary — Indigo/Violet
+  primary: '#6366F1',
+  primaryDark: '#4F46E5',
+  primaryLight: '#EEF2FF',
+  primaryGradient: ['#6366F1', '#8B5CF6'],
+
+  // Semantic
+  secondary: '#EC4899',
+  accent: '#F59E0B',
+  success: '#10B981',
+  danger: '#EF4444',
+  warning: '#F59E0B',
+  info: '#3B82F6',
+  positive: '#10B981',
+  negative: '#EF4444',
+  neutral: '#64748B',
+
+  // Surface / Layout
+  background: '#F8F9FF',
   white: '#FFFFFF',
-  black: '#000000',
-  text: '#2C3E50',
-  textLight: '#7F8C8D',
-  textMuted: '#95A5A6',
-  border: '#E8E8E8',
-  danger: '#E74C3C',
-  success: '#27AE60',
-  warning: '#F39C12',
-  info: '#3498DB',
+  black: '#0F172A',
   card: '#FFFFFF',
-  shadow: 'rgba(0,0,0,0.08)',
-  overlay: 'rgba(0,0,0,0.5)',
-  positive: '#27AE60',
-  negative: '#E74C3C',
-  neutral: '#7F8C8D',
+  border: '#E2E8F0',
+  shadow: 'rgba(99,102,241,0.10)',
+  overlay: 'rgba(15,23,42,0.5)',
+
+  // Typography
+  text: '#0F172A',
+  textLight: '#64748B',
+  textMuted: '#94A3B8',
 };
 
 export const CATEGORIES = [
-  { id: 'food', label: 'Food & Drink', icon: 'restaurant', color: '#FF6B6B' },
-  { id: 'housing', label: 'Housing', icon: 'home', color: '#3498DB' },
-  { id: 'transport', label: 'Transport', icon: 'car', color: '#F39C12' },
-  { id: 'entertainment', label: 'Entertainment', icon: 'musical-notes', color: '#9B59B6' },
-  { id: 'shopping', label: 'Shopping', icon: 'cart', color: '#E91E63' },
-  { id: 'utilities', label: 'Utilities', icon: 'flash', color: '#FF9800' },
-  { id: 'health', label: 'Health', icon: 'medical', color: '#27AE60' },
-  { id: 'travel', label: 'Travel', icon: 'airplane', color: '#1CC29F' },
-  { id: 'general', label: 'General', icon: 'receipt', color: '#7F8C8D' },
+  { id: 'food',          label: 'Food & Drink',   icon: 'restaurant',    color: '#F43F5E' },
+  { id: 'housing',       label: 'Housing',         icon: 'home',          color: '#3B82F6' },
+  { id: 'transport',     label: 'Transport',       icon: 'car',           color: '#F59E0B' },
+  { id: 'entertainment', label: 'Entertainment',   icon: 'musical-notes', color: '#8B5CF6' },
+  { id: 'shopping',      label: 'Shopping',        icon: 'cart',          color: '#EC4899' },
+  { id: 'utilities',     label: 'Utilities',       icon: 'flash',         color: '#F97316' },
+  { id: 'health',        label: 'Health',          icon: 'medical',       color: '#10B981' },
+  { id: 'travel',        label: 'Travel',          icon: 'airplane',      color: '#6366F1' },
+  { id: 'general',       label: 'General',         icon: 'receipt',       color: '#64748B' },
 ];
 
 export const GROUP_TYPES = [
-  { id: 'home', label: 'Home', icon: 'home' },
-  { id: 'trip', label: 'Trip', icon: 'airplane' },
+  { id: 'home',   label: 'Home',   icon: 'home' },
+  { id: 'trip',   label: 'Trip',   icon: 'airplane' },
   { id: 'couple', label: 'Couple', icon: 'heart' },
-  { id: 'other', label: 'Other', icon: 'people' },
+  { id: 'other',  label: 'Other',  icon: 'people' },
 ];

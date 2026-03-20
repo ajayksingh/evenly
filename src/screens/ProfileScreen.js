@@ -67,7 +67,7 @@ const ProfileScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.header}>
+      <LinearGradient colors={COLORS.primaryGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>

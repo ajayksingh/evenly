@@ -36,13 +36,13 @@ const MainTabs = () => (
         height: 82,
         paddingBottom: 20,
         paddingTop: 8,
-        shadowColor: '#000',
+        shadowColor: COLORS.primary,
         shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-        elevation: 10,
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 12,
       },
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+      tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: 2 },
       tabBarIcon: ({ focused, color, size }) => {
         const icons = {
           Home: focused ? 'home' : 'home-outline',

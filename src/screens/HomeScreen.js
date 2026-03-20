@@ -57,7 +57,7 @@ const HomeScreen = ({ navigation }) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
       >
         {/* Header */}
-        <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.header}>
+        <LinearGradient colors={COLORS.primaryGradient} style={styles.header}>
           <View style={styles.headerRow}>
             <View>
               <Text style={styles.greeting}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'} 👋</Text>
@@ -198,28 +198,29 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   userName: { fontSize: 24, fontWeight: '800', color: '#fff' },
   balanceCard: {
-    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 20,
     padding: 20, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
   },
-  balanceLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 6 },
-  balanceAmount: { fontSize: 36, fontWeight: '800', color: '#fff' },
-  balanceSubtext: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  balanceLabel: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 6, letterSpacing: 0.3 },
+  balanceAmount: { fontSize: 38, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  balanceSubtext: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 4 },
   statsRow: {
     flexDirection: 'row', backgroundColor: COLORS.white,
-    marginHorizontal: 16, marginTop: -1, borderRadius: 16,
+    marginHorizontal: 16, marginTop: -1, borderRadius: 20,
     marginBottom: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10, shadowRadius: 12, elevation: 4,
   },
-  statCard: { flex: 1, alignItems: 'center', paddingVertical: 16 },
+  statCard: { flex: 1, alignItems: 'center', paddingVertical: 18 },
   statCardMiddle: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: COLORS.border },
-  statAmount: { fontSize: 18, fontWeight: '700' },
-  statLabel: { fontSize: 11, color: COLORS.textLight, marginTop: 2 },
+  statAmount: { fontSize: 18, fontWeight: '800' },
+  statLabel: { fontSize: 11, color: COLORS.textLight, marginTop: 3, fontWeight: '500' },
   section: {
     backgroundColor: COLORS.white, marginHorizontal: 16, marginBottom: 12,
-    borderRadius: 16, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    borderRadius: 20, padding: 16,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
   },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 12 },

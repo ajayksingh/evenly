@@ -8,8 +8,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // ⚠️  Replace these with your actual Supabase project credentials
 // Get them from: https://supabase.com/dashboard → project → Settings → API
-export const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-export const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+export const SUPABASE_URL = 'https://eexxrssfgrybcquoocne.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleHhyc3NmZ3J5YmNxdW9vY25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTMzNjEsImV4cCI6MjA4OTUyOTM2MX0.tT8fEFrVIUkpkug5qSVCpaY-DX2qIU8qPI7NmLhtKbk';
 
 const isConfigured = !SUPABASE_URL.includes('YOUR_PROJECT_ID');
 
