@@ -7,11 +7,14 @@ const Avatar = ({ name, avatar, size = 40, fontSize }) => {
   const color = generateAvatarColor(name);
   const fs = fontSize || size * 0.38;
 
-  if (avatar) {
+  const [imgError, setImgError] = React.useState(false);
+
+  if (avatar && !imgError) {
     return (
       <Image
         source={{ uri: avatar }}
         style={{ width: size, height: size, borderRadius: size / 2 }}
+        onError={() => setImgError(true)}
       />
     );
   }

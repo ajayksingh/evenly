@@ -25,17 +25,21 @@ const GroupsScreen = ({ navigation }) => {
     if (!groupName.trim()) { Alert.alert('Error', 'Enter group name'); return; }
     setCreating(true);
     try {
+      console.log('[CreateGroup] START user=', JSON.stringify(user));
       const members = [
         { id: user.id, name: user.name, email: user.email, avatar: user.avatar },
         ...selectedMembers,
       ];
-      await createGroup({ name: groupName.trim(), type: groupType, members, createdBy: user.id });
+      console.log('[CreateGroup] members=', members.length, 'name=', groupName.trim());
+      const result = await createGroup({ name: groupName.trim(), type: groupType, members, createdBy: user.id });
+      console.log('[CreateGroup] SUCCESS id=', result?.id);
       setShowCreate(false);
       setGroupName('');
       setSelectedMembers([]);
       setGroupType('other');
       refresh();
     } catch (e) {
+      console.error('[CreateGroup] FAILED:', e?.message, e?.stack);
       Alert.alert('Error', e.message);
     } finally {
       setCreating(false);

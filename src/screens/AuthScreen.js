@@ -1,27 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
-import { registerUser } from '../services/storage';
-
-WebBrowser.maybeCompleteAuthSession();
-
-// Google OAuth using Expo proxy (no SHA key setup needed)
-const GOOGLE_CLIENT_ID = '764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com';
-const discovery = {
-  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://oauth2.googleapis.com/token',
-};
 
 const AuthScreen = () => {
-  const { login, register, loginWithOAuth, setUser } = useApp();
+  const { login, register } = useApp();
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -29,77 +17,6 @@ const AuthScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-
-  const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
-
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: GOOGLE_CLIENT_ID,
-      redirectUri,
-      scopes: ['openid', 'profile', 'email'],
-      responseType: 'token',
-    },
-    discovery
-  );
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      handleGoogleSuccess(response.params.access_token);
-    } else if (response?.type === 'error') {
-      setGoogleLoading(false);
-      Alert.alert('Google Sign-In Error', response.error?.message || 'Sign in failed');
-    } else if (response?.type === 'dismiss' || response?.type === 'cancel') {
-      setGoogleLoading(false);
-    }
-  }, [response]);
-
-  const handleGoogleSuccess = async (accessToken) => {
-    try {
-      setGoogleLoading(true);
-      const res = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch Google profile');
-      }
-
-      const gUser = await res.json();
-
-      // Use the new OAuth login function
-      const user = await loginWithOAuth({
-        id: gUser.id,
-        name: gUser.name,
-        email: gUser.email,
-        avatar: gUser.picture,
-        provider: 'google',
-      });
-
-      setUser(user);
-    } catch (e) {
-      Alert.alert('Sign-In Error', e.message || 'Failed to sign in with Google');
-      console.error('Google sign-in error:', e);
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    if (!request) {
-      Alert.alert('Not Ready', 'Google Sign-In is initializing, please try again.');
-      return;
-    }
-    setGoogleLoading(true);
-    try {
-      await promptAsync({ useProxy: true });
-    } catch (e) {
-      setGoogleLoading(false);
-      Alert.alert('Error', 'Failed to initiate Google Sign-In');
-      console.error('Google sign-in error:', e);
-    }
-    // response handled in useEffect
-  };
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -148,30 +65,6 @@ const AuthScreen = () => {
               <TouchableOpacity style={[styles.toggleBtn, mode === 'register' && styles.toggleActive]} onPress={() => setMode('register')}>
                 <Text style={[styles.toggleText, mode === 'register' && styles.toggleTextActive]}>Sign Up</Text>
               </TouchableOpacity>
-            </View>
-
-            {/* Google Sign-In Button */}
-            <TouchableOpacity
-              style={styles.googleBtn}
-              onPress={handleGoogleSignIn}
-              disabled={googleLoading || !request}
-            >
-              {googleLoading ? (
-                <ActivityIndicator color={COLORS.text} size="small" />
-              ) : (
-                <>
-                  <View style={styles.googleIcon}>
-                    <Text style={styles.googleG}>G</Text>
-                  </View>
-                  <Text style={styles.googleText}>Continue with Google</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.dividerRow}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.divider} />
             </View>
 
             {mode === 'register' && (
@@ -280,22 +173,6 @@ const styles = StyleSheet.create({
   toggleActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
   toggleText: { fontSize: 15, fontWeight: '500', color: COLORS.textLight },
   toggleTextActive: { color: COLORS.text, fontWeight: '600' },
-  googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12,
-    paddingVertical: 13, marginBottom: 16, backgroundColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
-  },
-  googleIcon: {
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: '#4285F4', alignItems: 'center', justifyContent: 'center',
-    marginRight: 10,
-  },
-  googleG: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  googleText: { fontSize: 15, fontWeight: '600', color: COLORS.text },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  divider: { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText: { marginHorizontal: 12, fontSize: 13, color: COLORS.textMuted },
   inputContainer: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: COLORS.background, borderRadius: 12,

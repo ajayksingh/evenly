@@ -13,7 +13,7 @@ import { formatCurrency, formatDate, getSimplifiedDebts } from '../utils/splitCa
 
 const GroupDetailScreen = ({ route, navigation }) => {
   const { groupId } = route.params;
-  const { user, refresh: globalRefresh } = useApp();
+  const { user, refresh: globalRefresh, notifyWrite } = useApp();
   const [group, setGroup] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [memberBalances, setMemberBalances] = useState([]);
@@ -45,6 +45,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
           await deleteExpense(expense.id);
+          notifyWrite('delete_expense');
           globalRefresh();
           loadData();
         }
@@ -69,6 +70,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       setShowAddMember(false);
       setSearchEmail('');
       setFoundUser(null);
+      notifyWrite('add_member');
       globalRefresh();
       loadData();
     } catch (e) {

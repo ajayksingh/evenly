@@ -123,7 +123,10 @@ const FriendsScreen = ({ navigation }) => {
     return (
       <TouchableOpacity
         style={styles.friendCard}
-        onPress={() => navigation.navigate('FriendDetail', { friend: item, balance })}
+        onPress={() => hasBalance && navigation.navigate('SettleUp', {
+          preselectedPayer: balance.amount < 0 ? user.id : item.id,
+          preselectedReceiver: balance.amount < 0 ? item.id : user.id,
+        })}
       >
         <Avatar name={item.name} avatar={item.avatar} size={48} />
         <View style={styles.friendInfo}>

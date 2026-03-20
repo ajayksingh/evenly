@@ -10,7 +10,6 @@ import { COLORS } from '../constants/colors';
 import Avatar from '../components/Avatar';
 import { updateUserProfile } from '../services/storage';
 import { formatAmount, SUPPORTED_CURRENCIES } from '../services/currency';
-import { revokeAccessToken } from '../services/googleAuth';
 
 const ProfileScreen = ({ navigation }) => {
   const { user, logout, setUser, balances, groups, currency, refresh } = useApp();
@@ -46,10 +45,6 @@ const ProfileScreen = ({ navigation }) => {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          // Revoke Google token if user logged in with Google
-          if (user?.provider === 'google') {
-            await revokeAccessToken();
-          }
           logout();
         },
       },

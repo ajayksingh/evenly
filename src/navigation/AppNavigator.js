@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
+import SyncBanner from '../components/SyncBanner';
 
 import AuthScreen from '../screens/AuthScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -61,26 +62,29 @@ const MainTabs = () => (
 );
 
 const AppNavigator = () => {
-  const { user, loading } = useApp();
+  const { user, loading, syncStatus } = useApp();
 
   if (loading) return null;
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
-        {!user ? (
-          <Stack.Screen name="Auth" component={AuthScreen} />
-        ) : (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="GroupDetail" component={GroupDetailScreen} options={{ presentation: 'card' }} />
-            <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ presentation: 'modal' }} />
-            <Stack.Screen name="SettleUp" component={SettleUpScreen} options={{ presentation: 'modal' }} />
-            <Stack.Screen name="Profile" component={ProfileScreen} options={{ presentation: 'card' }} />
-            <Stack.Screen name="Currency" component={CurrencyScreen} options={{ presentation: 'card' }} />
-          </>
-        )}
-      </Stack.Navigator>
+      <View style={{ flex: 1 }}>
+        <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
+          {!user ? (
+            <Stack.Screen name="Auth" component={AuthScreen} />
+          ) : (
+            <>
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen name="GroupDetail" component={GroupDetailScreen} options={{ presentation: 'card' }} />
+              <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ presentation: 'modal' }} />
+              <Stack.Screen name="SettleUp" component={SettleUpScreen} options={{ presentation: 'modal' }} />
+              <Stack.Screen name="Profile" component={ProfileScreen} options={{ presentation: 'card' }} />
+              <Stack.Screen name="Currency" component={CurrencyScreen} options={{ presentation: 'card' }} />
+            </>
+          )}
+        </Stack.Navigator>
+        <SyncBanner status={syncStatus} />
+      </View>
     </NavigationContainer>
   );
 };

@@ -1,9 +1,10 @@
 /**
  * Local Storage Service - AsyncStorage based
- * Acts as primary data store with optional Firebase sync
- * Free, offline-first approach
+ * Acts as primary data store with Supabase sync
+ * Offline-first: writes go local first, then sync queue
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { enqueueUpsert, enqueueDelete } from './syncService';
 
 // Simple UUID generator (no crypto dependency)
 const uuidv4 = () => {
@@ -56,6 +57,7 @@ export const registerUser = async ({ name, email, password }) => {
   await setData(KEYS.USERS, [...users, user]);
   const { password: _, ...safeUser } = user;
   await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(safeUser));
+  enqueueUpsert(KEYS.USERS, safeUser);
   return safeUser;
 };
 
@@ -68,42 +70,6 @@ export const loginUser = async ({ email, password }) => {
   return safeUser;
 };
 
-/**
- * Login or register user with OAuth credentials
- * Used for Google Sign-In and other OAuth providers
- */
-export const loginOrRegisterOAuthUser = async ({ id, name, email, avatar, provider }) => {
-  const users = await getData(KEYS.USERS);
-  let user = users.find(u => u.email === email);
-
-  if (!user) {
-    // Register new OAuth user
-    user = {
-      id: uuidv4(),
-      name: name || email.split('@')[0],
-      email,
-      password: null, // No password for OAuth
-      avatar: avatar || null,
-      phone: '',
-      provider,
-      oauthId: id,
-      createdAt: new Date().toISOString(),
-    };
-    await setData(KEYS.USERS, [...users, user]);
-  } else {
-    // Update existing user with OAuth info if not already set
-    if (!user.provider) {
-      user.provider = provider;
-      user.oauthId = id;
-      if (!user.avatar) user.avatar = avatar;
-      await setData(KEYS.USERS, users);
-    }
-  }
-
-  const { password: _, ...safeUser } = user;
-  await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(safeUser));
-  return safeUser;
-};
 
 export const logoutUser = async () => {
   await AsyncStorage.removeItem(KEYS.CURRENT_USER);
@@ -124,6 +90,7 @@ export const updateUserProfile = async (userId, updates) => {
   await setData(KEYS.USERS, users);
   const { password: _, ...safeUser } = users[idx];
   await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(safeUser));
+  enqueueUpsert(KEYS.USERS, safeUser);
   return safeUser;
 };
 
@@ -143,6 +110,7 @@ export const addFriend = async (currentUserId, email) => {
 
   const entry = { id: uuidv4(), userId: currentUserId, friendId: friend.id, createdAt: new Date().toISOString() };
   await setData(KEYS.FRIENDS, [...friends, entry]);
+  enqueueUpsert(KEYS.FRIENDS, entry);
   return friend;
 };
 
@@ -159,7 +127,9 @@ export const getFriends = async (userId) => {
 
 // --- Groups ---
 export const createGroup = async (group) => {
+  console.log('[storage.createGroup] called with', group?.name);
   const groups = await getData(KEYS.GROUPS);
+  console.log('[storage.createGroup] existing groups count:', groups.length);
   const newGroup = {
     id: uuidv4(),
     ...group,
@@ -167,6 +137,8 @@ export const createGroup = async (group) => {
     updatedAt: new Date().toISOString(),
   };
   await setData(KEYS.GROUPS, [...groups, newGroup]);
+  console.log('[storage.createGroup] saved, adding activity...');
+  enqueueUpsert(KEYS.GROUPS, newGroup);
   await addActivity({
     type: 'group_created',
     groupId: newGroup.id,
@@ -174,6 +146,7 @@ export const createGroup = async (group) => {
     userId: group.createdBy,
     createdAt: new Date().toISOString(),
   });
+  console.log('[storage.createGroup] done, returning', newGroup.id);
   return newGroup;
 };
 
@@ -193,6 +166,7 @@ export const updateGroup = async (groupId, updates) => {
   if (idx === -1) throw new Error('Group not found');
   groups[idx] = { ...groups[idx], ...updates, updatedAt: new Date().toISOString() };
   await setData(KEYS.GROUPS, groups);
+  enqueueUpsert(KEYS.GROUPS, groups[idx]);
   return groups[idx];
 };
 
@@ -216,6 +190,7 @@ export const addExpense = async (expense) => {
     createdAt: new Date().toISOString(),
   };
   await setData(KEYS.EXPENSES, [...expenses, newExpense]);
+  enqueueUpsert(KEYS.EXPENSES, newExpense);
   await addActivity({
     type: 'expense_added',
     expenseId: newExpense.id,
@@ -247,6 +222,7 @@ export const getAllExpenses = async (userId) => {
 export const deleteExpense = async (expenseId) => {
   const expenses = await getData(KEYS.EXPENSES);
   await setData(KEYS.EXPENSES, expenses.filter(e => e.id !== expenseId));
+  enqueueDelete(KEYS.EXPENSES, expenseId);
 };
 
 // --- Balances ---
@@ -341,6 +317,7 @@ export const recordSettlement = async (settlement) => {
     createdAt: new Date().toISOString(),
   };
   await setData(KEYS.SETTLEMENTS, [...settlements, newSettlement]);
+  enqueueUpsert(KEYS.SETTLEMENTS, newSettlement);
   await addActivity({
     type: 'settlement',
     settlementId: newSettlement.id,
@@ -358,6 +335,7 @@ export const addActivity = async (activity) => {
   const activities = await getData(KEYS.ACTIVITY);
   const newActivity = { id: uuidv4(), ...activity };
   await setData(KEYS.ACTIVITY, [newActivity, ...activities].slice(0, 200));
+  enqueueUpsert(KEYS.ACTIVITY, newActivity);
 };
 
 export const getActivity = async (userId) => {

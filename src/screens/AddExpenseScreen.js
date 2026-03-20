@@ -13,7 +13,7 @@ import { SPLIT_TYPES, calculateEqualSplit, calculatePercentageSplit, calculateSh
 import { formatAmount, getCurrencySymbol } from '../services/currency';
 
 const AddExpenseScreen = ({ route, navigation }) => {
-  const { user, groups, friends, currency, refresh } = useApp();
+  const { user, groups, friends, currency, refresh, notifyWrite } = useApp();
   const { groupId: initGroupId, groupName: initGroupName, members: initMembers } = route.params || {};
 
   const [description, setDescription] = useState('');
@@ -101,6 +101,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
         date: new Date().toISOString(),
       });
       refresh();
+      notifyWrite('add_expense');
 
       // WhatsApp notifications: ask user if they want to notify others
       const otherSplits = splits.filter(s => s.userId !== user.id && s.amount > 0);
@@ -253,7 +254,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
                   <Avatar name={m.name} size={32} />
                   <Text style={styles.splitName}>{m.id === user.id ? 'You' : m.name.split(' ')[0]}</Text>
                   <View style={styles.splitExactInput}>
-                    <Text style={styles.splitCurrency}>$</Text>
+                    <Text style={styles.splitCurrency}>{getCurrencySymbol(currency)}</Text>
                     <TextInput
                       style={styles.splitInput}
                       value={String(exactAmounts[m.id] || '')}

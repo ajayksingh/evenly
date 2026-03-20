@@ -47,7 +47,8 @@ export const validateExactSplit = (amount, exactAmounts) => {
 export const formatCurrency = (amount, currency = 'USD') => {
   const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹', CAD: 'C$', AUD: 'A$' };
   const symbol = symbols[currency] || '$';
-  const formatted = Math.abs(amount).toFixed(2);
+  const num = parseFloat(amount);
+  const formatted = isNaN(num) ? '0.00' : Math.abs(num).toFixed(2);
   return `${symbol}${formatted}`;
 };
 
@@ -81,7 +82,9 @@ export const getSimplifiedDebts = (balances) => {
 };
 
 export const formatDate = (dateString) => {
+  if (!dateString) return '';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
   const now = new Date();
   const diff = now - date;
   const days = Math.floor(diff / 86400000);
