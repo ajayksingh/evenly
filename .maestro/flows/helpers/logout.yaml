@@ -4,7 +4,20 @@ name: "HELPER: Logout"
 - tapOn: "Home"
 - tapOn:
     id: "header-avatar"
-- assertVisible: "Account"
+- extendedWaitUntil:
+    visible: "Account"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "profile-sign-out"
+    direction: DOWN
+    timeout: 5000
+- tapOn:
+    id: "profile-sign-out"
+- extendedWaitUntil:
+    visible: "Sign Out"
+    timeout: 3000
 - tapOn: "Sign Out"
-- tapOn: "Sign Out"
-- assertVisible: "Sign In"
+- extendedWaitUntil:
+    visible: "Sign In"
+    timeout: 8000

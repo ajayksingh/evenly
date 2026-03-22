@@ -86,6 +86,7 @@ const CreateGroupScreen = ({ navigation }) => {
             <TouchableOpacity
               activeOpacity={0.7}
               key={t.id}
+              testID={`group-type-${t.id}`}
               style={[styles.typeBtn, groupType === t.id && styles.typeBtnActive]}
               onPress={() => setGroupType(t.id)}
             >

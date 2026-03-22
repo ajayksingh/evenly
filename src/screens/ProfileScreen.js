@@ -50,8 +50,8 @@ const ProfileScreen = ({ navigation }) => {
     });
   };
 
-  const MenuRow = ({ icon, iconColor = COLORS.primary, title, subtitle, onPress, rightElement, danger }) => (
-    <TouchableOpacity activeOpacity={0.7} style={styles.menuRow} onPress={onPress} disabled={!onPress && !rightElement}>
+  const MenuRow = ({ icon, iconColor = COLORS.primary, title, subtitle, onPress, rightElement, danger, testID }) => (
+    <TouchableOpacity activeOpacity={0.7} style={styles.menuRow} onPress={onPress} disabled={!onPress && !rightElement} testID={testID}>
       <View style={[styles.menuIcon, { backgroundColor: (danger ? COLORS.danger : iconColor) + '15' }]}>
         <Ionicons name={icon} size={20} color={danger ? COLORS.danger : iconColor} />
       </View>
@@ -129,7 +129,7 @@ const ProfileScreen = ({ navigation }) => {
 
       {/* Sign Out */}
       <View style={styles.section}>
-        <MenuRow icon="log-out-outline" title="Sign Out" danger onPress={handleLogout} />
+        <MenuRow icon="log-out-outline" title="Sign Out" danger onPress={handleLogout} testID="profile-sign-out" />
       </View>
 
       <View style={{ height: 100 }} />

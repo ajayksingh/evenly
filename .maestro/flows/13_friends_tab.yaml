@@ -1,13 +1,36 @@
 appId: host.exp.exponent
 name: "FRIENDS: Comprehensive friends tab suite"
 ---
+- stopApp
 - launchApp:
     clearState: true
-- assertVisible: "Sign In"
-- tapOn: "Use Demo Account (alice@demo.com)"
+- openLink: "exp://10.0.2.2:8082"
+- extendedWaitUntil:
+    visible: "Splitwise"
+    timeout: 60000
+# Tap the project to start loading (clearState may show project picker)
+- tapOn:
+    text: "splitwise"
+    optional: true
+# Wait for the Expo project dialog "Continue" button, then dismiss it
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 30000
+- tapOn: "Continue"
+# Developer tools panel may appear after Continue — reload to dismiss and get clean app start
+- tapOn:
+    text: "Reload"
+    optional: true
+# Sign In must now be visible (clearState wiped AsyncStorage)
+- extendedWaitUntil:
+    visible: "Sign In"
+    timeout: 30000
+# Fresh start — clearState wiped AsyncStorage so demo data is clean
+- runFlow:
+    file: "helpers/login_demo.yaml"
 - extendedWaitUntil:
     visible: "Total balance"
-    timeout: 20000
+    timeout: 15000
 
 # ─── 1. FRIENDS TAB LOADS ────────────────────────────────────────────────────
 - tapOn: "Friends"
@@ -22,19 +45,26 @@ name: "FRIENDS: Comprehensive friends tab suite"
 # ─── 3. OPEN ADD FRIEND MODAL ────────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
-- assertVisible: "Add Friend"
+- extendedWaitUntil:
+    visible: "Add Friend"
+    timeout: 5000
 - assertVisible: "By Email"
 - takeScreenshot: "friends_03_add_modal_open"
 
 # ─── 4. CANCEL CLOSES MODAL ──────────────────────────────────────────────────
 - tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Add Friend"
+    timeout: 5000
 - assertVisible: "Friends"
-- assertNotVisible: "Add Friend"
 - takeScreenshot: "friends_04_cancel_works"
 
 # ─── 5. ADD BOB AS FRIEND ────────────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
+- extendedWaitUntil:
+    visible: "Add Friend"
+    timeout: 5000
 - tapOn:
     id: "friends-email-input"
 - inputText: "bob@demo.com"
@@ -65,6 +95,9 @@ name: "FRIENDS: Comprehensive friends tab suite"
 # ─── 8. ADD CAROL AS SECOND FRIEND ───────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
+- extendedWaitUntil:
+    visible: "Add Friend"
+    timeout: 5000
 - tapOn:
     id: "friends-email-input"
 - inputText: "carol@demo.com"
@@ -82,6 +115,9 @@ name: "FRIENDS: Comprehensive friends tab suite"
 # ─── 9. DUPLICATE FRIEND BLOCKED ─────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
+- extendedWaitUntil:
+    visible: "Add Friend"
+    timeout: 5000
 - tapOn:
     id: "friends-email-input"
 - inputText: "bob@demo.com"
@@ -96,6 +132,9 @@ name: "FRIENDS: Comprehensive friends tab suite"
 # ─── 10. INVALID EMAIL ERROR ─────────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
+- extendedWaitUntil:
+    visible: "Add Friend"
+    timeout: 5000
 - tapOn:
     id: "friends-email-input"
 - inputText: "ghost@nowhere.xyz"
@@ -110,6 +149,9 @@ name: "FRIENDS: Comprehensive friends tab suite"
 # ─── 11. SELF-ADD BLOCKED ────────────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
+- extendedWaitUntil:
+    visible: "Add Friend"
+    timeout: 5000
 - tapOn:
     id: "friends-email-input"
 - inputText: "alice@demo.com"

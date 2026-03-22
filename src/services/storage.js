@@ -305,24 +305,25 @@ export const getGroups = async (userId, userEmail = null) => {
 };
 
 export const getGroup = async (groupId) => {
-  if (!isSupabaseConfigured()) {
-    const groups = await getData(KEYS.GROUPS);
-    return groups.find(g => g.id === groupId);
-  }
+  // Always check local storage first (demo groups stored here even when Supabase configured)
+  const localGroups = await getData(KEYS.GROUPS);
+  const localGroup = localGroups.find(g => g.id === groupId);
+  if (localGroup) return localGroup;
+  if (!isSupabaseConfigured()) return null;
   const { data } = await supabase.from('groups').select('*').eq('id', groupId).single();
   if (!data) return null;
   return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
 };
 
 export const updateGroup = async (groupId, updates) => {
-  if (!isSupabaseConfigured()) {
-    const groups = await getData(KEYS.GROUPS);
-    const idx = groups.findIndex(g => g.id === groupId);
-    if (idx === -1) throw new Error('Group not found');
-    groups[idx] = { ...groups[idx], ...updates, updatedAt: new Date().toISOString() };
-    await setData(KEYS.GROUPS, groups);
-    return groups[idx];
+  const localGroups = await getData(KEYS.GROUPS);
+  const idx = localGroups.findIndex(g => g.id === groupId);
+  if (idx !== -1) {
+    localGroups[idx] = { ...localGroups[idx], ...updates, updatedAt: new Date().toISOString() };
+    await setData(KEYS.GROUPS, localGroups);
+    return localGroups[idx];
   }
+  if (!isSupabaseConfigured()) throw new Error('Group not found');
   const { data, error } = await supabase.from('groups').update({
     ...('name' in updates && { name: updates.name }),
     ...('description' in updates && { description: updates.description }),
@@ -334,16 +335,16 @@ export const updateGroup = async (groupId, updates) => {
 };
 
 export const addMemberToGroup = async (groupId, user) => {
-  if (!isSupabaseConfigured()) {
-    const groups = await getData(KEYS.GROUPS);
-    const idx = groups.findIndex(g => g.id === groupId);
-    if (idx === -1) throw new Error('Group not found');
-    if (groups[idx].members.find(m => m.id === user.id)) throw new Error('Already a member');
-    groups[idx].members.push(user);
-    groups[idx].updatedAt = new Date().toISOString();
-    await setData(KEYS.GROUPS, groups);
-    return groups[idx];
+  const localGroups = await getData(KEYS.GROUPS);
+  const idx = localGroups.findIndex(g => g.id === groupId);
+  if (idx !== -1) {
+    if (localGroups[idx].members.find(m => m.id === user.id)) throw new Error('Already a member');
+    localGroups[idx].members.push(user);
+    localGroups[idx].updatedAt = new Date().toISOString();
+    await setData(KEYS.GROUPS, localGroups);
+    return localGroups[idx];
   }
+  if (!isSupabaseConfigured()) throw new Error('Group not found');
 
   // Fetch current group, add member, save
   const { data: group, error: fetchErr } = await supabase.from('groups').select('*').eq('id', groupId).single();
@@ -390,10 +391,13 @@ export const addExpense = async (expense) => {
 };
 
 export const getExpenses = async (groupId) => {
-  if (!isSupabaseConfigured()) {
+  // Check if this is a local (demo) group — use local storage if so
+  const localGroups = await getData(KEYS.GROUPS);
+  if (localGroups.some(g => g.id === groupId)) {
     const expenses = await getData(KEYS.EXPENSES);
     return expenses.filter(e => e.groupId === groupId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
+  if (!isSupabaseConfigured()) return [];
   const { data } = await supabase.from('expenses').select('*').eq('group_id', groupId).order('created_at', { ascending: false });
   return (data || []).map(e => ({ id: e.id, groupId: e.group_id, description: e.description, amount: e.amount, currency: e.currency, category: e.category || 'general', paidBy: e.paid_by, splits: e.splits || [], date: e.date || e.created_at, createdAt: e.created_at }));
 };
@@ -414,11 +418,12 @@ export const getAllExpenses = async (userId) => {
 };
 
 export const deleteExpense = async (expenseId) => {
-  if (!isSupabaseConfigured()) {
-    const expenses = await getData(KEYS.EXPENSES);
-    await setData(KEYS.EXPENSES, expenses.filter(e => e.id !== expenseId));
+  const localExpenses = await getData(KEYS.EXPENSES);
+  if (localExpenses.find(e => e.id === expenseId)) {
+    await setData(KEYS.EXPENSES, localExpenses.filter(e => e.id !== expenseId));
     return;
   }
+  if (!isSupabaseConfigured()) return;
   const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
   if (error) throw new Error('Failed to delete expense');
 };
@@ -659,10 +664,11 @@ export const getUserById = async (userId) => {
 };
 
 export const searchUsersByEmail = async (email) => {
-  if (!isSupabaseConfigured()) {
-    const users = await getData(KEYS.USERS);
-    return users.filter(u => u.email && u.email.toLowerCase().includes(email.toLowerCase())).map(({ password: _, ...u }) => u);
-  }
+  // Always check local users first (demo users stored here)
+  const localUsers = await getData(KEYS.USERS);
+  const localMatches = localUsers.filter(u => u.email && u.email.toLowerCase().includes(email.toLowerCase())).map(({ password: _, ...u }) => u);
+  if (localMatches.length > 0) return localMatches;
+  if (!isSupabaseConfigured()) return [];
   const { data } = await supabase.from('users').select('id,name,email,avatar,phone')
     .ilike('email', `%${email}%`).limit(10);
   return (data || []).map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '' }));

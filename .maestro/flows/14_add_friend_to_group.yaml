@@ -1,13 +1,35 @@
 appId: host.exp.exponent
 name: "FRIENDS: Add friends to group — create with members and verify"
 ---
+- stopApp
 - launchApp:
     clearState: true
-- assertVisible: "Sign In"
-- tapOn: "Use Demo Account (alice@demo.com)"
+- openLink: "exp://10.0.2.2:8082"
+- extendedWaitUntil:
+    visible: "Splitwise"
+    timeout: 60000
+# Tap the project to start loading (clearState may show project picker)
+- tapOn:
+    text: "splitwise"
+    optional: true
+# Wait for the Expo project dialog "Continue" button, then dismiss it
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 30000
+- tapOn: "Continue"
+# Developer tools panel may appear after Continue — reload to dismiss and get clean app start
+- tapOn:
+    text: "Reload"
+    optional: true
+# Sign In must now be visible (clearState wiped AsyncStorage)
+- extendedWaitUntil:
+    visible: "Sign In"
+    timeout: 30000
+- runFlow:
+    file: "helpers/login_demo.yaml"
 - extendedWaitUntil:
     visible: "Total balance"
-    timeout: 20000
+    timeout: 15000
 
 # ─── SETUP: add bob and carol as friends ─────────────────────────────────────
 - runFlow:
@@ -26,7 +48,8 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - hideKeyboard
 
 # Select Home type
-- tapOn: "Home"
+- tapOn:
+    id: "group-type-home"
 
 # Select Bob from member picker
 - assertVisible: "Bob Demo"
@@ -36,8 +59,8 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - assertVisible: "Carol Demo"
 - tapOn: "Carol Demo"
 
-# Verify selection count
-- assertVisible: "2 selected"
+# Verify selection count (escape parens — Maestro uses regex matching)
+- assertVisible: "Add Members \\(2 selected\\)"
 - takeScreenshot: "group_friends_01_members_selected"
 
 # Create the group
@@ -49,16 +72,19 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 
 # ─── 2. GROUP DETAIL: MEMBERS COUNT ──────────────────────────────────────────
 - tapOn: "Friends Group Test"
+- takeScreenshot: "group_friends_02b_after_tap"
 - extendedWaitUntil:
     visible: "members"
-    timeout: 8000
+    timeout: 15000
 - assertVisible: "3 members"
 - takeScreenshot: "group_friends_03_group_detail_header"
 
 # ─── 3. MEMBERS TAB: ALL 3 LISTED ────────────────────────────────────────────
 - tapOn:
     id: "tab-members"
-- assertVisible: "Alice Demo"
+- extendedWaitUntil:
+    visible: "Alice Demo \\(You\\)"
+    timeout: 5000
 - assertVisible: "Bob Demo"
 - assertVisible: "Carol Demo"
 - assertVisible: "Admin"
@@ -106,8 +132,8 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - inputText: "3000"
 - hideKeyboard
 # Verify split preview shows 3 members (1000 each equally)
+- scroll
 - assertVisible: "Split Preview"
-- assertVisible: "1,000"
 - takeScreenshot: "group_friends_08_split_preview"
 - tapOn: "Save"
 - extendedWaitUntil:

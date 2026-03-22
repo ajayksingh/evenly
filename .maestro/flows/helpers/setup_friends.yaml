@@ -4,23 +4,31 @@ name: "HELPER: Ensure bob and carol are friends"
 - tapOn: "Friends"
 - tapOn:
     id: "friends-add-btn"
-- assertVisible: "Add Friend"
+- extendedWaitUntil:
+    visible: "Add Friend"
+    timeout: 10000
 - tapOn:
     id: "friends-email-input"
 - inputText: "bob@demo.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"
-# OK dismisses either "Friend Added!" or "Already friends" error
+# Dismiss "Friend Added!" or "Already friends" alert
 - tapOn:
     text: "OK"
+    optional: true
+# Close modal if still open (e.g. after "Already friends" error)
+- tapOn:
+    text: "Cancel"
     optional: true
 - extendedWaitUntil:
     visible: "Friends"
     timeout: 10000
 - tapOn:
     id: "friends-add-btn"
-- assertVisible: "Add Friend"
+- extendedWaitUntil:
+    visible: "Add Friend"
+    timeout: 10000
 - tapOn:
     id: "friends-email-input"
 - inputText: "carol@demo.com"
@@ -29,6 +37,9 @@ name: "HELPER: Ensure bob and carol are friends"
     id: "friends-add-submit"
 - tapOn:
     text: "OK"
+    optional: true
+- tapOn:
+    text: "Cancel"
     optional: true
 - extendedWaitUntil:
     visible: "Friends"
