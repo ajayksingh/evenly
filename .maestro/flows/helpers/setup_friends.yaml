@@ -1,0 +1,35 @@
+appId: host.exp.exponent
+name: "HELPER: Ensure bob and carol are friends"
+---
+- tapOn: "Friends"
+- tapOn:
+    id: "friends-add-btn"
+- assertVisible: "Add Friend"
+- tapOn:
+    id: "friends-email-input"
+- inputText: "bob@demo.com"
+- hideKeyboard
+- tapOn:
+    id: "friends-add-submit"
+# OK dismisses either "Friend Added!" or "Already friends" error
+- tapOn:
+    text: "OK"
+    optional: true
+- extendedWaitUntil:
+    visible: "Friends"
+    timeout: 10000
+- tapOn:
+    id: "friends-add-btn"
+- assertVisible: "Add Friend"
+- tapOn:
+    id: "friends-email-input"
+- inputText: "carol@demo.com"
+- hideKeyboard
+- tapOn:
+    id: "friends-add-submit"
+- tapOn:
+    text: "OK"
+    optional: true
+- extendedWaitUntil:
+    visible: "Friends"
+    timeout: 10000

@@ -1,5 +1,5 @@
 appId: host.exp.exponent
-name: "FRIENDS: Add friends to group — create with members and add via members tab"
+name: "FRIENDS: Add friends to group — create with members and verify"
 ---
 - launchApp:
     clearState: true
@@ -9,39 +9,9 @@ name: "FRIENDS: Add friends to group — create with members and add via members
     visible: "Total balance"
     timeout: 20000
 
-# ─── SETUP: ensure bob and carol are friends first ───────────────────────────
-- tapOn: "Friends"
+# ─── SETUP: add bob and carol as friends ─────────────────────────────────────
 - runFlow:
-    when:
-      notVisible: "Bob Demo"
-    flow: |
-      - tapOn:
-          id: "friends-add-btn"
-      - tapOn:
-          id: "friends-email-input"
-      - inputText: "bob@demo.com"
-      - hideKeyboard
-      - tapOn:
-          id: "friends-add-submit"
-      - extendedWaitUntil:
-          visible: "Friends"
-          timeout: 10000
-
-- runFlow:
-    when:
-      notVisible: "Carol Demo"
-    flow: |
-      - tapOn:
-          id: "friends-add-btn"
-      - tapOn:
-          id: "friends-email-input"
-      - inputText: "carol@demo.com"
-      - hideKeyboard
-      - tapOn:
-          id: "friends-add-submit"
-      - extendedWaitUntil:
-          visible: "Friends"
-          timeout: 10000
+    file: "helpers/setup_friends.yaml"
 
 # ─── 1. CREATE GROUP WITH PRE-SELECTED FRIENDS ───────────────────────────────
 - tapOn: "Groups"
@@ -55,87 +25,76 @@ name: "FRIENDS: Add friends to group — create with members and add via members
 - inputText: "Friends Group Test"
 - hideKeyboard
 
-# Select group type
+# Select Home type
 - tapOn: "Home"
-- takeScreenshot: "group_friends_01_create_form"
 
-# Select Bob from member list
+# Select Bob from member picker
 - assertVisible: "Bob Demo"
 - tapOn: "Bob Demo"
-- takeScreenshot: "group_friends_02_bob_selected"
 
-# Select Carol from member list
+# Select Carol from member picker
 - assertVisible: "Carol Demo"
 - tapOn: "Carol Demo"
-- takeScreenshot: "group_friends_03_carol_selected"
 
-# Confirm 2 selected shown
+# Verify selection count
 - assertVisible: "2 selected"
+- takeScreenshot: "group_friends_01_members_selected"
 
 # Create the group
 - tapOn: "Create"
 - extendedWaitUntil:
-    visible: "Groups"
-    timeout: 8000
-- assertVisible: "Friends Group Test"
-- takeScreenshot: "group_friends_04_group_created"
-
-# ─── 2. VERIFY MEMBERS IN GROUP DETAIL ───────────────────────────────────────
-- tapOn: "Friends Group Test"
-- extendedWaitUntil:
     visible: "Friends Group Test"
     timeout: 8000
-- assertVisible: "3 members"
-- takeScreenshot: "group_friends_05_group_detail"
+- takeScreenshot: "group_friends_02_group_created"
 
-# Switch to Members tab
+# ─── 2. GROUP DETAIL: MEMBERS COUNT ──────────────────────────────────────────
+- tapOn: "Friends Group Test"
+- extendedWaitUntil:
+    visible: "members"
+    timeout: 8000
+- assertVisible: "3 members"
+- takeScreenshot: "group_friends_03_group_detail_header"
+
+# ─── 3. MEMBERS TAB: ALL 3 LISTED ────────────────────────────────────────────
 - tapOn:
     id: "tab-members"
-- assertVisible: "Members"
-- takeScreenshot: "group_friends_06_members_tab"
-
-# Verify all 3 members shown
 - assertVisible: "Alice Demo"
 - assertVisible: "Bob Demo"
 - assertVisible: "Carol Demo"
 - assertVisible: "Admin"
-- takeScreenshot: "group_friends_07_all_members"
+- takeScreenshot: "group_friends_04_members_list"
 
-# ─── 3. ADD MEMBER FROM MEMBERS TAB ─────────────────────────────────────────
-# (Only the group admin/creator sees the Add Member button)
-- runFlow:
-    when:
-      visible: "Add Member"
-    flow: |
-      - tapOn:
-          id: "add-member-btn"
-      - assertVisible: "Add Member"
-      - takeScreenshot: "group_friends_08_add_member_modal"
-      # Search for carol (already a member — should show error)
-      - tapOn:
-          id: "member-search-input"
-      - inputText: "carol@demo.com"
-      - hideKeyboard
-      - tapOn:
-          id: "member-search-btn"
-      - extendedWaitUntil:
-          visible: "Carol Demo"
-          timeout: 8000
-      - takeScreenshot: "group_friends_09_member_found"
-      - tapOn: "Cancel"
+# ─── 4. ADD MEMBER BUTTON VISIBLE FOR ADMIN ──────────────────────────────────
+- assertVisible:
+    id: "add-member-btn"
+- takeScreenshot: "group_friends_05_add_member_visible"
 
-# ─── 4. MEMBERS TAB: balances and expenses visible ───────────────────────────
+# ─── 5. OPEN ADD MEMBER MODAL AND SEARCH ─────────────────────────────────────
+- tapOn:
+    id: "add-member-btn"
+- assertVisible: "Add Member"
+- tapOn:
+    id: "member-search-input"
+- inputText: "bob@demo.com"
+- hideKeyboard
+- tapOn:
+    id: "member-search-btn"
+- extendedWaitUntil:
+    visible: "Bob Demo"
+    timeout: 8000
+- takeScreenshot: "group_friends_06_member_found"
+
+# Cancel and go back
+- tapOn: "Cancel"
+
+# ─── 6. EXPENSES TAB: EMPTY INITIALLY ────────────────────────────────────────
 - tapOn:
     id: "tab-expenses"
 - assertVisible: "No expenses yet"
-- tapOn:
-    id: "tab-balances"
-- assertVisible: "Group Balances"
-- takeScreenshot: "group_friends_10_balances_tab"
+- assertVisible: "Add First Expense"
+- takeScreenshot: "group_friends_07_no_expenses"
 
-# ─── 5. ADD EXPENSE WITH MULTIPLE MEMBERS ────────────────────────────────────
-- tapOn:
-    id: "tab-expenses"
+# ─── 7. ADD EXPENSE SPLIT ACROSS ALL 3 MEMBERS ───────────────────────────────
 - tapOn: "Add First Expense"
 - assertVisible: "Add Expense"
 - tapOn:
@@ -146,19 +105,32 @@ name: "FRIENDS: Add friends to group — create with members and add via members
     id: "expense-amount-input"
 - inputText: "3000"
 - hideKeyboard
+# Verify split preview shows 3 members (1000 each equally)
+- assertVisible: "Split Preview"
+- assertVisible: "1,000"
+- takeScreenshot: "group_friends_08_split_preview"
 - tapOn: "Save"
 - extendedWaitUntil:
     visible: "Friends Group Test"
     timeout: 10000
-- takeScreenshot: "group_friends_11_expense_added"
-
-# Verify expense in list
 - assertVisible: "Group Dinner"
-- assertVisible: "3 expenses"
-    optional: true
+- takeScreenshot: "group_friends_09_expense_in_list"
 
-# Verify balances updated
+# ─── 8. BALANCES TAB: REFLECTS EXPENSE ───────────────────────────────────────
 - tapOn:
     id: "tab-balances"
 - assertVisible: "Group Balances"
-- takeScreenshot: "group_friends_12_balances_after_expense"
+- assertVisible: "gets back"
+- takeScreenshot: "group_friends_10_balances_updated"
+
+# ─── 9. SUGGESTED SETTLEMENTS ────────────────────────────────────────────────
+- assertVisible: "Suggested Settlements"
+- assertVisible: "owes"
+- takeScreenshot: "group_friends_11_suggested_settlements"
+
+# ─── 10. HERO STATS UPDATED ──────────────────────────────────────────────────
+- tapOn:
+    id: "tab-expenses"
+- assertVisible: "Total group spending"
+- assertVisible: "per person avg"
+- takeScreenshot: "group_friends_12_hero_stats"
