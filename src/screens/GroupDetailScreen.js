@@ -114,7 +114,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       {/* Tabs */}
       <View style={styles.tabs}>
         {['expenses', 'balances', 'members'].map(t => (
-          <TouchableOpacity activeOpacity={0.7} key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
+          <TouchableOpacity testID={`tab-${t}`} activeOpacity={0.7} key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
             <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t.charAt(0).toUpperCase() + t.slice(1)}</Text>
           </TouchableOpacity>
         ))}
@@ -283,7 +283,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
               </View>
             ))}
             {group.createdBy === user.id && (
-              <TouchableOpacity activeOpacity={0.7} style={styles.addMemberBtn} onPress={() => setShowAddMember(true)}>
+              <TouchableOpacity testID="add-member-btn" activeOpacity={0.7} style={styles.addMemberBtn} onPress={() => setShowAddMember(true)}>
                 <Ionicons name="person-add" size={18} color={COLORS.primary} />
                 <Text style={styles.addMemberText}>Add Member</Text>
               </TouchableOpacity>
@@ -306,6 +306,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           </View>
           <View style={styles.searchRow}>
             <TextInput
+              testID="member-search-input"
               style={styles.searchInput}
               placeholder="Enter email address"
               value={searchEmail}
@@ -313,7 +314,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <TouchableOpacity activeOpacity={0.7} style={styles.searchBtn} onPress={handleSearchUser}>
+            <TouchableOpacity testID="member-search-btn" activeOpacity={0.7} style={styles.searchBtn} onPress={handleSearchUser}>
               {searching ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.searchBtnText}>Find</Text>}
             </TouchableOpacity>
           </View>

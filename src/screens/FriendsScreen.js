@@ -116,6 +116,7 @@ const FriendsScreen = ({ navigation }) => {
     const owesUs = balance && balance.amount > 0;
     return (
       <TouchableOpacity
+        testID="friend-card"
         activeOpacity={0.7}
         style={styles.friendCard}
         onPress={() => {}}
@@ -197,7 +198,7 @@ const FriendsScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
       <View style={styles.header}>
         <Text style={styles.title}>Friends</Text>
-        <TouchableOpacity activeOpacity={0.7} style={styles.addBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
+        <TouchableOpacity testID="friends-add-btn" activeOpacity={0.7} style={styles.addBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
           <Ionicons name="person-add" size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -269,7 +270,7 @@ const FriendsScreen = ({ navigation }) => {
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Friend</Text>
             {addMode === 'email' ? (
-              <TouchableOpacity activeOpacity={0.7} onPress={handleAddFriend} disabled={adding || !email.trim()}>
+              <TouchableOpacity testID="friends-add-submit" activeOpacity={0.7} onPress={handleAddFriend} disabled={adding || !email.trim()}>
                 {adding ? <ActivityIndicator color={COLORS.primary} size="small" /> : (
                   <Text style={[styles.saveText, !email.trim() && { opacity: 0.4 }]}>Add</Text>
                 )}
@@ -304,6 +305,7 @@ const FriendsScreen = ({ navigation }) => {
               <View style={styles.inputRow}>
                 <Ionicons name="mail-outline" size={20} color={COLORS.textLight} style={{ marginRight: 10 }} />
                 <TextInput
+                  testID="friends-email-input"
                   style={styles.emailInput}
                   placeholder="Enter friend's email"
                   value={email}

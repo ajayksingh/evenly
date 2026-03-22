@@ -1,0 +1,122 @@
+appId: host.exp.exponent
+name: "FRIENDS: Comprehensive friends tab suite"
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Sign In"
+- tapOn: "Use Demo Account (alice@demo.com)"
+- extendedWaitUntil:
+    visible: "Total balance"
+    timeout: 20000
+
+# ─── 1. FRIENDS TAB LOADS ───────────────────────────────────────────────────
+- tapOn: "Friends"
+- assertVisible: "Friends"
+- takeScreenshot: "friends_01_initial"
+
+# ─── 2. EMPTY STATE when no friends ─────────────────────────────────────────
+# (may or may not be empty depending on prior state — check both branches)
+- runFlow:
+    when:
+      visible: "No friends yet"
+    flow: |
+      - assertVisible: "Add by Email"
+      - takeScreenshot: "friends_02_empty_state"
+
+# ─── 3. OPEN ADD FRIEND MODAL ────────────────────────────────────────────────
+- tapOn:
+    id: "friends-add-btn"
+- assertVisible: "Add Friend"
+- assertVisible: "By Email"
+- assertVisible: "Enter friend's email"
+- takeScreenshot: "friends_03_add_modal_open"
+
+# ─── 4. ADD FRIEND - CANCEL ──────────────────────────────────────────────────
+- tapOn: "Cancel"
+- assertVisible: "Friends"
+- takeScreenshot: "friends_04_cancel_works"
+
+# ─── 5. ADD BOB AS FRIEND ────────────────────────────────────────────────────
+- tapOn:
+    id: "friends-add-btn"
+- assertVisible: "Add Friend"
+- tapOn:
+    id: "friends-email-input"
+- inputText: "bob@demo.com"
+- hideKeyboard
+- tapOn:
+    id: "friends-add-submit"
+- extendedWaitUntil:
+    visible: "Friends"
+    timeout: 10000
+- takeScreenshot: "friends_05_bob_added"
+
+# ─── 6. SUMMARY GRID VISIBLE ─────────────────────────────────────────────────
+- assertVisible: "settled"
+- takeScreenshot: "friends_06_summary_grid"
+
+# ─── 7. FRIEND CARD VISIBLE ──────────────────────────────────────────────────
+- assertVisible:
+    id: "friend-card"
+- assertVisible: "Bob Demo"
+- assertVisible: "bob@demo.com"
+- takeScreenshot: "friends_07_friend_card"
+
+# ─── 8. ADD CAROL AS SECOND FRIEND ──────────────────────────────────────────
+- tapOn:
+    id: "friends-add-btn"
+- assertVisible: "Add Friend"
+- tapOn:
+    id: "friends-email-input"
+- inputText: "carol@demo.com"
+- hideKeyboard
+- tapOn:
+    id: "friends-add-submit"
+- extendedWaitUntil:
+    visible: "Friends"
+    timeout: 10000
+- assertVisible: "Carol Demo"
+- takeScreenshot: "friends_08_carol_added"
+
+# ─── 9. DUPLICATE FRIEND ERROR ───────────────────────────────────────────────
+- tapOn:
+    id: "friends-add-btn"
+- assertVisible: "Add Friend"
+- tapOn:
+    id: "friends-email-input"
+- inputText: "bob@demo.com"
+- hideKeyboard
+- tapOn:
+    id: "friends-add-submit"
+- assertVisible: "Already friends"
+- tapOn: "OK"
+- tapOn: "Cancel"
+- takeScreenshot: "friends_09_duplicate_error"
+
+# ─── 10. INVALID EMAIL ERROR ─────────────────────────────────────────────────
+- tapOn:
+    id: "friends-add-btn"
+- tapOn:
+    id: "friends-email-input"
+- inputText: "notauser@nowhere.xyz"
+- hideKeyboard
+- tapOn:
+    id: "friends-add-submit"
+- assertVisible: "Error"
+- tapOn: "OK"
+- tapOn: "Cancel"
+- takeScreenshot: "friends_10_invalid_email_error"
+
+# ─── 11. SELF-ADD BLOCKED ────────────────────────────────────────────────────
+- tapOn:
+    id: "friends-add-btn"
+- tapOn:
+    id: "friends-email-input"
+- inputText: "alice@demo.com"
+- hideKeyboard
+- tapOn:
+    id: "friends-add-submit"
+- assertVisible: "Error"
+- tapOn: "OK"
+- tapOn: "Cancel"
+- takeScreenshot: "friends_11_self_add_blocked"
