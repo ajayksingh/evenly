@@ -5,25 +5,40 @@ server:
   adminConnectors:
     - type: http
       port: 8081
+  requestLog:
+    appenders:
+      - type: console
 
 database:
   driverClass: org.postgresql.Driver
-  url: jdbc:postgresql://db.your-project-ref.supabase.co:5432/postgres
+  url: jdbc:postgresql://db.eexxrssfgrybcquoocne.supabase.co:5432/postgres?sslmode=require
   user: postgres
-  password: your-db-password-here
+  # Get from: Supabase Dashboard → Settings → Database → Database password
+  password: YOUR_SUPABASE_DB_PASSWORD
   properties:
     charSet: UTF-8
-  maxWaitForConnection: 1s
+    ssl: "true"
+    sslfactory: org.postgresql.ssl.NonValidatingFactory
+  maxWaitForConnection: 5s
   validationQuery: "SELECT 1"
-  minSize: 2
-  maxSize: 8
+  validationQueryTimeout: 3s
+  minSize: 1
+  maxSize: 4
+  checkConnectionWhileIdle: true
+  evictionInterval: 10s
+  minIdleTime: 1 minute
 
 supabase:
-  jwtSecret: your-supabase-jwt-secret-here
+  # Get from: Supabase Dashboard → Settings → API → JWT Settings → JWT Secret
+  jwtSecret: YOUR_SUPABASE_JWT_SECRET
 
 logging:
   level: DEBUG
+  loggers:
+    com.ajayksingh.evenly: DEBUG
+    org.jdbi: DEBUG
   appenders:
     - type: console
       threshold: ALL
-      timeZone: UTC
+      timeZone: Asia/Kolkata
+      logFormat: "%-5p [%d{ISO8601,Asia/Kolkata}] %c{1}: %m%n%rEx"

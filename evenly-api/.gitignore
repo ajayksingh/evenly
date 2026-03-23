@@ -1,0 +1,13 @@
+target/
+*.class
+*.jar
+*.war
+
+# Local config with real credentials — never commit
+.env
+config-local.yml
+
+# IDE
+.idea/
+*.iml
+.vscode/
