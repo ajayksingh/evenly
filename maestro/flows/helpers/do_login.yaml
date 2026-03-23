@@ -1,4 +1,4 @@
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 # Reusable: performs login with EMAIL and PASS env vars
 - tapOn:

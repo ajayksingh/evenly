@@ -4,7 +4,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring } 
 import { NavigationContainer } from '@react-navigation/native';
 
 const linking = Platform.OS !== 'web' ? {
-  prefixes: ['splitwise://'],
+  prefixes: ['evenly://'],
   config: {
     screens: {
       Auth: 'login',

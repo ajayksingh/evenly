@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "splitwise",
-    "slug": "splitwise",
-    "scheme": "splitwise",
+    "name": "Evenly",
+    "slug": "evenly",
+    "scheme": "evenly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ajayksingh.splitwise",
+      "bundleIdentifier": "com.ajayksingh.evenly",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -27,13 +27,13 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.anonymous.splitwise"
+      "package": "com.ajayksingh.evenly"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
       "output": "single",
-      "baseUrl": "/splitwise"
+      "baseUrl": "/evenly"
     },
     "extra": {
       "eas": {

@@ -78,18 +78,18 @@ export const sendWhatsAppMessage = async (phone, message) => {
 
 export const buildExpenseWhatsAppMessage = ({ expense, paidBy, splitAmount, groupName, currency = 'USD' }) => {
   const symbol = { USD: '$', EUR: '€', GBP: '£', INR: '₹' }[currency] || '$';
-  return `💸 *SplitWise Expense*\n\n` +
+  return `💸 *Evenly Expense*\n\n` +
     `*${expense.description}*\n` +
     `Group: ${groupName || 'Personal'}\n` +
     `Paid by: ${paidBy}\n` +
     `Total: ${symbol}${expense.amount.toFixed(2)}\n` +
     `Your share: ${symbol}${splitAmount.toFixed(2)}\n\n` +
-    `_Sent via SplitWise App_`;
+    `_Sent via Evenly App_`;
 };
 
 export const buildSettlementWhatsAppMessage = ({ payerName, receiverName, amount, currency = 'USD' }) => {
   const symbol = { USD: '$', EUR: '€', GBP: '£', INR: '₹' }[currency] || '$';
-  return `✅ *SplitWise Payment*\n\n` +
+  return `✅ *Evenly Payment*\n\n` +
     `${payerName} paid ${receiverName} ${symbol}${amount.toFixed(2)}\n\n` +
-    `_Recorded via SplitWise App_`;
+    `_Recorded via Evenly App_`;
 };

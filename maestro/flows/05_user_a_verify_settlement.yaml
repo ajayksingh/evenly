@@ -1,6 +1,6 @@
 ---
 # Flow: User A logs back in and verifies settlement was received
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 
 # --- Logout User B ---
@@ -16,9 +16,10 @@ appId: com.anonymous.splitwise
 - waitForAnimationToEnd
 
 # --- Login as User A ---
-- assertVisible: "SplitWise"
-- tapOn: "Sign In"
-  optional: true
+- assertVisible: "Evenly"
+- tapOn:
+    text: "Sign In"
+    optional: true
 - runFlow:
     file: ./helpers/do_login.yaml
     env:
@@ -30,8 +31,9 @@ appId: com.anonymous.splitwise
 - assertVisible: "Total balance"
 
 # --- Verify activity shows the settlement ---
-- tapOn: "Activity"
-  optional: true
+- tapOn:
+    text: "Activity"
+    optional: true
 - waitForAnimationToEnd
 
 # --- Check group balances ---

@@ -3,7 +3,7 @@
  * Post-build patch: fix asset paths for GitHub Pages subdirectory deployment.
  *
  * Metro bundler hardcodes "/assets/..." absolute paths in the bundle.
- * On GitHub Pages the app lives at /splitwise/, so assets must be at /splitwise/assets/...
+ * On GitHub Pages the app lives at /evenly/, so assets must be at /evenly/assets/...
  * This script patches all JS bundles in dist/ after `expo export`.
  */
 const fs = require('fs');
@@ -21,7 +21,7 @@ if (fs.existsSync(jsDir)) {
     const filePath = path.join(jsDir, file);
     let content = fs.readFileSync(filePath, 'utf8');
     const before = (content.match(/\"\/assets\//g) || []).length;
-    content = content.replace(/\"\/assets\//g, '"/splitwise/assets/');
+    content = content.replace(/\"\/assets\//g, '"/evenly/assets/');
     if (before > 0) {
       fs.writeFileSync(filePath, content, 'utf8');
       console.log(`  Patched ${file}: ${before} asset path(s) fixed`);

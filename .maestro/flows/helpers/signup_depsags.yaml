@@ -1,4 +1,4 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "HELPER: Sign up depsags@gmail.com if not already registered"
 ---
 # Launches app fresh and registers depsags@gmail.com
@@ -7,10 +7,10 @@ name: "HELPER: Sign up depsags@gmail.com if not already registered"
     clearState: true
 - openLink: "exp://10.0.2.2:8082"
 - extendedWaitUntil:
-    visible: "Splitwise"
+    visible: "Evenly"
     timeout: 60000
 - tapOn:
-    text: "splitwise"
+    text: "Evenly"
     optional: true
 - extendedWaitUntil:
     visible: "Continue"
@@ -35,10 +35,10 @@ name: "HELPER: Sign up depsags@gmail.com if not already registered"
 - hideKeyboard
 - tapOn:
     id: "auth-password-input"
-- inputText: "abc123"
+- inputText: "demo123"
 - hideKeyboard
 - tapOn: "Confirm Password"
-- inputText: "abc123"
+- inputText: "demo123"
 - hideKeyboard
 - tapOn:
     id: "auth-submit-btn"

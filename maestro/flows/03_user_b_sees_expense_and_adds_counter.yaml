@@ -1,6 +1,6 @@
 ---
 # Flow: User B (ajsworld) logs in, sees User A's expense, adds a counter expense
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 
 # --- Step 1: Logout User A ---
@@ -18,9 +18,10 @@ appId: com.anonymous.splitwise
 - waitForAnimationToEnd
 
 # --- Step 2: Login as User B ---
-- assertVisible: "SplitWise"
-- tapOn: "Sign In"
-  optional: true
+- assertVisible: "Evenly"
+- tapOn:
+    text: "Sign In"
+    optional: true
 - runFlow:
     file: ./helpers/do_login.yaml
     env:
@@ -51,11 +52,11 @@ appId: com.anonymous.splitwise
 
 - tapOn:
     id: "expense-amount-input"
-- typeText: "600"
+- inputText: "600"
 
 - tapOn:
     id: "expense-description-input"
-- typeText: "Cab ride"
+- inputText: "Cab ride"
 
 - tapOn: "Save"
 - waitForAnimationToEnd
@@ -64,7 +65,8 @@ appId: com.anonymous.splitwise
 - assertVisible: "Cab ride"
 
 # --- Step 9: Go home and check balance ---
-- tapOn: "Home"
-  optional: true
+- tapOn:
+    text: "Home"
+    optional: true
 - waitForAnimationToEnd
 - assertVisible: "Total balance"

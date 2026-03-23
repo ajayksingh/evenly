@@ -1,6 +1,6 @@
 ---
 # Flow: User A adds User B as member, adds second expense
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 
 - launchApp:
@@ -12,8 +12,8 @@ appId: com.anonymous.splitwise
       visible: "Sign In"
     file: ./helpers/do_login.yaml
     env:
-      EMAIL: "deepsags@gmail.com"
-      PASS: "abc123"
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:
@@ -36,7 +36,7 @@ appId: com.anonymous.splitwise
 
 - tapOn:
     id: "member-search-input"
-- inputText: "ajsworld@gmail.com"
+- inputText: ${USER_B_EMAIL}
 - tapOn:
     id: "member-search-btn"
 

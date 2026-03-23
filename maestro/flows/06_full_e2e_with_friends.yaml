@@ -1,6 +1,6 @@
 ---
 # Flow: Full E2E — friends, multiple expenses, verify data persists on backend
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 
 # === USER A: Add User B as friend if not already ===
@@ -11,7 +11,7 @@ appId: com.anonymous.splitwise
 # Ensure logged in as User A
 - runFlow:
     when:
-      visible: "SplitWise"
+      visible: "Evenly"
     commands:
       - tapOn: "Sign In"
         optional: true
@@ -38,7 +38,7 @@ appId: com.anonymous.splitwise
       - tapOn:
           id: "add-friend-input"
           optional: true
-      - typeText: "ajsworld@gmail.com"
+      - inputText: "ajsworld@gmail.com"
       - tapOn: "Add"
         optional: true
       - waitForAnimationToEnd
@@ -61,12 +61,12 @@ appId: com.anonymous.splitwise
 # Amount
 - tapOn:
     id: "expense-amount-input"
-- typeText: "900"
+- inputText: "900"
 
 # Description
 - tapOn:
     id: "expense-description-input"
-- typeText: "Hotel stay"
+- inputText: "Hotel stay"
 
 # Save
 - tapOn: "Save"
@@ -82,21 +82,25 @@ appId: com.anonymous.splitwise
 - assertVisible: "members"
 
 # --- Verify back on Groups screen it shows updated total ---
-- tapOn: "Back"
-  optional: true
-- tapOn: "Groups"
-  optional: true
+- tapOn:
+    text: "Back"
+    optional: true
+- tapOn:
+    text: "Groups"
+    optional: true
 - waitForAnimationToEnd
 - assertVisible: "Maestro E2E Group"
 
 # --- Go to Activity screen ---
-- tapOn: "Activity"
-  optional: true
+- tapOn:
+    text: "Activity"
+    optional: true
 - waitForAnimationToEnd
 
 # --- Go to Home and pull-to-refresh ---
-- tapOn: "Home"
-  optional: true
+- tapOn:
+    text: "Home"
+    optional: true
 - waitForAnimationToEnd
 - scroll:
     direction: DOWN

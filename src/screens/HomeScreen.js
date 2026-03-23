@@ -96,7 +96,7 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.logoBox}>
               <Text style={styles.logoText}>S</Text>
             </View>
-            <Text style={styles.appName}>Splitwise</Text>
+            <Text style={styles.appName}>Evenly</Text>
           </View>
           <TouchableOpacity testID="header-avatar" activeOpacity={0.7} onPress={() => navigation.navigate('Profile')} style={styles.avatarBtn}>
             <Avatar name={user?.name} avatar={user?.avatar} size={40} />
@@ -211,7 +211,7 @@ const HomeScreen = ({ navigation }) => {
         {groups.length === 0 && balances.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateEmoji}>💸</Text>
-            <Text style={styles.emptyStateTitle}>Welcome to Splitwise!</Text>
+            <Text style={styles.emptyStateTitle}>Welcome to Evenly!</Text>
             <Text style={styles.emptyStateText}>Create a group and start splitting expenses with friends.</Text>
             <TouchableOpacity activeOpacity={0.7} style={styles.emptyStateBtn} onPress={() => navigation.navigate('Groups')}>
               <Text style={styles.emptyStateBtnText}>Create a Group</Text>

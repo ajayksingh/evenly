@@ -82,7 +82,7 @@ const AuthScreen = () => {
             <View style={styles.logoBox}>
               <Ionicons name="receipt" size={40} color="#fff" />
             </View>
-            <Text style={styles.appName}>SplitWise</Text>
+            <Text style={styles.appName}>Evenly</Text>
             <Text style={styles.tagline}>Split expenses, stay friends</Text>
           </View>
 

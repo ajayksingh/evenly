@@ -1,4 +1,4 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "PROFILE-01: Profile screen opens, shows user info"
 ---
 - runFlow:
@@ -10,7 +10,7 @@ name: "PROFILE-01: Profile screen opens, shows user info"
 - extendedWaitUntil:
     visible: "Account"
     timeout: 8000
-- assertVisible: "ajsworld@gmail.com"
+- assertVisible: "alice@demo.com"
 - takeScreenshot: "profile_01_loaded"
 
 # Go back

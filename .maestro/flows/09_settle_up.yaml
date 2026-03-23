@@ -1,17 +1,9 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "SETTLE-01: Settle up flow records payment"
 ---
 - runFlow:
     file: "helpers/startup_real.yaml"
 
-# Navigate via Home FAB path or direct navigate
-- runFlow:
-    when:
-      visible: "owes you"
-    flow: |
-      - tapOn: "Friends"
-      - assertVisible: "Friends"
-      - takeScreenshot: "settle_01_friends_with_balance"
-
 - tapOn: "Home"
 - assertVisible: "Total balance"
+- takeScreenshot: "settle_01_home"

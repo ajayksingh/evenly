@@ -1,4 +1,4 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "FRIENDS-01: Friends tab loads and add friend by email"
 ---
 - runFlow:

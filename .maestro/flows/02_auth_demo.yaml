@@ -1,28 +1,14 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "AUTH-02: Real account quick login"
 ---
 - stopApp
 - launchApp:
     clearState: true
-- openLink: "exp://10.0.2.2:8082"
-- extendedWaitUntil:
-    visible: "Splitwise"
-    timeout: 60000
-- tapOn:
-    text: "splitwise"
-    optional: true
-- extendedWaitUntil:
-    visible: "Continue"
-    timeout: 30000
-- tapOn: "Continue"
-- tapOn:
-    text: "Reload"
-    optional: true
 - extendedWaitUntil:
     visible: "Sign In"
     timeout: 30000
 - runFlow:
     file: "helpers/login_real.yaml"
 - assertVisible: "Total balance"
-- assertVisible: "Splitwise"
+- assertVisible: "Evenly"
 - takeScreenshot: "auth_02_real_home"

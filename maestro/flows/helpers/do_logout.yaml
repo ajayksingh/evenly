@@ -1,4 +1,4 @@
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 # Reusable: logs out the current user
 - tapOn:
@@ -10,4 +10,4 @@ appId: com.anonymous.splitwise
     direction: DOWN
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
-- assertVisible: "SplitWise"
+- assertVisible: "Evenly"

@@ -1,23 +1,9 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "FRIENDS: Comprehensive friends tab suite"
 ---
 - stopApp
 - launchApp:
     clearState: true
-- openLink: "exp://10.0.2.2:8082"
-- extendedWaitUntil:
-    visible: "Splitwise"
-    timeout: 60000
-- tapOn:
-    text: "splitwise"
-    optional: true
-- extendedWaitUntil:
-    visible: "Continue"
-    timeout: 30000
-- tapOn: "Continue"
-- tapOn:
-    text: "Reload"
-    optional: true
 - extendedWaitUntil:
     visible: "Sign In"
     timeout: 30000
@@ -128,7 +114,7 @@ name: "FRIENDS: Comprehensive friends tab suite"
     timeout: 5000
 - tapOn:
     id: "friends-email-input"
-- inputText: "ajsworld@gmail.com"
+- inputText: "alice@demo.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"

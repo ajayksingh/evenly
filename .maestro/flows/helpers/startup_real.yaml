@@ -1,28 +1,14 @@
-appId: host.exp.exponent
-name: "HELPER: Cold start + login with real account"
+appId: com.ajayksingh.evenly
+name: "HELPER: Cold start + login"
 ---
 - stopApp
 - launchApp:
     clearState: true
-- openLink: "exp://10.0.2.2:8082"
-- extendedWaitUntil:
-    visible: "Splitwise"
-    timeout: 60000
-- tapOn:
-    text: "splitwise"
-    optional: true
-- extendedWaitUntil:
-    visible: "Continue"
-    timeout: 30000
-- tapOn: "Continue"
-- tapOn:
-    text: "Reload"
-    optional: true
 - extendedWaitUntil:
     visible: "Sign In"
     timeout: 30000
 - runFlow:
-    file: "helpers/login_real.yaml"
+    file: "login_real.yaml"
 - extendedWaitUntil:
     visible: "Total balance"
     timeout: 15000

@@ -1,6 +1,6 @@
 ---
 # Flow: Login as User A (deepsags@gmail.com)
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 env:
   EMAIL: ${USER_A_EMAIL}
   PASS: ${USER_A_PASS}
@@ -8,7 +8,7 @@ env:
 - launchApp:
     clearState: false
 - assertVisible:
-    text: "SplitWise"
+    text: "Evenly"
     optional: true
 # If already logged in, logout first
 - runFlow:

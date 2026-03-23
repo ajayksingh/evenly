@@ -1,29 +1,25 @@
 ---
 # Flow: User A (deepsags) logs in, creates group, adds expense
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 
 - launchApp:
     clearState: true
-- waitForAnimationToEnd
-
-# Dismiss any system crash dialogs (e.g. Chrome)
 - tapOn:
     text: "Close app"
     optional: true
 - tapOn:
     text: "OK"
     optional: true
-- waitForAnimationToEnd
-
-# Auth screen
-- assertVisible: "SplitWise"
+- extendedWaitUntil:
+    visible: "Evenly"
+    timeout: 30000
 - tapOn:
     id: "auth-email-input"
-- inputText: "deepsags@gmail.com"
+- inputText: ${USER_A_EMAIL}
 - tapOn:
     id: "auth-password-input"
-- inputText: "abc123"
+- inputText: ${USER_A_PASS}
 - tapOn:
     id: "auth-submit-btn"
 

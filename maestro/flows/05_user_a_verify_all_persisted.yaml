@@ -1,6 +1,6 @@
 ---
 # Flow: User A logs in fresh, verifies all data persisted from Supabase
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 
 - launchApp:
@@ -16,7 +16,7 @@ appId: com.anonymous.splitwise
     optional: true
 - waitForAnimationToEnd
 
-- assertVisible: "SplitWise"
+- assertVisible: "Evenly"
 - tapOn:
     id: "auth-email-input"
 - inputText: "deepsags@gmail.com"

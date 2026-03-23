@@ -1,9 +1,9 @@
-# Splitwise — Expense Splitting App
+# Evenly — Expense Splitting App
 
 A React Native app for managing shared expenses with friends and groups. Works on **iOS**, **Android**, and **Web**.
 
-**Web app:** https://ajayksingh.github.io/splitwise/
-**Latest Android build:** https://expo.dev/accounts/ajayksingh/projects/splitwise/builds/716bc410-14ed-4e29-8025-ca629340a4b4
+**Web app:** https://ajayksingh.github.io/evenly/
+**Latest Android build:** https://expo.dev/accounts/ajayksingh/projects/evenly/builds/716bc410-14ed-4e29-8025-ca629340a4b4
 
 ---
 
@@ -43,8 +43,8 @@ A React Native app for managing shared expenses with friends and groups. Works o
 
 ### Install
 ```bash
-git clone https://github.com/ajayksingh/splitwise.git
-cd splitwise
+git clone https://github.com/ajayksingh/evenly.git
+cd evenly
 npm install
 ```
 

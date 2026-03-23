@@ -1,30 +1,12 @@
-appId: host.exp.exponent
-name: "GROUPS-03: Group detail shows expenses, add expense, delete expense"
+appId: com.ajayksingh.evenly
+name: "GROUPS-03: Group detail shows expenses, add expense"
 ---
 - runFlow:
     file: "helpers/startup_real.yaml"
 - tapOn: "Groups"
+- waitForAnimationToEnd
 
-# Create group if none exist
-- runFlow:
-    when:
-      visible: "No groups yet"
-    flow: |
-      - tapOn:
-          id: "fab-add-group"
-      - extendedWaitUntil:
-          visible: "New Group"
-          timeout: 5000
-      - tapOn:
-          id: "group-name-input"
-      - inputText: "Detail Test Group"
-      - hideKeyboard
-      - tapOn: "Create"
-      - extendedWaitUntil:
-          visible: "Detail Test Group"
-          timeout: 8000
-
-# Tap a group
+# Tap first group if it exists
 - tapOn:
     index: 0
     text: "member"
@@ -39,12 +21,6 @@ name: "GROUPS-03: Group detail shows expenses, add expense, delete expense"
 - tapOn:
     id: "fab-add-expense"
     optional: true
-- runFlow:
-    when:
-      notVisible: "Add Expense"
-    flow: |
-      - tapOn: "Add First Expense"
-        optional: true
 - assertVisible: "Add Expense"
 - tapOn:
     id: "expense-description-input"

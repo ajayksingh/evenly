@@ -1,23 +1,9 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "AUTH-01: Login and logout cycle"
 ---
 - stopApp
 - launchApp:
     clearState: true
-- openLink: "exp://10.0.2.2:8082"
-- extendedWaitUntil:
-    visible: "Splitwise"
-    timeout: 60000
-- tapOn:
-    text: "splitwise"
-    optional: true
-- extendedWaitUntil:
-    visible: "Continue"
-    timeout: 30000
-- tapOn: "Continue"
-- tapOn:
-    text: "Reload"
-    optional: true
 - extendedWaitUntil:
     visible: "Sign In"
     timeout: 30000
@@ -25,11 +11,11 @@ name: "AUTH-01: Login and logout cycle"
 # Fill real credentials
 - tapOn:
     id: "auth-email-input"
-- inputText: "ajsworld@gmail.com"
+- inputText: "alice@demo.com"
 - hideKeyboard
 - tapOn:
     id: "auth-password-input"
-- inputText: "abc123"
+- inputText: "demo123"
 - hideKeyboard
 - tapOn:
     id: "auth-submit-btn"

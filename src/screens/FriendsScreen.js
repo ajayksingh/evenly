@@ -63,7 +63,7 @@ const FriendsScreen = ({ navigation }) => {
         confirmText: 'WhatsApp Invite',
         onConfirm: () => contact.phone && sendWhatsAppMessage(
           contact.phone,
-          `Hey ${contact.name}! I'm using SplitWise to split expenses. Join me! 💸`
+          `Hey ${contact.name}! I'm using Evenly to split expenses. Join me! 💸`
         ),
       });
       return;
@@ -77,11 +77,11 @@ const FriendsScreen = ({ navigation }) => {
       // If user not found, offer to create them
       confirmAlert({
         title: 'Not Registered',
-        message: `${contact.name} isn't on SplitWise yet. Invite via WhatsApp?`,
+        message: `${contact.name} isn't on Evenly yet. Invite via WhatsApp?`,
         confirmText: 'WhatsApp',
         onConfirm: () => contact.phone && sendWhatsAppMessage(
           contact.phone,
-          `Hey ${contact.name}! Join me on SplitWise to split expenses easily! 💸`
+          `Hey ${contact.name}! Join me on Evenly to split expenses easily! 💸`
         ),
       });
     } finally { setAdding(false); }
@@ -104,7 +104,7 @@ const FriendsScreen = ({ navigation }) => {
     }
     const amount = Math.abs(balance?.amount || 0);
     const msg = balance?.amount > 0
-      ? `Hey ${friend.name}! Just a reminder, you owe me ${formatAmount(amount, currency)} on SplitWise. 💸`
+      ? `Hey ${friend.name}! Just a reminder, you owe me ${formatAmount(amount, currency)} on Evenly. 💸`
       : `Hey ${friend.name}! I owe you ${formatAmount(amount, currency)}. Will settle soon! 💸`;
     sendWhatsAppMessage(friend.phone, msg);
   };

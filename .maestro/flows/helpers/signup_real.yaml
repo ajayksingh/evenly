@@ -1,7 +1,7 @@
-appId: host.exp.exponent
-name: "HELPER: Sign up ajsworld@gmail.com if not already registered"
+appId: com.ajayksingh.evenly
+name: "HELPER: Sign up alice@demo.com if not already registered"
 ---
-# This helper registers ajsworld@gmail.com.
+# This helper registers alice@demo.com.
 # It is safe to run multiple times: if already registered it will show an error and we dismiss.
 - tapOn: "Sign Up"
 - extendedWaitUntil:
@@ -12,14 +12,14 @@ name: "HELPER: Sign up ajsworld@gmail.com if not already registered"
 - hideKeyboard
 - tapOn:
     id: "auth-email-input"
-- inputText: "ajsworld@gmail.com"
+- inputText: "alice@demo.com"
 - hideKeyboard
 - tapOn:
     id: "auth-password-input"
-- inputText: "abc123"
+- inputText: "demo123"
 - hideKeyboard
 - tapOn: "Confirm Password"
-- inputText: "abc123"
+- inputText: "demo123"
 - hideKeyboard
 - tapOn:
     id: "auth-submit-btn"

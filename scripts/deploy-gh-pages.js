@@ -40,7 +40,7 @@ let remoteUrl;
 try {
   remoteUrl = execSync('git remote get-url origin', { cwd: root }).toString().trim();
 } catch {
-  remoteUrl = 'https://github.com/ajayksingh/splitwise.git';
+  remoteUrl = 'https://github.com/ajayksingh/evenly.git';
   console.warn(`Could not detect remote URL, defaulting to: ${remoteUrl}`);
 }
 
@@ -53,4 +53,4 @@ run(`git remote add origin ${remoteUrl}`, { cwd: dist });
 run('git push --force origin gh-pages', { cwd: dist });
 
 console.log('\nDeployment complete! GitHub Pages will update in ~1 minute.');
-console.log('URL: https://ajayksingh.github.io/splitwise/');
+console.log('URL: https://ajayksingh.github.io/evenly/');

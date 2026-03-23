@@ -1,28 +1,12 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "EXPENSE-01: Add an expense from FAB"
 ---
 - runFlow:
     file: "helpers/startup_real.yaml"
 
-# First create a group if none exists
+# Navigate to Groups tab
 - tapOn: "Groups"
-- runFlow:
-    when:
-      visible: "No groups yet"
-    flow: |
-      - tapOn:
-          id: "fab-add-group"
-      - extendedWaitUntil:
-          visible: "New Group"
-          timeout: 5000
-      - tapOn:
-          id: "group-name-input"
-      - inputText: "Test Group"
-      - hideKeyboard
-      - tapOn: "Create"
-      - extendedWaitUntil:
-          visible: "Groups"
-          timeout: 8000
+- waitForAnimationToEnd
 
 # Go back to Home and tap center FAB
 - tapOn: "Home"

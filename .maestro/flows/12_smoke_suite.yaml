@@ -1,4 +1,4 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "SMOKE: Full critical path smoke test"
 ---
 # Force-stop Expo Go first to ensure clean launch state
@@ -19,9 +19,9 @@ name: "SMOKE: Full critical path smoke test"
     text: "exp://10.0.0.118:8081"
     optional: true
 
-# Wait for Splitwise to finish loading
+# Wait for Evenly to finish loading
 - extendedWaitUntil:
-    visible: "Splitwise"
+    visible: "Evenly"
     timeout: 60000
 
 # Dismiss Expo developer menu if it appears

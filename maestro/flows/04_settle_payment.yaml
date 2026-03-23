@@ -1,6 +1,6 @@
 ---
 # Flow: User B settles payment to User A
-appId: com.anonymous.splitwise
+appId: com.ajayksingh.evenly
 ---
 
 # User B is still logged in from previous flow
@@ -26,25 +26,25 @@ appId: com.anonymous.splitwise
 
 # --- Payer is User B (already selected as current user) ---
 # --- Receiver: User A ---
-- tapOn: "deepsags"
-  optional: true
-- tapOn: "Deep"
-  optional: true
+- tapOn:
+    text: "deepsags"
+    optional: true
+- tapOn:
+    text: "Deep"
+    optional: true
 
 # --- Amount should be auto-suggested ---
 # If not, enter manually
 - tapOn:
     id: "settle-amount-input"
     optional: true
-- clearText
-  optional: true
-- typeText: "600"
-  optional: true
+- eraseText: 10
+- inputText: "600"
 
 # --- Add note ---
 - tapOn:
     text: "Add a note..."
-- typeText: "Settling cab ride"
+- inputText: "Settling cab ride"
 
 # --- Record payment ---
 - tapOn: "Record Payment"
@@ -58,6 +58,7 @@ appId: com.anonymous.splitwise
     timeout: 5000
 
 # --- Verify balance updated on Home ---
-- tapOn: "Home"
-  optional: true
+- tapOn:
+    text: "Home"
+    optional: true
 - waitForAnimationToEnd

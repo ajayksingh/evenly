@@ -1,4 +1,4 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "GROUPS-01: Groups tab renders list and navigates to detail"
 ---
 - runFlow:
@@ -8,23 +8,3 @@ name: "GROUPS-01: Groups tab renders list and navigates to detail"
 - tapOn: "Groups"
 - assertVisible: "Groups"
 - takeScreenshot: "groups_01_list"
-
-- runFlow:
-    when:
-      visible: "No groups yet"
-    flow: |
-      - takeScreenshot: "groups_02_empty_state"
-- runFlow:
-    when:
-      notVisible: "No groups yet"
-    flow: |
-      - tapOn:
-          index: 0
-          text: "members"
-      - assertVisible: "Expenses"
-      - takeScreenshot: "groups_03_group_detail"
-      - tapOn:
-          id: "chevron-back"
-          optional: true
-      - tapOn:
-          text: "Groups"

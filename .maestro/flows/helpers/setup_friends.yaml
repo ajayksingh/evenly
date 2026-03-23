@@ -1,4 +1,4 @@
-appId: host.exp.exponent
+appId: com.ajayksingh.evenly
 name: "HELPER: Ensure depsags is a friend"
 ---
 - tapOn: "Friends"
