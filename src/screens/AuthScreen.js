@@ -1,12 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
+  ActivityIndicator, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
-import { COLORS } from '../constants/colors';
+
+const BG = '#0a0a0f';
+const CARD = '#1a1a24';
+const PRIMARY = '#00d4aa';
+const PRIMARY_ALT = '#00b894';
+const BORDER = 'rgba(255,255,255,0.1)';
+const MUTED = '#a1a1aa';
+const ZINC500 = '#71717a';
+const ZINC600 = '#52525b';
+const ZINC300 = '#d4d4d8';
+
+const DEMO_USERS = [
+  { name: 'Alice Demo', email: 'alice@demo.com' },
+  { name: 'Bob Demo',   email: 'bob@demo.com'   },
+];
 
 const AuthScreen = () => {
   const { login, register, resetPassword } = useApp();
@@ -17,6 +32,37 @@ const AuthScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Entrance animations
+  const cardAnim   = useRef(new Animated.Value(0)).current;
+  const logoAnim   = useRef(new Animated.Value(0)).current;
+  const titleAnim  = useRef(new Animated.Value(0)).current;
+  const formAnim   = useRef(new Animated.Value(0)).current;
+  const demoAnim   = useRef(new Animated.Value(0)).current;
+  const blob1Anim  = useRef(new Animated.Value(0.2)).current;
+  const blob2Anim  = useRef(new Animated.Value(0.1)).current;
+  const blob3Anim  = useRef(new Animated.Value(0.15)).current;
+
+  useEffect(() => {
+    // Staggered fade-in
+    Animated.stagger(100, [
+      Animated.spring(logoAnim,  { toValue: 1, tension: 200, friction: 12, useNativeDriver: true }),
+      Animated.timing(titleAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(formAnim,  { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(demoAnim,  { toValue: 1, duration: 400, useNativeDriver: true }),
+    ]).start();
+
+    // Pulsing blobs
+    const pulse = (anim, min, max, delay) =>
+      Animated.loop(Animated.sequence([
+        Animated.timing(anim, { toValue: max, duration: 2000, delay, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: min, duration: 2000, useNativeDriver: true }),
+      ])).start();
+
+    pulse(blob1Anim, 0.15, 0.25, 0);
+    pulse(blob2Anim, 0.07, 0.14, 1000);
+    pulse(blob3Anim, 0.10, 0.20, 2000);
+  }, []);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -29,11 +75,8 @@ const AuthScreen = () => {
     }
     setLoading(true);
     try {
-      if (mode === 'login') {
-        await login(email.trim().toLowerCase(), password);
-      } else {
-        await register(name.trim(), email.trim().toLowerCase(), password);
-      }
+      if (mode === 'login') await login(email.trim().toLowerCase(), password);
+      else await register(name.trim(), email.trim().toLowerCase(), password);
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally {
@@ -43,13 +86,12 @@ const AuthScreen = () => {
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Reset Password', 'Enter your email address above, then tap Forgot Password.');
-      return;
+      Alert.alert('Reset Password', 'Enter your email above, then tap Forgot Password.'); return;
     }
     setLoading(true);
     try {
       await resetPassword(email.trim().toLowerCase());
-      Alert.alert('Check your email', `A password reset link has been sent to ${email.trim().toLowerCase()}.`);
+      Alert.alert('Check your email', `A reset link was sent to ${email.trim().toLowerCase()}.`);
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally {
@@ -57,15 +99,10 @@ const AuthScreen = () => {
     }
   };
 
-  const fillDemo = async () => {
-    const demoEmail = 'alice@demo.com';
-    const demoPassword = 'demo123';
-    setMode('login');
-    setEmail(demoEmail);
-    setPassword(demoPassword);
+  const loginAsDemo = async (demoEmail) => {
     setLoading(true);
     try {
-      await login(demoEmail, demoPassword);
+      await login(demoEmail, 'demo123');
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally {
@@ -74,95 +111,97 @@ const AuthScreen = () => {
   };
 
   return (
-    <LinearGradient colors={COLORS.primaryGradient} style={styles.gradient}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoBox}>
-              <Ionicons name="receipt" size={40} color="#fff" />
-            </View>
-            <Text style={styles.appName}>Evenly</Text>
-            <Text style={styles.tagline}>Split expenses, stay friends</Text>
-          </View>
+    <View style={styles.root}>
+      {/* Animated background blobs */}
+      <Animated.View style={[styles.blob, styles.blob1, { opacity: blob1Anim }]} />
+      <Animated.View style={[styles.blob, styles.blob2, { opacity: blob2Anim }]} />
+      <Animated.View style={[styles.blob, styles.blob3, { opacity: blob3Anim }]} />
 
-          <View style={styles.card}>
-            {/* Tab Toggle */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo + Header */}
+          <Animated.View style={[styles.header, {
+            opacity: titleAnim,
+            transform: [{ translateY: titleAnim.interpolate({ inputRange: [0,1], outputRange: [20,0] }) }],
+          }]}>
+            <Animated.View style={[styles.logoWrap, {
+              transform: [{ scale: logoAnim.interpolate({ inputRange: [0,1], outputRange: [0,1] }) }],
+            }]}>
+              <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={styles.logoBox} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                <Text style={styles.logoLetter}>E</Text>
+              </LinearGradient>
+            </Animated.View>
+            <Text style={styles.heading}>Welcome back</Text>
+            <Text style={styles.subheading}>Sign in to manage your expenses</Text>
+          </Animated.View>
+
+          {/* Login / Register Form Card */}
+          <Animated.View style={[styles.card, {
+            opacity: formAnim,
+            transform: [{ translateY: formAnim.interpolate({ inputRange: [0,1], outputRange: [20,0] }) }],
+          }]}>
+            {/* Mode Toggle */}
             <View style={styles.toggle}>
-              <TouchableOpacity activeOpacity={0.7} style={[styles.toggleBtn, mode === 'login' && styles.toggleActive]} onPress={() => setMode('login')}>
-                <Text style={[styles.toggleText, mode === 'login' && styles.toggleTextActive]}>Sign In</Text>
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7} style={[styles.toggleBtn, mode === 'register' && styles.toggleActive]} onPress={() => setMode('register')}>
-                <Text style={[styles.toggleText, mode === 'register' && styles.toggleTextActive]}>Sign Up</Text>
-              </TouchableOpacity>
+              {['login','register'].map(m => (
+                <TouchableOpacity key={m} activeOpacity={0.8} style={[styles.toggleBtn, mode === m && styles.toggleActive]} onPress={() => setMode(m)}>
+                  <Text style={[styles.toggleText, mode === m && styles.toggleTextActive]}>
+                    {m === 'login' ? 'Sign In' : 'Sign Up'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             {mode === 'register' && (
-              <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color={COLORS.textLight} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Full Name"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  autoComplete="name"
-                />
-              </View>
+              <InputField icon="person-outline" placeholder="Full Name" value={name} onChangeText={setName} autoCapitalize="words" />
             )}
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color={COLORS.textLight} style={styles.inputIcon} />
-              <TextInput
-                testID="auth-email-input"
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor={COLORS.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
+            <InputField
+              icon="mail-outline"
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              testID="auth-email-input"
+            />
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color={COLORS.textLight} style={styles.inputIcon} />
-              <TextInput
-                testID="auth-password-input"
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Password"
-                placeholderTextColor={COLORS.textMuted}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPass}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              />
-              <TouchableOpacity activeOpacity={0.7} onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-                <Ionicons name={showPass ? 'eye-off' : 'eye'} size={20} color={COLORS.textLight} />
-              </TouchableOpacity>
-            </View>
+            <InputField
+              icon="lock-closed-outline"
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPass}
+              testID="auth-password-input"
+              rightIcon={
+                <TouchableOpacity onPress={() => setShowPass(v => !v)} style={styles.eyeBtn}>
+                  <Ionicons name={showPass ? 'eye-off' : 'eye'} size={20} color={ZINC500} />
+                </TouchableOpacity>
+              }
+            />
 
             {mode === 'register' && (
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color={COLORS.textLight} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Confirm Password"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showPass}
-                  autoComplete="new-password"
-                />
-              </View>
+              <InputField icon="lock-closed-outline" placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showPass} />
             )}
 
-            <TouchableOpacity testID="auth-submit-btn" activeOpacity={0.7} style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : (
-                <Text style={styles.submitText}>{mode === 'login' ? 'Sign In' : 'Create Account'}</Text>
-              )}
+            {/* Submit */}
+            <TouchableOpacity
+              testID="auth-submit-btn"
+              activeOpacity={0.85}
+              onPress={handleSubmit}
+              disabled={loading}
+              style={styles.submitWrap}
+            >
+              <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={[styles.submitBtn, loading && { opacity: 0.5 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                {loading
+                  ? <ActivityIndicator size="small" color={BG} style={{ marginRight: 8 }} />
+                  : <Ionicons name="log-in-outline" size={20} color={BG} style={{ marginRight: 8 }} />
+                }
+                <Text style={styles.submitText}>{loading ? 'Signing in…' : 'Sign in'}</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
             {mode === 'login' && (
@@ -172,76 +211,156 @@ const AuthScreen = () => {
             )}
 
             {mode === 'login' && (
-              <TouchableOpacity activeOpacity={0.7} style={styles.demoBtn} onPress={fillDemo}>
-                <Ionicons name="flash" size={16} color={COLORS.primary} />
-                <Text style={styles.demoText}>Use Demo Account (alice@demo.com)</Text>
+              <TouchableOpacity activeOpacity={0.8} style={styles.switchRow} onPress={() => setMode('register')}>
+                <Text style={styles.switchText}>Don't have an account? <Text style={styles.switchLink}>Sign Up</Text></Text>
               </TouchableOpacity>
             )}
-          </View>
+            {mode === 'register' && (
+              <TouchableOpacity activeOpacity={0.8} style={styles.switchRow} onPress={() => setMode('login')}>
+                <Text style={styles.switchText}>Already have an account? <Text style={styles.switchLink}>Sign In</Text></Text>
+              </TouchableOpacity>
+            )}
+          </Animated.View>
 
-          <Text style={styles.footer}>
-            {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
-            <Text style={styles.footerLink} onPress={() => setMode(mode === 'login' ? 'register' : 'login')}>
-              {mode === 'login' ? 'Sign Up' : 'Sign In'}
-            </Text>
-          </Text>
+          {/* Demo Accounts Card */}
+          {mode === 'login' && (
+            <Animated.View style={[styles.demoCard, {
+              opacity: demoAnim,
+              transform: [{ translateY: demoAnim.interpolate({ inputRange: [0,1], outputRange: [20,0] }) }],
+            }]}>
+              <View style={styles.demoHeader}>
+                <Ionicons name="sparkles" size={16} color={PRIMARY} />
+                <Text style={styles.demoHeaderText}>Quick Demo Access</Text>
+              </View>
+
+              {DEMO_USERS.map((user, i) => (
+                <TouchableOpacity
+                  key={user.email}
+                  activeOpacity={0.8}
+                  style={styles.demoRow}
+                  onPress={() => loginAsDemo(user.email)}
+                >
+                  <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={styles.demoAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                    <Text style={styles.demoAvatarText}>{user.name[0]}</Text>
+                  </LinearGradient>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.demoName}>{user.name}</Text>
+                    <Text style={styles.demoEmail}>{user.email}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={ZINC500} />
+                </TouchableOpacity>
+              ))}
+
+              <Text style={styles.demoHint}>Password: <Text style={{ fontVariant: ['tabular-nums'] }}>demo123</Text></Text>
+            </Animated.View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 };
 
+const InputField = ({ icon, placeholder, value, onChangeText, testID, secureTextEntry, keyboardType, autoCapitalize, rightIcon }) => (
+  <View style={styles.inputContainer}>
+    <Ionicons name={icon} size={20} color={ZINC500} style={styles.inputIcon} />
+    <TextInput
+      testID={testID}
+      style={styles.input}
+      placeholder={placeholder}
+      placeholderTextColor={ZINC600}
+      value={value}
+      onChangeText={onChangeText}
+      secureTextEntry={secureTextEntry}
+      keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize || 'none'}
+      autoCorrect={false}
+    />
+    {rightIcon}
+  </View>
+);
+
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  scroll: { flexGrow: 1, padding: 24, justifyContent: 'center' },
-  logoContainer: { alignItems: 'center', marginBottom: 32 },
+  root: { flex: 1, backgroundColor: BG },
+  // Blobs
+  blob: { position: 'absolute', borderRadius: 999 },
+  blob1: { width: 300, height: 300, backgroundColor: PRIMARY,    top: -80,  right: -80 },
+  blob2: { width: 260, height: 260, backgroundColor: '#ff6b6b',  top: '35%', left: -80 },
+  blob3: { width: 280, height: 280, backgroundColor: '#a55eea',  bottom: 40, right: -60 },
+  // Layout
+  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 48, justifyContent: 'center' },
+  // Header
+  header: { alignItems: 'center', marginBottom: 32 },
+  logoWrap: { marginBottom: 20 },
   logoBox: {
     width: 80, height: 80, borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4, shadowRadius: 24, elevation: 16,
   },
-  appName: { fontSize: 34, fontWeight: '800', color: '#fff', letterSpacing: -1 },
-  tagline: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4, letterSpacing: 0.2 },
+  logoLetter: { fontSize: 36, fontWeight: '700', color: BG },
+  heading: { fontSize: 34, fontWeight: '700', color: '#fff', letterSpacing: -0.5, marginBottom: 8 },
+  subheading: { fontSize: 16, fontWeight: '500', color: MUTED },
+  // Form card
   card: {
-    backgroundColor: '#1a1a24', borderRadius: 28, padding: 24,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    shadowColor: 'rgba(0,212,170,0.15)', shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 1, shadowRadius: 28, elevation: 12,
+    backgroundColor: CARD, borderRadius: 24, padding: 28,
+    borderWidth: 1, borderColor: BORDER,
   },
   toggle: {
-    flexDirection: 'row', backgroundColor: COLORS.background,
+    flexDirection: 'row', backgroundColor: BG,
     borderRadius: 14, padding: 4, marginBottom: 20,
   },
   toggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12 },
-  toggleActive: { backgroundColor: 'rgba(255,255,255,0.08)', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 2 },
-  toggleText: { fontSize: 15, fontWeight: '500', color: COLORS.textLight },
-  toggleTextActive: { color: COLORS.primary, fontWeight: '700' },
+  toggleActive: { backgroundColor: 'rgba(0,212,170,0.12)' },
+  toggleText: { fontSize: 15, fontWeight: '500', color: MUTED },
+  toggleTextActive: { color: PRIMARY, fontWeight: '700' },
+  // Inputs
   inputContainer: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.background, borderRadius: 14,
-    paddingHorizontal: 14, marginBottom: 12, height: 54,
-    borderWidth: 1.5, borderColor: 'transparent',
+    backgroundColor: BG, borderRadius: 12,
+    paddingHorizontal: 14, marginBottom: 14, height: 48,
+    borderWidth: 1, borderColor: BORDER,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: 15, color: COLORS.text },
+  input: { flex: 1, fontSize: 15, color: '#fff' },
   eyeBtn: { padding: 4 },
+  // Submit button
+  submitWrap: { marginTop: 6 },
   submitBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 14,
-    height: 54, alignItems: 'center', justifyContent: 'center',
-    marginTop: 8, shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35,
-    shadowRadius: 12, elevation: 8,
+    height: 54, borderRadius: 12, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3, shadowRadius: 16, elevation: 10,
   },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
-  forgotBtn: { alignItems: 'center', marginTop: 10, padding: 8 },
-  forgotText: { color: COLORS.textLight, fontSize: 13, fontWeight: '500' },
-  demoBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    marginTop: 4, padding: 10,
+  submitText: { fontSize: 16, fontWeight: '700', color: BG },
+  forgotBtn: { alignItems: 'center', marginTop: 12, padding: 6 },
+  forgotText: { color: MUTED, fontSize: 13 },
+  switchRow: { alignItems: 'center', marginTop: 16 },
+  switchText: { color: ZINC500, fontSize: 13 },
+  switchLink: { color: PRIMARY, fontWeight: '700' },
+  // Demo card
+  demoCard: {
+    marginTop: 20, backgroundColor: CARD, borderRadius: 24,
+    padding: 24, borderWidth: 1, borderColor: BORDER,
   },
-  demoText: { color: COLORS.primary, marginLeft: 6, fontSize: 13, fontWeight: '500' },
-  footer: { textAlign: 'center', marginTop: 24, color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  footerLink: { color: '#fff', fontWeight: '700' },
+  demoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  demoHeaderText: { fontSize: 13, fontWeight: '700', color: ZINC300 },
+  demoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: BG, borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    marginBottom: 8,
+  },
+  demoAvatar: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
+  },
+  demoAvatarText: { fontSize: 16, fontWeight: '700', color: BG },
+  demoName: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  demoEmail: { fontSize: 12, color: ZINC500, marginTop: 1 },
+  demoHint: { textAlign: 'center', marginTop: 8, fontSize: 12, color: ZINC500 },
 });
 
 export default AuthScreen;
