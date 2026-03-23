@@ -36,9 +36,9 @@ import {
 // Replace with your own Firebase config from console.firebase.google.com
 const firebaseConfig = {
   apiKey: "AIzaSyDemo_REPLACE_WITH_YOUR_KEY",
-  authDomain: "splitwise-demo.firebaseapp.com",
-  projectId: "splitwise-demo",
-  storageBucket: "splitwise-demo.appspot.com",
+  authDomain: "evenly-app.firebaseapp.com",
+  projectId: "evenly-app",
+  storageBucket: "evenly-app.appspot.com",
   messagingSenderId: "123456789",
   appId: "1:123456789:web:demo",
 };
