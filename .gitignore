@@ -40,5 +40,7 @@ yarn-error.*
 /ios
 /android
 
-# Maestro test screenshots
+# Maestro test screenshots (saved to project root by Maestro CLI)
 *.png
+!assets/*.png
+!public/*.png
