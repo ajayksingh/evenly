@@ -121,7 +121,7 @@ const FriendsScreen = ({ navigation }) => {
         style={styles.friendCard}
         onPress={() => {}}
       >
-        <Avatar name={item.name} avatar={item.avatar} size={48} />
+        <Avatar name={item.name} avatar={item.avatar} size={44} />
         <View style={styles.friendInfo}>
           <Text style={styles.friendName}>{item.name}</Text>
           <Text style={styles.friendEmail}>{item.email}</Text>
@@ -131,10 +131,10 @@ const FriendsScreen = ({ navigation }) => {
           <View style={styles.balanceContainer}>
             {hasBalance ? (
               <>
-                <Text style={[styles.balanceLabel, { color: balance.amount > 0 ? COLORS.success : COLORS.negative }]}>
+                <Text style={[styles.balanceLabel, { color: balance.amount > 0 ? '#00d4aa' : '#ff6b6b' }]}>
                   {balance.amount > 0 ? 'owes you' : 'you owe'}
                 </Text>
-                <Text style={[styles.balanceAmount, { color: balance.amount > 0 ? COLORS.success : COLORS.negative }]}>
+                <Text style={[styles.balanceAmount, { color: balance.amount > 0 ? '#00d4aa' : '#ff6b6b' }]}>
                   {formatAmount(Math.abs(balance.amount), currency)}
                 </Text>
               </>
@@ -147,22 +147,22 @@ const FriendsScreen = ({ navigation }) => {
             {owesUs && (
               <TouchableOpacity
                 activeOpacity={0.7}
-                style={styles.actionPill}
+                style={styles.remindPill}
                 onPress={() => handleWhatsAppBalance(item)}
               >
-                <Text style={styles.actionPillText}>Remind</Text>
+                <Text style={styles.remindPillText}>Remind</Text>
               </TouchableOpacity>
             )}
             {owesThem && (
               <TouchableOpacity
                 activeOpacity={0.7}
-                style={styles.actionPill}
+                style={styles.settlePill}
                 onPress={() => navigation.navigate('SettleUp', {
                   preselectedPayer: user.id,
                   preselectedReceiver: item.id,
                 })}
               >
-                <Text style={styles.actionPillText}>Settle</Text>
+                <Text style={styles.settlePillText}>Settle</Text>
               </TouchableOpacity>
             )}
             {item.phone && (
@@ -206,16 +206,16 @@ const FriendsScreen = ({ navigation }) => {
       {/* BUG-006: 3-column summary grid with counts */}
       {friends.length > 0 && (
         <View style={styles.summaryGrid}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, styles.statCardOweYou]}>
             <Text style={[styles.statCount, { color: '#00d4aa' }]}>{oweYouCount}</Text>
             <Text style={styles.statLabel}>owe you</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, styles.statCardYouOwe]}>
             <Text style={[styles.statCount, { color: '#ff6b6b' }]}>{youOweCount}</Text>
             <Text style={styles.statLabel}>you owe</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statCount, { color: '#a1a1aa' }]}>{settledCount}</Text>
+          <View style={[styles.statCard, styles.statCardSettled]}>
+            <Text style={[styles.statCount, { color: '#71717a' }]}>{settledCount}</Text>
             <Text style={styles.statLabel}>settled</Text>
           </View>
         </View>
@@ -223,20 +223,22 @@ const FriendsScreen = ({ navigation }) => {
 
       {friends.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="people-outline" size={64} color={COLORS.textMuted} />
-          <Text style={styles.emptyTitle}>No friends yet</Text>
-          <Text style={styles.emptyText}>Add friends by email or import from contacts</Text>
-          <View style={styles.emptyBtns}>
-            <TouchableOpacity activeOpacity={0.7} style={styles.addFriendBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
-              <Ionicons name="mail" size={16} color="#fff" />
-              <Text style={styles.addFriendBtnText}>Add by Email</Text>
-            </TouchableOpacity>
-            {Platform.OS !== 'web' && (
-              <TouchableOpacity activeOpacity={0.7} style={[styles.addFriendBtn, { backgroundColor: '#25D366' }]} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
-                <Ionicons name="people" size={16} color="#fff" />
-                <Text style={styles.addFriendBtnText}>From Contacts</Text>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyEmoji}>👥</Text>
+            <Text style={styles.emptyTitle}>No friends yet</Text>
+            <Text style={styles.emptyText}>Add friends by email or import from contacts to start splitting expenses</Text>
+            <View style={styles.emptyBtns}>
+              <TouchableOpacity activeOpacity={0.7} style={styles.addFriendBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
+                <Ionicons name="mail" size={16} color="#fff" />
+                <Text style={styles.addFriendBtnText}>Add by Email</Text>
               </TouchableOpacity>
-            )}
+              {Platform.OS !== 'web' && (
+                <TouchableOpacity activeOpacity={0.7} style={[styles.addFriendBtn, { backgroundColor: 'rgba(37,211,102,0.18)' }]} onPress={() => { setShowAdd(true); setAddMode('contacts'); loadContacts(); }}>
+                  <Ionicons name="people" size={16} color="#25D366" />
+                  <Text style={[styles.addFriendBtnText, { color: '#25D366' }]}>From Contacts</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
       ) : (
@@ -245,9 +247,18 @@ const FriendsScreen = ({ navigation }) => {
           sections={sections}
           keyExtractor={item => item.id}
           renderItem={renderFriend}
-          renderSectionHeader={({ section: { title } }) => (
-            <Text style={styles.sectionHeader}>{title}</Text>
-          )}
+          renderSectionHeader={({ section: { title } }) => {
+            const dotColor =
+              title === 'People who owe you' ? '#00d4aa'
+              : title === 'People you owe' ? '#ff6b6b'
+              : '#71717a';
+            return (
+              <View style={styles.sectionHeaderRow}>
+                <View style={[styles.sectionDot, { backgroundColor: dotColor }]} />
+                <Text style={styles.sectionHeader}>{title}</Text>
+              </View>
+            );
+          }}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
@@ -265,7 +276,7 @@ const FriendsScreen = ({ navigation }) => {
       <Modal visible={showAdd} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowAdd(false); setEmail(''); setContacts([]); setContactSearch(''); }}>
+            <TouchableOpacity testID="modal-cancel-btn" activeOpacity={0.7} style={{ padding: 8 }} onPress={() => { setShowAdd(false); setEmail(''); setContacts([]); setContactSearch(''); }}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Friend</Text>
@@ -285,7 +296,7 @@ const FriendsScreen = ({ navigation }) => {
               style={[styles.modeBtn, addMode === 'email' && styles.modeBtnActive]}
               onPress={() => setAddMode('email')}
             >
-              <Ionicons name="mail" size={16} color={addMode === 'email' ? '#fff' : COLORS.textLight} />
+              <Ionicons name="mail" size={16} color={addMode === 'email' ? '#00d4aa' : COLORS.textLight} />
               <Text style={[styles.modeBtnText, addMode === 'email' && styles.modeBtnTextActive]}>By Email</Text>
             </TouchableOpacity>
             {Platform.OS !== 'web' && (
@@ -294,7 +305,7 @@ const FriendsScreen = ({ navigation }) => {
                 style={[styles.modeBtn, addMode === 'contacts' && styles.modeBtnActive]}
                 onPress={() => { setAddMode('contacts'); if (contacts.length === 0) loadContacts(); }}
               >
-                <Ionicons name="people" size={16} color={addMode === 'contacts' ? '#fff' : COLORS.textLight} />
+                <Ionicons name="people" size={16} color={addMode === 'contacts' ? '#00d4aa' : COLORS.textLight} />
                 <Text style={[styles.modeBtnText, addMode === 'contacts' && styles.modeBtnTextActive]}>Contacts</Text>
               </TouchableOpacity>
             )}
@@ -399,78 +410,180 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10,10,15,0.95)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   title: { fontSize: 28, fontWeight: '800', color: COLORS.text },
-  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  // BUG-006: 3-column stat grid
+  addBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,212,170,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Summary stat cards
   summaryGrid: { flexDirection: 'row', marginHorizontal: 16, marginTop: 16, marginBottom: 8, gap: 10 },
-  statCard: { flex: 1, backgroundColor: '#1a1a24', borderRadius: 16, padding: 16, alignItems: 'center' },
-  statCount: { fontSize: 24, fontWeight: '700' },
-  statLabel: { fontSize: 12, color: '#a1a1aa', marginTop: 4 },
-  // BUG-007: Section headers
-  sectionHeader: { fontSize: 12, fontWeight: '700', color: '#a1a1aa', textTransform: 'uppercase', marginHorizontal: 16, marginTop: 16, marginBottom: 4 },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#1a1a24',
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  statCardOweYou: { borderTopWidth: 2, borderTopColor: '#00d4aa' },
+  statCardYouOwe: { borderTopWidth: 2, borderTopColor: '#ff6b6b' },
+  statCardSettled: { borderTopWidth: 2, borderTopColor: '#71717a' },
+  statCount: { fontSize: 18, fontWeight: '700' },
+  statLabel: { fontSize: 11, color: '#a1a1aa', marginTop: 4 },
+
+  // Section headers
+  sectionHeaderRow: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 16, marginTop: 20, marginBottom: 6,
+  },
+  sectionDot: { width: 6, height: 6, borderRadius: 3, marginRight: 8 },
+  sectionHeader: {
+    fontSize: 12, fontWeight: '700', color: '#a1a1aa',
+    textTransform: 'uppercase', letterSpacing: 1,
+  },
+
+  // Friend balance cards
   friendCard: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a24',
-    marginHorizontal: 16, marginTop: 8, borderRadius: 20, padding: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    marginHorizontal: 16, marginBottom: 8, borderRadius: 20, padding: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08, shadowRadius: 16,
   },
   friendInfo: { flex: 1, marginLeft: 12 },
-  friendName: { fontSize: 16, fontWeight: '600', color: COLORS.text },
+  friendName: { fontSize: 15, fontWeight: '600', color: '#fff' },
   friendEmail: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
-  friendPhone: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
+  friendPhone: { fontSize: 12, color: '#71717a', marginTop: 1 },
   rightCol: { alignItems: 'flex-end', gap: 6 },
   balanceContainer: { alignItems: 'flex-end' },
   balanceLabel: { fontSize: 12, fontWeight: '500' },
-  balanceAmount: { fontSize: 16, fontWeight: '700' },
-  settledUp: { fontSize: 13, color: COLORS.textMuted, fontStyle: 'italic' },
-  // BUG-008: Action row with pill buttons
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  actionPill: {
-    backgroundColor: 'rgba(0,212,170,0.12)', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 5,
+  balanceAmount: { fontSize: 14, fontWeight: '700' },
+  settledUp: { fontSize: 12, color: '#71717a' },
+
+  // Action pill buttons
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  remindPill: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 999, height: 30, paddingHorizontal: 12,
+    alignItems: 'center', justifyContent: 'center',
   },
-  actionPillText: { fontSize: 12, fontWeight: '600', color: '#00d4aa' },
-  waBtn: { backgroundColor: COLORS.primaryLight, borderRadius: 20, width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
-  waIcon: { fontSize: 16 },
-  importContactsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, margin: 16, backgroundColor: COLORS.white, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.primary, borderStyle: 'dashed' },
-  importContactsText: { color: COLORS.primary, fontWeight: '600', marginLeft: 8 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyTitle: { fontSize: 22, fontWeight: '700', color: COLORS.text, marginTop: 16 },
-  emptyText: { fontSize: 15, color: COLORS.textLight, textAlign: 'center', marginTop: 8, lineHeight: 22 },
-  emptyBtns: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  addFriendBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11 },
-  addFriendBtnText: { color: '#fff', fontWeight: '700', marginLeft: 6, fontSize: 13 },
-  modal: { flex: 1, backgroundColor: COLORS.background, padding: 20 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingTop: 12 },
+  remindPillText: { fontSize: 12, fontWeight: '600', color: '#a1a1aa' },
+  settlePill: {
+    backgroundColor: 'rgba(0,212,170,0.12)',
+    borderRadius: 999, height: 30, paddingHorizontal: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  settlePillText: { fontSize: 12, fontWeight: '600', color: '#00d4aa' },
+  waBtn: {
+    backgroundColor: 'rgba(37,211,102,0.12)',
+    borderRadius: 999, width: 30, height: 30,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  waIcon: { fontSize: 15 },
+
+  // Import contacts footer row
+  importContactsRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    padding: 16, margin: 16,
+    backgroundColor: '#1a1a24', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(0,212,170,0.2)', borderStyle: 'dashed',
+  },
+  importContactsText: { color: '#00d4aa', fontWeight: '600', marginLeft: 8 },
+
+  // Empty state
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  emptyCard: {
+    backgroundColor: '#1a1a24', borderRadius: 24, padding: 32,
+    alignItems: 'center', width: '100%',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1, shadowRadius: 16,
+  },
+  emptyEmoji: { fontSize: 48, marginBottom: 12 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  emptyText: { fontSize: 14, color: '#a1a1aa', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  emptyBtns: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', justifyContent: 'center' },
+  addFriendBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(0,212,170,0.15)',
+    borderRadius: 999, paddingHorizontal: 18, paddingVertical: 11,
+  },
+  addFriendBtnText: { color: '#00d4aa', fontWeight: '700', marginLeft: 6, fontSize: 13 },
+
+  // Add Friend Modal
+  modal: {
+    flex: 1, backgroundColor: '#1a1a24', padding: 20,
+    borderTopLeftRadius: Platform.OS === 'ios' ? 28 : 0,
+    borderTopRightRadius: Platform.OS === 'ios' ? 28 : 0,
+  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 12 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  cancelText: { fontSize: 16, color: COLORS.textLight },
-  saveText: { fontSize: 16, color: COLORS.primary, fontWeight: '700' },
-  modeToggle: { flexDirection: 'row', backgroundColor: COLORS.background, borderRadius: 12, padding: 4, marginBottom: 20 },
-  modeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
-  modeBtnActive: { backgroundColor: COLORS.primary },
-  modeBtnText: { fontSize: 14, color: COLORS.textLight, fontWeight: '500' },
-  modeBtnTextActive: { color: '#fff', fontWeight: '700' },
+  cancelText: { fontSize: 16, color: '#a1a1aa' },
+  saveText: { fontSize: 16, color: '#00d4aa', fontWeight: '700' },
+
+  // Tab toggle
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#0a0a0f',
+    borderRadius: 12, padding: 4, marginBottom: 20,
+  },
+  modeBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 10, borderRadius: 10, gap: 6,
+  },
+  modeBtnActive: {
+    borderBottomWidth: 2, borderBottomColor: '#00d4aa',
+  },
+  modeBtnText: { fontSize: 14, color: '#a1a1aa', fontWeight: '500' },
+  modeBtnTextActive: { color: '#00d4aa', fontWeight: '700' },
+
+  // Email input
   inputRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 14, padding: 16, marginBottom: 16,
   },
   emailInput: { flex: 1, fontSize: 16, color: COLORS.text },
-  hintBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: COLORS.primaryLight, padding: 12, borderRadius: 10 },
-  hintText: { flex: 1, fontSize: 13, color: COLORS.primary, marginLeft: 8, lineHeight: 18 },
+  hintBox: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: 'rgba(0,212,170,0.08)', padding: 12, borderRadius: 12,
+  },
+  hintText: { flex: 1, fontSize: 13, color: '#00d4aa', marginLeft: 8, lineHeight: 18 },
+
   contactsLoading: { alignItems: 'center', paddingVertical: 60 },
-  loadingText: { marginTop: 12, color: COLORS.textLight },
+  loadingText: { marginTop: 12, color: '#a1a1aa' },
+
+  // Contact search
   contactSearchRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12,
   },
   contactSearch: { flex: 1, fontSize: 15, color: COLORS.text },
-  contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  contactRowAdded: { opacity: 0.5 },
+
+  // Contact rows
+  contactRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a24', borderRadius: 12,
+    paddingVertical: 10, paddingHorizontal: 12, marginBottom: 6,
+  },
+  contactRowAdded: { opacity: 0.45 },
   contactInfo: { flex: 1, marginLeft: 12 },
   contactName: { fontSize: 15, fontWeight: '600', color: COLORS.text },
   contactDetail: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
-  alreadyBadge: { backgroundColor: COLORS.primaryLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  alreadyText: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
-  addContactBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  noContacts: { textAlign: 'center', color: COLORS.textLight, paddingVertical: 40 },
+  alreadyBadge: {
+    backgroundColor: 'rgba(0,212,170,0.1)', borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
+  alreadyText: { fontSize: 12, color: '#00d4aa', fontWeight: '600' },
+  addContactBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(0,212,170,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  noContacts: { textAlign: 'center', color: '#a1a1aa', paddingVertical: 40 },
 });
 
 export default FriendsScreen;

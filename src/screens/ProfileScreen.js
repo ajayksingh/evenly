@@ -4,7 +4,6 @@ import {
   Alert, TextInput, Modal, Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
 import Avatar from '../components/Avatar';
@@ -50,28 +49,33 @@ const ProfileScreen = ({ navigation }) => {
     });
   };
 
-  const MenuRow = ({ icon, iconColor = COLORS.primary, title, subtitle, onPress, rightElement, danger, testID }) => (
-    <TouchableOpacity activeOpacity={0.7} style={styles.menuRow} onPress={onPress} disabled={!onPress && !rightElement} testID={testID}>
-      <View style={[styles.menuIcon, { backgroundColor: (danger ? COLORS.danger : iconColor) + '15' }]}>
-        <Ionicons name={icon} size={20} color={danger ? COLORS.danger : iconColor} />
-      </View>
-      <View style={styles.menuContent}>
-        <Text style={[styles.menuTitle, danger && { color: COLORS.danger }]}>{title}</Text>
-        {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-      </View>
-      {rightElement || (onPress && <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />)}
-    </TouchableOpacity>
-  );
+  const MenuRow = ({ icon, iconColor = '#00d4aa', title, subtitle, onPress, rightElement, danger, testID }) => {
+    const resolvedColor = danger ? '#ff6b6b' : iconColor;
+    return (
+      <TouchableOpacity activeOpacity={0.7} style={styles.menuRow} onPress={onPress} disabled={!onPress && !rightElement} testID={testID}>
+        <View style={[styles.menuIcon, { backgroundColor: resolvedColor + '20' }]}>
+          <Ionicons name={icon} size={20} color={resolvedColor} />
+        </View>
+        <View style={styles.menuContent}>
+          <Text style={[styles.menuTitle, danger && { color: '#ff6b6b' }]}>{title}</Text>
+          {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
+        </View>
+        {rightElement || (onPress && <Ionicons name="chevron-forward" size={16} color="#52525b" />)}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Hero Card */}
-      <LinearGradient colors={COLORS.primaryGradient} style={styles.header}>
+      <View style={styles.header}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
         <TouchableOpacity activeOpacity={0.7} style={styles.profileTop} onPress={() => setShowEdit(true)}>
-          <Avatar name={user?.name} avatar={user?.avatar} size={80} />
+          <View style={styles.avatarCircle}>
+            <Avatar name={user?.name} avatar={user?.avatar} size={80} />
+          </View>
           <View style={styles.editBadge}><Ionicons name="pencil" size={12} color="#fff" /></View>
         </TouchableOpacity>
         <Text style={styles.userName}>{user?.name}</Text>
@@ -80,27 +84,27 @@ const ProfileScreen = ({ navigation }) => {
 
         {/* Stats row inside hero card */}
         <View style={styles.heroStatsRow}>
-          <View style={[styles.heroStatItem, { backgroundColor: 'rgba(0,212,170,0.18)' }]}>
-            <Text style={styles.heroStatValue}>{formatAmount(totalExpenses, currency)}</Text>
+          <View style={styles.heroStatItem}>
+            <Text style={[styles.heroStatValue, { color: '#00d4aa' }]}>{formatAmount(totalExpenses, currency)}</Text>
             <Text style={styles.heroStatLabel}>Total Expenses</Text>
           </View>
-          <View style={[styles.heroStatItem, { backgroundColor: 'rgba(255,107,107,0.18)' }]}>
+          <View style={styles.heroStatItem}>
             <Text style={[styles.heroStatValue, { color: '#ff6b6b' }]}>{groups.length}</Text>
             <Text style={styles.heroStatLabel}>Groups</Text>
           </View>
-          <View style={[styles.heroStatItem, { backgroundColor: 'rgba(255,217,61,0.18)' }]}>
+          <View style={styles.heroStatItem}>
             <Text style={[styles.heroStatValue, { color: '#ffd93d' }]}>{friends.length}</Text>
             <Text style={styles.heroStatLabel}>Friends</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Account Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
-        <MenuRow icon="person-outline" title="Edit Profile" subtitle="Name, phone number" onPress={() => setShowEdit(true)} />
-        <MenuRow icon="lock-closed-outline" title="Change Password" subtitle="Update your password" onPress={() => Alert.alert('Coming Soon', 'Password change coming soon')} />
-        <MenuRow icon="mail-outline" title="Email" subtitle={user?.email} />
+        <MenuRow icon="person-outline" iconColor="#00d4aa" title="Edit Profile" subtitle="Name, phone number" onPress={() => setShowEdit(true)} />
+        <MenuRow icon="lock-closed-outline" iconColor="#00d4aa" title="Change Password" subtitle="Update your password" onPress={() => Alert.alert('Coming Soon', 'Password change coming soon')} />
+        <MenuRow icon="mail-outline" iconColor="#00d4aa" title="Email" subtitle={user?.email} />
       </View>
 
       {/* Preferences */}
@@ -108,11 +112,13 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={styles.sectionTitle}>Preferences</Text>
         <MenuRow
           icon="notifications-outline"
+          iconColor="#a78bfa"
           title="Notifications"
           rightElement={<Switch value={notifications} onValueChange={setNotifications} trackColor={{ true: COLORS.primary }} />}
         />
         <MenuRow
           icon="card-outline"
+          iconColor="#a78bfa"
           title="Default Currency"
           subtitle={`${currencyInfo?.flag || ''} ${currency} — ${currencyInfo?.name || ''}`}
           onPress={() => navigation.navigate('Currency')}
@@ -122,9 +128,9 @@ const ProfileScreen = ({ navigation }) => {
       {/* About */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>About</Text>
-        <MenuRow icon="information-circle-outline" title="Version" subtitle="1.0.0" />
-        <MenuRow icon="shield-checkmark-outline" title="Privacy Policy" onPress={() => Alert.alert('Privacy Policy', 'Your data is stored locally on your device. No data is shared with third parties.')} />
-        <MenuRow icon="star-outline" title="Rate the App" onPress={() => Alert.alert('Thank you!', 'Rating feature coming soon!')} />
+        <MenuRow icon="information-circle-outline" iconColor="#a78bfa" title="Version" subtitle="1.0.0" />
+        <MenuRow icon="shield-checkmark-outline" iconColor="#a78bfa" title="Privacy Policy" onPress={() => Alert.alert('Privacy Policy', 'Your data is stored locally on your device. No data is shared with third parties.')} />
+        <MenuRow icon="star-outline" iconColor="#ffd93d" title="Rate the App" onPress={() => Alert.alert('Thank you!', 'Rating feature coming soon!')} />
       </View>
 
       {/* Sign Out */}
@@ -185,42 +191,69 @@ const ProfileScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { paddingTop: 60, paddingBottom: 24, alignItems: 'center', backgroundColor: '#1a1a24' },
+  header: {
+    paddingTop: 60, paddingBottom: 24, alignItems: 'center',
+    backgroundColor: '#1a1a24',
+    borderTopWidth: 3, borderTopColor: '#00d4aa',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
+    marginHorizontal: 16, marginTop: 12, borderRadius: 24,
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18, shadowRadius: 20, elevation: 6,
+  },
   backBtn: { position: 'absolute', top: 60, left: 16, padding: 4 },
+  avatarCircle: { position: 'relative' },
   profileTop: { position: 'relative', marginBottom: 12 },
   editBadge: {
     position: 'absolute', bottom: 0, right: 0,
-    width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.primaryDark,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff',
+    width: 24, height: 24, borderRadius: 12, backgroundColor: '#00d4aa',
+    alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1a1a24',
   },
   userName: { fontSize: 24, fontWeight: '800', color: '#fff' },
-  userEmail: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  userPhone: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  userEmail: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  userPhone: { fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
   heroStatsRow: {
-    flexDirection: 'row', marginTop: 20, marginHorizontal: 16, gap: 8,
+    flexDirection: 'row', marginTop: 20, marginHorizontal: 12, gap: 8, width: '100%',
+    paddingHorizontal: 12,
   },
   heroStatItem: {
-    flex: 1, borderRadius: 16, padding: 12, alignItems: 'center',
+    flex: 1, backgroundColor: '#0a0a0f', borderRadius: 16, padding: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
   heroStatValue: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
   heroStatLabel: { fontSize: 11, color: '#a1a1aa', marginTop: 3 },
-  section: { backgroundColor: COLORS.white, marginHorizontal: 16, marginTop: 16, borderRadius: 16, overflow: 'hidden' },
-  sectionTitle: { fontSize: 13, fontWeight: '600', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.5, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
-  menuRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderTopWidth: 1, borderTopColor: COLORS.border },
+  section: {
+    backgroundColor: '#1a1a24', marginHorizontal: 16, marginTop: 16,
+    borderRadius: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
+  sectionTitle: {
+    fontSize: 12, fontWeight: '600', color: '#a1a1aa',
+    textTransform: 'uppercase', letterSpacing: 0.8,
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4,
+  },
+  menuRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 13,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
+  },
   menuIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   menuContent: { flex: 1 },
   menuTitle: { fontSize: 15, fontWeight: '500', color: COLORS.text },
-  menuSubtitle: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
-  modal: { flex: 1, backgroundColor: COLORS.white, padding: 20 },
+  menuSubtitle: { fontSize: 13, color: '#a1a1aa', marginTop: 2 },
+  modal: { flex: 1, backgroundColor: '#0a0a0f', padding: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingTop: 12 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  cancelText: { fontSize: 16, color: COLORS.textLight },
-  saveText: { fontSize: 16, color: COLORS.primary, fontWeight: '700' },
+  cancelText: { fontSize: 16, color: '#a1a1aa' },
+  saveText: { fontSize: 16, color: '#00d4aa', fontWeight: '700' },
   avatarEdit: { alignItems: 'center', marginBottom: 28 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textLight, marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldLabel: {
+    fontSize: 12, fontWeight: '600', color: '#a1a1aa',
+    marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.8,
+  },
   inputContainer: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a24',
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   input: { flex: 1, fontSize: 16, color: COLORS.text },
 });

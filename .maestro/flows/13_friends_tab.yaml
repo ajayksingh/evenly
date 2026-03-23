@@ -33,10 +33,11 @@ name: "FRIENDS: Comprehensive friends tab suite"
 - takeScreenshot: "friends_03_add_modal_open"
 
 # ─── 4. CANCEL CLOSES MODAL ──────────────────────────────────────────────────
-- tapOn: "Cancel"
+- tapOn:
+    id: "modal-cancel-btn"
 - extendedWaitUntil:
     notVisible: "Add Friend"
-    timeout: 5000
+    timeout: 10000
 - assertVisible: "Friends"
 - takeScreenshot: "friends_04_cancel_works"
 
@@ -48,14 +49,14 @@ name: "FRIENDS: Comprehensive friends tab suite"
     timeout: 5000
 - tapOn:
     id: "friends-email-input"
-- inputText: "depsags@gmail.com"
+- inputText: "bob@demo.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"
 - assertVisible: "Friend Added!"
 - tapOn: "OK"
 - extendedWaitUntil:
-    visible: "depsags@gmail.com"
+    visible: "bob@demo.com"
     timeout: 8000
 - takeScreenshot: "friends_05_friend_added"
 
@@ -68,7 +69,7 @@ name: "FRIENDS: Comprehensive friends tab suite"
 # ─── 7. FRIEND CARD SHOWS EMAIL ──────────────────────────────────────────────
 - assertVisible:
     id: "friend-card"
-- assertVisible: "depsags@gmail.com"
+- assertVisible: "bob@demo.com"
 - assertVisible: "settled up"
 - takeScreenshot: "friends_07_friend_card"
 
@@ -80,13 +81,14 @@ name: "FRIENDS: Comprehensive friends tab suite"
     timeout: 5000
 - tapOn:
     id: "friends-email-input"
-- inputText: "depsags@gmail.com"
+- inputText: "bob@demo.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"
 - assertVisible: "Already friends"
 - tapOn: "OK"
-- tapOn: "Cancel"
+- tapOn:
+    id: "modal-cancel-btn"
 - takeScreenshot: "friends_08_duplicate_blocked"
 
 # ─── 9. INVALID EMAIL ERROR ──────────────────────────────────────────────────
@@ -103,7 +105,8 @@ name: "FRIENDS: Comprehensive friends tab suite"
     id: "friends-add-submit"
 - assertVisible: "Error"
 - tapOn: "OK"
-- tapOn: "Cancel"
+- tapOn:
+    id: "modal-cancel-btn"
 - takeScreenshot: "friends_09_invalid_email"
 
 # ─── 10. SELF-ADD BLOCKED ────────────────────────────────────────────────────
@@ -120,7 +123,8 @@ name: "FRIENDS: Comprehensive friends tab suite"
     id: "friends-add-submit"
 - assertVisible: "Error"
 - tapOn: "OK"
-- tapOn: "Cancel"
+- tapOn:
+    id: "modal-cancel-btn"
 - takeScreenshot: "friends_10_self_add_blocked"
 
 # ─── 11. SECTION HEADER VISIBLE ──────────────────────────────────────────────

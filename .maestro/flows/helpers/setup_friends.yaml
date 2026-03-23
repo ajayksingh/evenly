@@ -9,7 +9,7 @@ name: "HELPER: Ensure depsags is a friend"
     timeout: 10000
 - tapOn:
     id: "friends-email-input"
-- inputText: "depsags@gmail.com"
+- inputText: "bob@demo.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"
@@ -19,7 +19,7 @@ name: "HELPER: Ensure depsags is a friend"
     optional: true
 # Close modal if still open (e.g. after "Already friends" error)
 - tapOn:
-    text: "Cancel"
+    id: "modal-cancel-btn"
     optional: true
 - extendedWaitUntil:
     visible: "Friends"

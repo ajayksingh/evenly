@@ -4,6 +4,7 @@ import {
   TextInput, Alert, KeyboardAvoidingView, Platform,
   ActivityIndicator, Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
@@ -146,6 +147,7 @@ const SettleUpScreen = ({ route, navigation }) => {
     return (
       <View style={styles.centeredScreen}>
         <Animated.View style={[styles.spinnerRing, { transform: [{ rotate: spin }] }]} />
+        <Text style={styles.processingText}>Processing payment...</Text>
       </View>
     );
   }
@@ -156,16 +158,19 @@ const SettleUpScreen = ({ route, navigation }) => {
     const displayName = settledWith?.id === user.id ? 'You' : name;
     return (
       <View style={styles.centeredScreen}>
-        <View style={styles.successCircle}>
-          <Ionicons name="checkmark" size={48} color="#ffffff" />
+        <View style={styles.successCard}>
+          <Text style={styles.celebrationEmoji}>🎉</Text>
+          <View style={styles.successCircle}>
+            <Ionicons name="checkmark" size={48} color="#ffffff" />
+          </View>
+          <Text style={styles.successTitle}>Payment Successful!</Text>
+          <Text style={styles.successSubtitle}>
+            {'You settled '}
+            <Text style={styles.successAmt}>{formatAmount(settledAmount, currency)}</Text>
+            {' with '}
+            <Text style={styles.successName}>{displayName}</Text>
+          </Text>
         </View>
-        <Text style={styles.successTitle}>Payment Successful!</Text>
-        <Text style={styles.successSubtitle}>
-          {'You settled '}
-          <Text style={styles.successAmt}>{formatAmount(settledAmount, currency)}</Text>
-          {' with '}
-          <Text style={styles.successName}>{displayName}</Text>
-        </Text>
       </View>
     );
   }
@@ -176,7 +181,7 @@ const SettleUpScreen = ({ route, navigation }) => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={COLORS.text} />
+            <Ionicons name="chevron-back" size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Settle Up</Text>
           <View style={{ width: 24 }} />
@@ -191,15 +196,28 @@ const SettleUpScreen = ({ route, navigation }) => {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   key={p.id}
-                  style={[styles.personBtn, payer?.id === p.id && styles.personBtnActive]}
                   onPress={() => { setPayer(p); if (receiver?.id === p.id) setReceiver(null); }}
                 >
-                  <Avatar name={p.name} size={44} />
-                  <Text style={[styles.personName, payer?.id === p.id && styles.personNameActive]}>
-                    {p.id === user.id ? 'You' : p.name.split(' ')[0]}
-                  </Text>
-                  {payer?.id === p.id && (
-                    <View style={styles.selectedDot}><Ionicons name="checkmark" size={12} color="#fff" /></View>
+                  {payer?.id === p.id ? (
+                    <LinearGradient
+                      colors={['#00d4aa', '#00b894']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.personBtnActive}
+                    >
+                      <Avatar name={p.name} size={44} />
+                      <Text style={styles.personNameActive}>
+                        {p.id === user.id ? 'You' : p.name.split(' ')[0]}
+                      </Text>
+                      <View style={styles.selectedDot}><Ionicons name="checkmark" size={12} color="#fff" /></View>
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.personBtn}>
+                      <Avatar name={p.name} size={44} />
+                      <Text style={styles.personName}>
+                        {p.id === user.id ? 'You' : p.name.split(' ')[0]}
+                      </Text>
+                    </View>
                   )}
                 </TouchableOpacity>
               ))}
@@ -221,15 +239,28 @@ const SettleUpScreen = ({ route, navigation }) => {
                   testID={idx === 0 ? 'settle-receiver-first' : `settle-receiver-${idx}`}
                   activeOpacity={0.7}
                   key={p.id}
-                  style={[styles.personBtn, receiver?.id === p.id && styles.personBtnActive]}
                   onPress={() => setReceiver(p)}
                 >
-                  <Avatar name={p.name} size={44} />
-                  <Text style={[styles.personName, receiver?.id === p.id && styles.personNameActive]}>
-                    {p.id === user.id ? 'You' : p.name.split(' ')[0]}
-                  </Text>
-                  {receiver?.id === p.id && (
-                    <View style={styles.selectedDot}><Ionicons name="checkmark" size={12} color="#fff" /></View>
+                  {receiver?.id === p.id ? (
+                    <LinearGradient
+                      colors={['#00d4aa', '#00b894']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.personBtnActive}
+                    >
+                      <Avatar name={p.name} size={44} />
+                      <Text style={styles.personNameActive}>
+                        {p.id === user.id ? 'You' : p.name.split(' ')[0]}
+                      </Text>
+                      <View style={styles.selectedDot}><Ionicons name="checkmark" size={12} color="#fff" /></View>
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.personBtn}>
+                      <Avatar name={p.name} size={44} />
+                      <Text style={styles.personName}>
+                        {p.id === user.id ? 'You' : p.name.split(' ')[0]}
+                      </Text>
+                    </View>
                   )}
                 </TouchableOpacity>
               ))}
@@ -239,7 +270,7 @@ const SettleUpScreen = ({ route, navigation }) => {
           {/* Amount */}
           <View style={styles.amountSection}>
             <Text style={styles.sectionLabel}>Amount</Text>
-            <View style={styles.amountInput}>
+            <View style={styles.amountInputRow}>
               <Text style={styles.currency}>{getCurrencySymbol(currency)}</Text>
               <TextInput
                 testID="settle-amount-input"
@@ -248,7 +279,7 @@ const SettleUpScreen = ({ route, navigation }) => {
                 onChangeText={setAmount}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor="rgba(255,255,255,0.2)"
               />
             </View>
           </View>
@@ -287,7 +318,9 @@ const SettleUpScreen = ({ route, navigation }) => {
                         <Ionicons name="checkmark" size={10} color="#fff" />
                       </View>
                     )}
-                    <Ionicons name={method.icon} size={22} color={method.color} />
+                    <View style={[styles.paymentMethodIcon, { backgroundColor: method.color + '26' }]}>
+                      <Ionicons name={method.icon} size={22} color={method.color} />
+                    </View>
                     <Text style={[styles.paymentMethodLabel, { color: isSelected ? '#ffffff' : '#a1a1aa' }]}>
                       {method.label}
                     </Text>
@@ -330,9 +363,16 @@ const SettleUpScreen = ({ route, navigation }) => {
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity testID="settle-record-btn" activeOpacity={0.7} style={styles.settleBtn} onPress={handleSettle} disabled={saving}>
-            <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.settleBtnText}>{saving ? 'Recording...' : 'Record Payment'}</Text>
+          <TouchableOpacity testID="settle-record-btn" activeOpacity={0.8} onPress={handleSettle} disabled={saving}>
+            <LinearGradient
+              colors={['#00d4aa', '#00b894']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.settleBtn}
+            >
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={styles.settleBtnText}>{saving ? 'Recording...' : 'Record Payment'}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>
@@ -341,51 +381,99 @@ const SettleUpScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#0a0a0f' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingTop: 56, paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    backgroundColor: '#1a1a24',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text },
-  section: { backgroundColor: COLORS.white, margin: 16, borderRadius: 14, padding: 16 },
-  sectionLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#ffffff' },
+  sectionLabel: {
+    fontSize: 12, fontWeight: '700', color: '#a1a1aa',
+    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12,
+  },
+
+  // Payer/receiver sections
+  section: {
+    backgroundColor: '#1a1a24',
+    margin: 16,
+    marginBottom: 0,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
   personBtn: {
-    alignItems: 'center', marginRight: 16, padding: 10, borderRadius: 12,
-    backgroundColor: COLORS.background, position: 'relative', minWidth: 70,
+    alignItems: 'center', marginRight: 12, padding: 12, borderRadius: 16,
+    backgroundColor: '#1a1a24',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    position: 'relative', minWidth: 72,
   },
-  personBtnActive: { backgroundColor: COLORS.primaryLight },
-  personName: { fontSize: 13, color: COLORS.textLight, marginTop: 6, fontWeight: '500' },
-  personNameActive: { color: COLORS.primary, fontWeight: '700' },
+  personBtnActive: {
+    alignItems: 'center', marginRight: 12, padding: 12, borderRadius: 16,
+    position: 'relative', minWidth: 72,
+  },
+  personName: { fontSize: 13, color: '#a1a1aa', marginTop: 6, fontWeight: '500' },
+  personNameActive: { color: '#ffffff', fontWeight: '700', fontSize: 13, marginTop: 6 },
   selectedDot: {
     position: 'absolute', top: 6, right: 6,
-    width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.primary,
+    width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.3)',
     alignItems: 'center', justifyContent: 'center',
   },
-  arrowRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 24, marginVertical: -4 },
-  arrowLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
+
+  arrowRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 24, marginVertical: 10 },
+  arrowLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
   arrowCircle: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,212,170,0.12)',
     alignItems: 'center', justifyContent: 'center', marginHorizontal: 8,
   },
-  amountSection: { backgroundColor: COLORS.white, marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 16 },
-  amountInput: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background,
-    borderRadius: 12, padding: 14, marginTop: 4,
+
+  // Amount card
+  amountSection: {
+    backgroundColor: '#1a1a24',
+    marginHorizontal: 16, marginTop: 12, marginBottom: 10,
+    borderRadius: 24, padding: 24,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#00d4aa',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  currency: { fontSize: 28, fontWeight: '700', color: COLORS.textLight, marginRight: 6 },
-  amountText: { flex: 1, fontSize: 36, fontWeight: '800', color: COLORS.text },
-  noteSection: { backgroundColor: COLORS.white, marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 16 },
+  amountInputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16, padding: 16, marginTop: 4,
+  },
+  currency: { fontSize: 32, fontWeight: '700', color: '#00d4aa', marginRight: 8 },
+  amountText: { flex: 1, fontSize: 48, fontWeight: '800', color: '#ffffff' },
+
+  // Note
+  noteSection: {
+    backgroundColor: '#1a1a24',
+    marginHorizontal: 16, marginBottom: 10,
+    borderRadius: 20, padding: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
   noteInput: {
-    backgroundColor: COLORS.background, borderRadius: 12, padding: 14, fontSize: 15,
-    color: COLORS.text, minHeight: 60,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12, padding: 14, fontSize: 15,
+    color: '#ffffff', minHeight: 60,
   },
+
   // Payment method
-  paymentMethodSection: { backgroundColor: '#1a1a24', marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 16 },
+  paymentMethodSection: {
+    backgroundColor: '#1a1a24',
+    marginHorizontal: 16, marginBottom: 10,
+    borderRadius: 20, padding: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
   paymentMethodRow: { flexDirection: 'row', gap: 10 },
   paymentMethodBtn: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 14, borderRadius: 12, position: 'relative',
+    paddingVertical: 16, borderRadius: 16, position: 'relative',
   },
   paymentMethodBtnSelected: {
     borderWidth: 2, borderColor: '#00d4aa',
@@ -393,51 +481,90 @@ const styles = StyleSheet.create({
   },
   paymentMethodBtnUnselected: {
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#1a1a24',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  paymentMethodLabel: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center' },
+  paymentMethodIcon: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 6,
+  },
+  paymentMethodLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
   paymentCheckmark: {
     position: 'absolute', top: 6, right: 6,
     width: 16, height: 16, borderRadius: 8, backgroundColor: '#00d4aa',
     alignItems: 'center', justifyContent: 'center',
   },
-  debtsSection: { backgroundColor: COLORS.white, marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 16 },
-  debtRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  debtText: { fontSize: 14, color: COLORS.text },
+
+  // Debts section
+  debtsSection: {
+    backgroundColor: '#1a1a24',
+    marginHorizontal: 16, marginBottom: 10,
+    borderRadius: 20, padding: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
+  debtRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 12, paddingHorizontal: 14,
+    backgroundColor: '#1a1a24',
+    borderRadius: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  },
+  debtText: { fontSize: 14, color: '#ffffff' },
   debtName: { fontWeight: '600' },
   debtAmountRow: { flexDirection: 'row', alignItems: 'center' },
   debtAmount: { fontSize: 15, fontWeight: '700', color: COLORS.negative },
+
+  // Footer
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: COLORS.white, padding: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 10,
+    backgroundColor: '#1a1a24', padding: 20,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 10,
   },
   settleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.primary, borderRadius: 14, padding: 16,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+    borderRadius: 16, height: 52,
   },
   settleBtnText: { color: '#fff', fontWeight: '700', fontSize: 16, marginLeft: 8 },
-  // Processing / Success shared
+
+  // Processing state
   centeredScreen: {
     flex: 1, backgroundColor: '#0a0a0f',
     alignItems: 'center', justifyContent: 'center',
   },
   spinnerRing: {
-    width: 64, height: 64, borderRadius: 32,
+    width: 72, height: 72, borderRadius: 36,
     borderWidth: 4, borderColor: '#00d4aa',
     borderTopColor: 'transparent',
   },
-  // Success
+  processingText: {
+    marginTop: 20, fontSize: 16, color: '#a1a1aa', fontWeight: '500',
+  },
+
+  // Success state
+  successCard: {
+    backgroundColor: '#1a1a24',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    marginHorizontal: 24,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#00d4aa',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  celebrationEmoji: { fontSize: 40, marginBottom: 16 },
   successCircle: {
     width: 96, height: 96, borderRadius: 48,
     backgroundColor: '#00d4aa',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 24,
-    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 10,
   },
   successTitle: { fontSize: 24, fontWeight: '800', color: '#ffffff', marginBottom: 10 },
-  successSubtitle: { fontSize: 15, color: '#a1a1aa', textAlign: 'center', paddingHorizontal: 32 },
+  successSubtitle: { fontSize: 15, color: '#a1a1aa', textAlign: 'center', paddingHorizontal: 16 },
   successAmt: { color: '#ffffff', fontWeight: '700' },
   successName: { color: '#00d4aa', fontWeight: '700' },
 });

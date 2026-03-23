@@ -60,7 +60,7 @@ const GroupsScreen = ({ navigation }) => {
         style={styles.groupCard}
         onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
       >
-        <View style={styles.groupIconBox}>
+        <View style={[styles.groupIconBox, { backgroundColor: (typeInfo.color || '#00d4aa') + '26' }]}>
           <Text style={styles.groupEmoji}>{typeInfo.emoji}</Text>
         </View>
         <View style={styles.groupInfo}>
@@ -142,11 +142,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   fab: {
     position: 'absolute', bottom: 100, right: 24,
-    width: 58, height: 58, borderRadius: 18,
+    width: 56, height: 56, borderRadius: 28,
     backgroundColor: COLORS.primary,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45, shadowRadius: 20, elevation: 10,
   },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -156,48 +156,51 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28, fontWeight: '800', color: COLORS.text },
   addBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.primaryLight,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,212,170,0.12)',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(0,212,170,0.2)',
   },
 
   listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
   groupCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.white, borderRadius: 20,
-    padding: 16, marginBottom: 10,
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: '#1a1a24', borderRadius: 24,
+    padding: 20, marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08, shadowRadius: 20, elevation: 4,
   },
   groupIconBox: {
-    width: 52, height: 52, borderRadius: 16,
-    backgroundColor: COLORS.background,
+    width: 52, height: 52, borderRadius: 26,
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 14, borderWidth: 1, borderColor: COLORS.border,
+    marginRight: 14,
   },
   groupEmoji: { fontSize: 26 },
   groupInfo: { flex: 1 },
   groupName: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 4 },
   groupMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  groupMeta: { fontSize: 13, color: COLORS.textLight },
-  groupMetaDot: { fontSize: 13, color: COLORS.textMuted },
-  groupMetaTotal: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
+  groupMeta: { fontSize: 12, color: '#a1a1aa' },
+  groupMetaDot: { fontSize: 12, color: '#a1a1aa' },
+  groupMetaTotal: { fontSize: 12, color: '#00d4aa', fontWeight: '600' },
   groupRight: { alignItems: 'flex-end' },
   memberAvatarRow: { flexDirection: 'row', alignItems: 'center' },
-  memberAvatarWrap: { borderWidth: 2, borderColor: COLORS.white, borderRadius: 16 },
+  memberAvatarWrap: { borderWidth: 2, borderColor: '#1a1a24', borderRadius: 16 },
   memberMore: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: COLORS.border, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center',
   },
-  memberMoreText: { fontSize: 10, color: COLORS.textLight, fontWeight: '700' },
+  memberMoreText: { fontSize: 10, color: '#a1a1aa', fontWeight: '700' },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyEmoji: { fontSize: 56, marginBottom: 16 },
+  emptyEmoji: { fontSize: 64, marginBottom: 20 },
   emptyTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: COLORS.textLight, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  emptyText: { fontSize: 14, color: '#a1a1aa', textAlign: 'center', lineHeight: 20, marginBottom: 28 },
   createBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.primary, borderRadius: 14,
-    paddingHorizontal: 24, paddingVertical: 13,
+    backgroundColor: '#00d4aa', borderRadius: 16,
+    paddingHorizontal: 28, paddingVertical: 14,
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35, shadowRadius: 16, elevation: 6,
   },
   createBtnText: { color: '#0a0a0f', fontWeight: '800', marginLeft: 8, fontSize: 15 },
 

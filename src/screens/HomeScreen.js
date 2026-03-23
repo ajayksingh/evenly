@@ -121,14 +121,14 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Stats Grid */}
         <Animated.View style={[styles.statsGrid, statsAnimStyle]}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, styles.statCardPositive]}>
             <View style={[styles.statIcon, { backgroundColor: 'rgba(0,212,170,0.1)' }]}>
               <Ionicons name="trending-up" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.statAmount}>{formatAmount(totalOwedToMe, currency)}</Text>
             <Text style={styles.statLabel}>you're owed</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, styles.statCardNegative]}>
             <View style={[styles.statIcon, { backgroundColor: 'rgba(255,107,107,0.1)' }]}>
               <Ionicons name="trending-down" size={20} color={COLORS.negative} />
             </View>
@@ -156,7 +156,7 @@ const HomeScreen = ({ navigation }) => {
                 style={styles.balanceRow}
                 onPress={() => navigation.navigate('Friends')}
               >
-                <Avatar name={b.name} avatar={b.avatar} size={42} />
+                <Avatar name={b.name} avatar={b.avatar} size={44} />
                 <View style={styles.balanceInfo}>
                   <Text style={styles.balanceName}>{b.name}</Text>
                   <Text style={[styles.balanceSub, { color: b.amount > 0 ? COLORS.primary : COLORS.negative }]}>
@@ -250,8 +250,11 @@ const styles = StyleSheet.create({
   heroCard: {
     margin: 16, borderRadius: 24, padding: 28,
     backgroundColor: '#1a1a24',
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderTopWidth: 2, borderTopColor: '#00d4aa',
     overflow: 'hidden', position: 'relative',
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25, shadowRadius: 20, elevation: 12,
   },
   heroGlow: {
     position: 'absolute', top: -30, right: -30,
@@ -272,8 +275,10 @@ const styles = StyleSheet.create({
   statsGrid: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 8 },
   statCard: {
     flex: 1, backgroundColor: COLORS.white, borderRadius: 20, padding: 18,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
+  statCardPositive: { borderLeftWidth: 3, borderLeftColor: '#00d4aa' },
+  statCardNegative: { borderLeftWidth: 3, borderLeftColor: '#ff6b6b' },
   statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   statAmount: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginBottom: 4 },
   statLabel: { fontSize: 12, color: COLORS.textLight, fontWeight: '600' },
@@ -281,15 +286,18 @@ const styles = StyleSheet.create({
   // Sections
   section: {
     backgroundColor: COLORS.white, marginHorizontal: 16, marginBottom: 12,
-    borderRadius: 20, padding: 16, borderWidth: 1, borderColor: COLORS.border,
+    borderRadius: 24, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#a1a1aa', letterSpacing: 1, textTransform: 'uppercase' },
   seeAllRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   seeAll: { fontSize: 13, color: COLORS.primary, fontWeight: '700' },
 
   // Balances
-  balanceRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  balanceRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
+    borderRadius: 16, paddingHorizontal: 4,
+  },
   balanceInfo: { flex: 1, marginLeft: 12 },
   balanceName: { fontSize: 15, fontWeight: '600', color: COLORS.text },
   balanceSub: { fontSize: 12, marginTop: 1, fontWeight: '500' },
@@ -297,20 +305,28 @@ const styles = StyleSheet.create({
 
   // Activity
   activityList: {},
-  activityItem: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10 },
-  activityBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  activityIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
+  activityItem: {
+    flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10,
+    backgroundColor: COLORS.white, borderRadius: 16,
+    paddingHorizontal: 4,
+  },
+  activityBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  activityIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
   activityContent: { flex: 1 },
   activityText: { fontSize: 13, color: COLORS.text, lineHeight: 19 },
   activityTime: { fontSize: 11, color: COLORS.textMuted, marginTop: 3 },
-  emptyActivity: { alignItems: 'center', paddingVertical: 24 },
-  emptyEmoji: { fontSize: 36, marginBottom: 8 },
+  emptyActivity: {
+    alignItems: 'center', paddingVertical: 28,
+    backgroundColor: '#1a1a24', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
+  emptyEmoji: { fontSize: 40, marginBottom: 10 },
   emptyText: { fontSize: 14, color: COLORS.textLight, fontWeight: '600' },
 
   // Empty State
   emptyState: {
     alignItems: 'center', margin: 16, padding: 28,
-    backgroundColor: COLORS.white, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: '#1a1a24', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   emptyStateEmoji: { fontSize: 48, marginBottom: 12 },
   emptyStateTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text, marginBottom: 8 },

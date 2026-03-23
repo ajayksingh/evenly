@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS, CATEGORIES } from '../constants/colors';
@@ -161,8 +162,15 @@ if (!validate()) { hapticError(); return; }
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Add Expense</Text>
-          <TouchableOpacity testID="expense-save-btn" activeOpacity={0.7} onPress={handleSave} style={styles.saveBtn} disabled={saving}>
-            <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text>
+          <TouchableOpacity testID="expense-save-btn" activeOpacity={0.7} onPress={handleSave} disabled={saving}>
+            <LinearGradient
+              colors={['#00d4aa', '#00b894']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.saveBtn}
+            >
+              <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -171,6 +179,7 @@ if (!validate()) { hapticError(); return; }
           <View style={styles.amountSection}>
             <TouchableOpacity activeOpacity={0.7} style={styles.catBtn} onPress={() => setShowCatPicker(true)}>
               <Ionicons name={catInfo.icon} size={24} color={catInfo.color} />
+              <Text style={styles.catBtnLabel}>{catInfo.label}</Text>
             </TouchableOpacity>
             <View style={styles.amountInputContainer}>
               <Text style={styles.currencySymbol}>{getCurrencySymbol(currency)}</Text>
@@ -180,13 +189,14 @@ if (!validate()) { hapticError(); return; }
                 placeholder="0.00"
                 onChangeText={v => { amountRef.current = v; }}
                 keyboardType="decimal-pad"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor="rgba(255,255,255,0.2)"
               />
             </View>
           </View>
 
           {/* Description */}
-          <View style={styles.field}>
+          <View style={styles.formCard}>
+            <Text style={styles.sectionLabel}>DESCRIPTION</Text>
             <TextInput
               testID="expense-description-input"
               style={styles.descInput}
@@ -200,30 +210,46 @@ if (!validate()) { hapticError(); return; }
           </View>
 
           {/* Group */}
-          <TouchableOpacity activeOpacity={0.7} style={styles.fieldRow} onPress={() => setShowGroupPicker(true)}>
-            <View style={styles.fieldIcon}><Ionicons name="people" size={20} color={COLORS.primary} /></View>
-            <Text style={[styles.fieldText, !selectedGroup && styles.placeholder]}>
-              {selectedGroup ? selectedGroup.name : 'Select a group'}
-            </Text>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.textLight} />
+          <TouchableOpacity activeOpacity={0.7} style={styles.formCard} onPress={() => setShowGroupPicker(true)}>
+            <Text style={styles.sectionLabel}>GROUP</Text>
+            <View style={styles.fieldRow}>
+              <View style={styles.fieldIcon}><Ionicons name="people" size={20} color={COLORS.primary} /></View>
+              <Text style={[styles.fieldText, !selectedGroup && styles.placeholder]}>
+                {selectedGroup ? selectedGroup.name : 'Select a group'}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textLight} />
+            </View>
           </TouchableOpacity>
 
           {/* Paid By */}
           {selectedGroup && (
-            <View style={styles.fieldRow}>
-              <View style={styles.fieldIcon}><Ionicons name="person" size={20} color={COLORS.primary} /></View>
-              <Text style={styles.fieldLabel}>Paid by</Text>
+            <View style={styles.formCard}>
+              <Text style={styles.sectionLabel}>PAID BY</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.paidByScroll}>
                 {participants.map(m => (
                   <TouchableOpacity
                     activeOpacity={0.7}
                     key={m.id}
-                    style={[styles.paidByBtn, paidBy?.id === m.id && styles.paidByActive]}
                     onPress={() => setPaidBy(m)}
                   >
-                    <Text style={[styles.paidByText, paidBy?.id === m.id && styles.paidByTextActive]}>
-                      {m.id === user.id ? 'You' : m.name.split(' ')[0]}
-                    </Text>
+                    {paidBy?.id === m.id ? (
+                      <LinearGradient
+                        colors={['#00d4aa', '#00b894']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.paidByBtn}
+                      >
+                        <Text style={styles.paidByTextActive}>
+                          {m.id === user.id ? 'You' : m.name.split(' ')[0]}
+                        </Text>
+                      </LinearGradient>
+                    ) : (
+                      <View style={styles.paidByBtnInactive}>
+                        <Text style={styles.paidByText}>
+                          {m.id === user.id ? 'You' : m.name.split(' ')[0]}
+                        </Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -232,31 +258,33 @@ if (!validate()) { hapticError(); return; }
 
           {/* Split Type */}
           {selectedGroup && (
-            <TouchableOpacity activeOpacity={0.7} style={styles.fieldRow} onPress={() => setShowSplitOptions(true)}>
-              <View style={styles.fieldIcon}><Ionicons name="git-branch" size={20} color={COLORS.primary} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Split</Text>
-                <Text style={styles.splitTypeText}>
-                  {{
-                    [SPLIT_TYPES.EQUAL]: 'Equally',
-                    [SPLIT_TYPES.EXACT]: 'By exact amounts',
-                    [SPLIT_TYPES.PERCENTAGE]: 'By percentage',
-                    [SPLIT_TYPES.SHARES]: 'By shares',
-                  }[splitType]}
-                </Text>
+            <TouchableOpacity activeOpacity={0.7} style={styles.formCard} onPress={() => setShowSplitOptions(true)}>
+              <Text style={styles.sectionLabel}>SPLIT</Text>
+              <View style={styles.fieldRow}>
+                <View style={styles.fieldIcon}><Ionicons name="git-branch" size={20} color={COLORS.primary} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.splitTypeText}>
+                    {{
+                      [SPLIT_TYPES.EQUAL]: 'Equally',
+                      [SPLIT_TYPES.EXACT]: 'By exact amounts',
+                      [SPLIT_TYPES.PERCENTAGE]: 'By percentage',
+                      [SPLIT_TYPES.SHARES]: 'By shares',
+                    }[splitType]}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.textLight} />
               </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.textLight} />
             </TouchableOpacity>
           )}
 
           {/* Split Preview */}
           {selectedGroup && splits.length > 0 && (
             <View style={styles.splitsSection}>
-              <Text style={styles.splitsTitle}>Split Preview</Text>
+              <Text style={styles.sectionLabel}>SPLIT PREVIEW</Text>
 
               {splitType === SPLIT_TYPES.EXACT && participants.map(m => (
                 <View key={m.id} style={styles.splitInputRow}>
-                  <Avatar name={m.name} size={32} />
+                  <Avatar name={m.name} size={36} />
                   <Text style={styles.splitName}>{m.id === user.id ? 'You' : m.name.split(' ')[0]}</Text>
                   <View style={styles.splitExactInput}>
                     <Text style={styles.splitCurrency}>{getCurrencySymbol(currency)}</Text>
@@ -266,6 +294,7 @@ if (!validate()) { hapticError(); return; }
                       onChangeText={v => setExactAmounts(prev => ({ ...prev, [m.id]: v }))}
                       keyboardType="decimal-pad"
                       placeholder="0.00"
+                      placeholderTextColor={COLORS.textMuted}
                     />
                   </View>
                 </View>
@@ -273,7 +302,7 @@ if (!validate()) { hapticError(); return; }
 
               {splitType === SPLIT_TYPES.PERCENTAGE && participants.map(m => (
                 <View key={m.id} style={styles.splitInputRow}>
-                  <Avatar name={m.name} size={32} />
+                  <Avatar name={m.name} size={36} />
                   <Text style={styles.splitName}>{m.id === user.id ? 'You' : m.name.split(' ')[0]}</Text>
                   <View style={styles.splitExactInput}>
                     <TextInput
@@ -282,6 +311,7 @@ if (!validate()) { hapticError(); return; }
                       onChangeText={v => setPercentages(prev => ({ ...prev, [m.id]: v }))}
                       keyboardType="decimal-pad"
                       placeholder="0"
+                      placeholderTextColor={COLORS.textMuted}
                     />
                     <Text style={styles.splitCurrency}>%</Text>
                   </View>
@@ -290,7 +320,7 @@ if (!validate()) { hapticError(); return; }
 
               {splitType === SPLIT_TYPES.SHARES && participants.map(m => (
                 <View key={m.id} style={styles.splitInputRow}>
-                  <Avatar name={m.name} size={32} />
+                  <Avatar name={m.name} size={36} />
                   <Text style={styles.splitName}>{m.id === user.id ? 'You' : m.name.split(' ')[0]}</Text>
                   <View style={styles.sharesControl}>
                     <TouchableOpacity activeOpacity={0.7} onPress={() => setShares(prev => ({ ...prev, [m.id]: Math.max(0, (prev[m.id] || 1) - 1) }))}>
@@ -306,7 +336,7 @@ if (!validate()) { hapticError(); return; }
 
               {splitType === SPLIT_TYPES.EQUAL && splits.map(s => (
                 <View key={s.userId} style={styles.splitPreviewRow}>
-                  <Avatar name={s.name} size={32} />
+                  <Avatar name={s.name} size={36} />
                   <Text style={styles.splitPreviewName}>{s.userId === user.id ? 'You' : s.name.split(' ')[0]}</Text>
                   <Text style={styles.splitPreviewAmount}>{formatCurrency(s.amount)}</Text>
                 </View>
@@ -314,12 +344,25 @@ if (!validate()) { hapticError(); return; }
             </View>
           )}
 
-          <View style={{ height: 100 }} />
+          {/* Save Button */}
+          <TouchableOpacity testID="expense-save-bottom-btn" activeOpacity={0.8} onPress={handleSave} disabled={saving} style={styles.saveBottomWrapper}>
+            <LinearGradient
+              colors={['#00d4aa', '#00b894']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.saveBottomBtn}
+            >
+              <Text style={styles.saveBottomText}>{saving ? 'Saving...' : 'Save Expense'}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
 
         {/* Group Picker Modal */}
         <Modal visible={showGroupPicker} animationType="slide" presentationStyle="formSheet">
           <View style={styles.modal}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <TouchableOpacity activeOpacity={0.7} onPress={() => setShowGroupPicker(false)}>
                 <Text style={styles.cancelText}>Close</Text>
@@ -343,6 +386,7 @@ if (!validate()) { hapticError(); return; }
         {/* Category Picker Modal */}
         <Modal visible={showCatPicker} animationType="slide" presentationStyle="formSheet">
           <View style={styles.modal}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <TouchableOpacity activeOpacity={0.7} onPress={() => setShowCatPicker(false)}>
                 <Text style={styles.cancelText}>Close</Text>
@@ -358,8 +402,9 @@ if (!validate()) { hapticError(); return; }
                   style={[styles.catItem, category === c.id && { borderColor: c.color, borderWidth: 2 }]}
                   onPress={() => { setCategory(c.id); setShowCatPicker(false); }}
                 >
-                  <View style={[styles.catItemIcon, { backgroundColor: c.color + '20' }]}>
-                    <Ionicons name={c.icon} size={24} color={c.color} />
+                  <View style={[styles.catItemIcon, { backgroundColor: c.color + '26' }]}>
+                    <Text style={styles.catEmoji}>{c.emoji || ''}</Text>
+                    {!c.emoji && <Ionicons name={c.icon} size={24} color={c.color} />}
                   </View>
                   <Text style={styles.catItemLabel}>{c.label}</Text>
                 </TouchableOpacity>
@@ -371,6 +416,7 @@ if (!validate()) { hapticError(); return; }
         {/* Split Options Modal */}
         <Modal visible={showSplitOptions} animationType="slide" presentationStyle="formSheet">
           <View style={styles.modal}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <TouchableOpacity activeOpacity={0.7} onPress={() => setShowSplitOptions(false)}>
                 <Text style={styles.cancelText}>Close</Text>
@@ -390,7 +436,7 @@ if (!validate()) { hapticError(); return; }
                 style={[styles.splitOption, splitType === opt.type && styles.splitOptionActive]}
                 onPress={() => { setSplitType(opt.type); setShowSplitOptions(false); }}
               >
-                <View style={[styles.splitOptIcon, { backgroundColor: splitType === opt.type ? COLORS.primary : COLORS.primaryLight }]}>
+                <View style={[styles.splitOptIcon, { backgroundColor: splitType === opt.type ? COLORS.primary : 'rgba(0,212,170,0.12)' }]}>
                   <Ionicons name={opt.icon} size={20} color={splitType === opt.type ? '#fff' : COLORS.primary} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
@@ -408,81 +454,202 @@ if (!validate()) { hapticError(); return; }
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#0a0a0f' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 56, paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    backgroundColor: '#1a1a24',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
   cancelBtn: { padding: 4 },
-  cancelText: { fontSize: 16, color: COLORS.textLight },
-  saveBtn: { backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 7 },
+  cancelText: { fontSize: 16, color: '#a1a1aa' },
+  saveBtn: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 7 },
   saveText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  // Amount section — large card
   amountSection: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white,
-    padding: 20, marginBottom: 1,
+    backgroundColor: '#1a1a24',
+    borderRadius: 24,
+    margin: 16,
+    marginBottom: 12,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#00d4aa',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   catBtn: {
-    width: 48, height: 48, borderRadius: 12, backgroundColor: COLORS.background,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+    gap: 6,
+  },
+  catBtnLabel: { fontSize: 13, fontWeight: '600', color: '#ffffff' },
+  amountInputContainer: { flexDirection: 'row', alignItems: 'center' },
+  currencySymbol: { fontSize: 32, fontWeight: '700', color: '#00d4aa', marginRight: 6 },
+  amountInput: { flex: 1, fontSize: 48, fontWeight: '800', color: '#ffffff' },
+
+  // Form cards
+  formCard: {
+    backgroundColor: '#1a1a24',
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#a1a1aa',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  descInput: {
+    fontSize: 17,
+    color: '#ffffff',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  fieldRow: { flexDirection: 'row', alignItems: 'center' },
+  fieldIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(0,212,170,0.12)',
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  amountInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  currencySymbol: { fontSize: 32, fontWeight: '700', color: COLORS.textLight, marginRight: 4 },
-  amountInput: { flex: 1, fontSize: 42, fontWeight: '800', color: COLORS.text },
-  field: { backgroundColor: COLORS.white, padding: 16, marginBottom: 1 },
-  descInput: { fontSize: 17, color: COLORS.text },
-  fieldRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white,
-    padding: 14, marginBottom: 1,
-  },
-  fieldIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  fieldText: { flex: 1, fontSize: 16, color: COLORS.text, fontWeight: '500' },
-  fieldLabel: { fontSize: 12, color: COLORS.textLight, marginBottom: 2 },
-  placeholder: { color: COLORS.textMuted },
-  paidByScroll: { flex: 1 },
+  fieldText: { flex: 1, fontSize: 16, color: '#ffffff', fontWeight: '500' },
+  placeholder: { color: '#a1a1aa' },
+
+  // Paid-by pills
+  paidByScroll: { flexDirection: 'row' },
   paidByBtn: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
-    backgroundColor: COLORS.background, marginRight: 6,
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8,
   },
-  paidByActive: { backgroundColor: COLORS.primary },
-  paidByText: { fontSize: 14, color: COLORS.textLight, fontWeight: '500' },
-  paidByTextActive: { color: '#fff', fontWeight: '600' },
-  splitTypeText: { fontSize: 15, color: COLORS.text, fontWeight: '500' },
+  paidByBtnInactive: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  paidByText: { fontSize: 14, color: '#a1a1aa', fontWeight: '500' },
+  paidByTextActive: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+  splitTypeText: { fontSize: 15, color: '#ffffff', fontWeight: '500' },
+
+  // Split preview section
   splitsSection: {
-    backgroundColor: COLORS.white, margin: 16, borderRadius: 14, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2,
+    backgroundColor: '#1a1a24',
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  splitsTitle: { fontSize: 14, fontWeight: '600', color: COLORS.textLight, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  splitInputRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  splitName: { flex: 1, marginLeft: 10, fontSize: 15, fontWeight: '500', color: COLORS.text },
+  splitInputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a24',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  splitName: { flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '500', color: '#ffffff' },
   splitExactInput: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background,
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, minWidth: 90,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, minWidth: 90,
   },
-  splitInput: { fontSize: 15, fontWeight: '600', color: COLORS.text, minWidth: 50, textAlign: 'right' },
-  splitCurrency: { fontSize: 14, color: COLORS.textLight, marginRight: 4 },
+  splitInput: { fontSize: 15, fontWeight: '600', color: '#ffffff', minWidth: 50, textAlign: 'right' },
+  splitCurrency: { fontSize: 14, color: '#a1a1aa', marginRight: 4 },
   sharesControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sharesCount: { fontSize: 18, fontWeight: '700', color: COLORS.text, minWidth: 24, textAlign: 'center' },
-  splitPreviewRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7 },
-  splitPreviewName: { flex: 1, marginLeft: 10, fontSize: 15, color: COLORS.text },
-  splitPreviewAmount: { fontSize: 15, fontWeight: '700', color: COLORS.text },
-  modal: { flex: 1, backgroundColor: COLORS.white, padding: 20 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingTop: 12 },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  pickerItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  pickerIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  pickerName: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-  pickerMeta: { fontSize: 13, color: COLORS.textLight },
+  sharesCount: { fontSize: 18, fontWeight: '700', color: '#ffffff', minWidth: 24, textAlign: 'center' },
+  splitPreviewRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a24',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  splitPreviewName: { flex: 1, marginLeft: 12, fontSize: 15, color: '#ffffff' },
+  splitPreviewAmount: { fontSize: 15, fontWeight: '700', color: '#00d4aa' },
+
+  // Save bottom button
+  saveBottomWrapper: { marginHorizontal: 16, marginTop: 8 },
+  saveBottomBtn: {
+    borderRadius: 16,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBottomText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+
+  // Modals
+  modal: {
+    flex: 1, backgroundColor: '#1a1a24', padding: 20,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'center', marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 20, paddingTop: 4,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
+  pickerItem: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  pickerIcon: {
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: 'rgba(0,212,170,0.12)',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  pickerName: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+  pickerMeta: { fontSize: 13, color: '#a1a1aa' },
+
+  // Category grid
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 4 },
-  catItem: { width: '30%', alignItems: 'center', padding: 12, borderRadius: 12, backgroundColor: COLORS.background, borderWidth: 2, borderColor: 'transparent' },
-  catItemIcon: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  catItemLabel: { fontSize: 12, color: COLORS.text, textAlign: 'center', fontWeight: '500' },
-  splitOption: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: COLORS.background, marginBottom: 10 },
-  splitOptionActive: { backgroundColor: COLORS.primaryLight },
+  catItem: {
+    width: '30%', alignItems: 'center', padding: 12,
+    borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 2, borderColor: 'transparent',
+  },
+  catItemIcon: {
+    width: 48, height: 48, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 6,
+  },
+  catEmoji: { fontSize: 24 },
+  catItemLabel: { fontSize: 11, color: '#ffffff', textAlign: 'center', fontWeight: '500' },
+
+  // Split options
+  splitOption: {
+    flexDirection: 'row', alignItems: 'center', padding: 14,
+    borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', marginBottom: 10,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
+  splitOptionActive: {
+    backgroundColor: 'rgba(0,212,170,0.10)',
+    borderColor: '#00d4aa',
+  },
   splitOptIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  splitOptTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-  splitOptDesc: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
+  splitOptTitle: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+  splitOptDesc: { fontSize: 13, color: '#a1a1aa', marginTop: 2 },
 });
 
 export default AddExpenseScreen;

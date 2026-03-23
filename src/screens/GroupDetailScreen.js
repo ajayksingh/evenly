@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, Modal, TextInput, ActivityIndicator,
+  Alert, Modal, TextInput, ActivityIndicator, Platform, StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -291,7 +291,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           <View style={styles.section}>
             {group.members.map(m => (
               <View key={m.id} style={styles.memberRow}>
-                <Avatar name={m.name} avatar={m.avatar} size={42} />
+                <Avatar name={m.name} avatar={m.avatar} size={44} />
                 <View style={styles.memberInfo}>
                   <Text style={styles.memberName}>{m.id === user.id ? `${m.name} (You)` : m.name}</Text>
                   <Text style={styles.memberEmail}>{m.email}</Text>
@@ -315,7 +315,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       <Modal visible={showAddMember} animationType="slide" presentationStyle="formSheet">
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowAddMember(false); setFoundUser(null); setSearchEmail(''); }}>
+            <TouchableOpacity testID="modal-cancel-btn" activeOpacity={0.7} style={{ padding: 8 }} onPress={() => { setShowAddMember(false); setFoundUser(null); setSearchEmail(''); }}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Member</Text>
@@ -361,19 +361,26 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', paddingTop: 56,
     paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    backgroundColor: '#0a0a0f', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backBtn: { padding: 4, marginRight: 8 },
   headerCenter: { flex: 1 },
   groupName: { fontSize: 20, fontWeight: '700', color: COLORS.text },
-  memberCount: { fontSize: 13, color: COLORS.textLight },
-  addExpBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
-  addExpText: { color: '#fff', fontWeight: '600', marginLeft: 4, fontSize: 14 },
-  tabs: { flexDirection: 'row', backgroundColor: COLORS.white, paddingHorizontal: 16, paddingBottom: 0 },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: COLORS.primary },
-  tabText: { fontSize: 14, color: COLORS.textLight, fontWeight: '500' },
-  tabTextActive: { color: COLORS.primary, fontWeight: '700' },
+  memberCount: { fontSize: 13, color: '#a1a1aa' },
+  addExpBtn: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#00d4aa',
+    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  addExpText: { color: '#0a0a0f', fontWeight: '700', marginLeft: 4, fontSize: 14 },
+  tabs: {
+    flexDirection: 'row', backgroundColor: '#1a1a24',
+    marginHorizontal: 16, marginTop: 12, borderRadius: 16,
+    padding: 4,
+  },
+  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12 },
+  tabActive: { backgroundColor: 'rgba(0,212,170,0.15)' },
+  tabText: { fontSize: 14, color: '#52525b', fontWeight: '500' },
+  tabTextActive: { color: '#00d4aa', fontWeight: '700' },
   heroCard: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -382,9 +389,11 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: '#1a1a24',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
     position: 'relative',
+    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25, shadowRadius: 20, elevation: 6,
   },
   heroGlow: {
     position: 'absolute',
@@ -458,59 +467,75 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   expenseCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a24',
     marginHorizontal: 16, marginTop: 10, borderRadius: 16, padding: 14,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
   },
   deleteBtn: {
     marginTop: 6, padding: 4, alignSelf: 'flex-end',
     borderRadius: 6, backgroundColor: 'rgba(255,107,107,0.08)',
   },
-  expCatIcon: { width: 42, height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  expCatIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   expInfo: { flex: 1 },
   expName: { fontSize: 15, fontWeight: '600', color: COLORS.text },
-  expMeta: { fontSize: 12, color: COLORS.textLight, marginTop: 3 },
+  expMeta: { fontSize: 12, color: '#a1a1aa', marginTop: 3 },
   expRight: { alignItems: 'flex-end' },
   expLabelGreen: { fontSize: 11, color: COLORS.success },
   expLabelRed: { fontSize: 11, color: COLORS.negative },
-  expLabelNeutral: { fontSize: 11, color: COLORS.textMuted },
+  expLabelNeutral: { fontSize: 11, color: '#52525b' },
   expAmount: { fontSize: 15, fontWeight: '700' },
-  section: { margin: 16, backgroundColor: COLORS.white, borderRadius: 14, padding: 16 },
-  sectionLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
-  balanceRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  section: { margin: 16, backgroundColor: '#1a1a24', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
+  sectionLabel: { fontSize: 12, fontWeight: '600', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
+  balanceRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
+    paddingHorizontal: 10, borderRadius: 14, marginBottom: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
   balanceInfo: { flex: 1, marginLeft: 12 },
   balanceName: { fontSize: 15, fontWeight: '600', color: COLORS.text },
   balanceAmount: { fontSize: 13, marginTop: 2 },
-  debtRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  debtRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
+    paddingHorizontal: 10, borderRadius: 14, marginBottom: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
   debtText: { flex: 1, marginLeft: 10, fontSize: 14, color: COLORS.text },
   debtName: { fontWeight: '600' },
   debtAmount: { fontSize: 15, fontWeight: '700', color: COLORS.negative },
-  settleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, padding: 12, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.primary },
-  settleBtnText: { color: COLORS.primary, fontWeight: '600', marginLeft: 6 },
-  memberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  settleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, padding: 12, borderRadius: 12, borderWidth: 1.5, borderColor: '#00d4aa' },
+  settleBtnText: { color: '#00d4aa', fontWeight: '600', marginLeft: 6 },
+  memberRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
+    paddingHorizontal: 10, borderRadius: 14, marginBottom: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
   memberInfo: { flex: 1, marginLeft: 12 },
   memberName: { fontSize: 15, fontWeight: '600', color: COLORS.text },
-  memberEmail: { fontSize: 13, color: COLORS.textLight },
-  adminBadge: { backgroundColor: COLORS.primaryLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  adminText: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
-  addMemberBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 14, padding: 12, borderRadius: 10, backgroundColor: COLORS.primaryLight },
-  addMemberText: { color: COLORS.primary, fontWeight: '600', marginLeft: 6 },
+  memberEmail: { fontSize: 11, color: '#a1a1aa', marginTop: 2 },
+  adminBadge: {
+    backgroundColor: 'rgba(0,212,170,0.15)', borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(0,212,170,0.3)',
+  },
+  adminText: { fontSize: 11, color: '#00d4aa', fontWeight: '600' },
+  addMemberBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 14, padding: 12, borderRadius: 12, backgroundColor: 'rgba(0,212,170,0.12)', borderWidth: 1, borderColor: 'rgba(0,212,170,0.2)' },
+  addMemberText: { color: '#00d4aa', fontWeight: '600', marginLeft: 6 },
   empty: { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: COLORS.textLight, marginTop: 12 },
-  addFirstBtn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 16 },
-  addFirstBtnText: { color: '#fff', fontWeight: '700' },
-  modal: { flex: 1, backgroundColor: COLORS.white, padding: 20 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingTop: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#a1a1aa', marginTop: 12 },
+  addFirstBtn: { backgroundColor: '#00d4aa', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12, marginTop: 16 },
+  addFirstBtnText: { color: '#0a0a0f', fontWeight: '700' },
+  modal: { flex: 1, backgroundColor: '#0a0a0f', padding: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 12 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  cancelText: { fontSize: 16, color: COLORS.textLight },
-  saveText: { fontSize: 16, color: COLORS.primary, fontWeight: '700' },
+  cancelText: { fontSize: 16, color: '#a1a1aa' },
+  saveText: { fontSize: 16, color: '#00d4aa', fontWeight: '700' },
   searchRow: { flexDirection: 'row', gap: 10 },
-  searchInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 12, padding: 14, fontSize: 15, color: COLORS.text },
-  searchBtn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
-  searchBtnText: { color: '#fff', fontWeight: '600' },
-  foundUser: { flexDirection: 'row', alignItems: 'center', marginTop: 16, backgroundColor: COLORS.primaryLight, borderRadius: 12, padding: 14 },
+  searchInput: { flex: 1, backgroundColor: '#1a1a24', borderRadius: 14, padding: 14, fontSize: 15, color: COLORS.text, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  searchBtn: { backgroundColor: '#00d4aa', borderRadius: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
+  searchBtnText: { color: '#0a0a0f', fontWeight: '700' },
+  foundUser: { flexDirection: 'row', alignItems: 'center', marginTop: 16, backgroundColor: '#1a1a24', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   foundName: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-  foundEmail: { fontSize: 13, color: COLORS.textLight },
+  foundEmail: { fontSize: 13, color: '#a1a1aa' },
 });
 
 export default GroupDetailScreen;
