@@ -41,15 +41,25 @@ if (!fs.existsSync(nojekyll)) {
 }
 
 // 3. Patch index.html: ensure script src uses relative path (no leading slash)
+//    + inject iOS Safari scroll fix
 const indexHtml = path.join(distDir, 'index.html');
 if (fs.existsSync(indexHtml)) {
   let html = fs.readFileSync(indexHtml, 'utf8');
   // Replace absolute script src with relative
-  const patched = html.replace(/src="\/_expo\//g, 'src="_expo/');
-  if (patched !== html) {
-    fs.writeFileSync(indexHtml, patched, 'utf8');
-    console.log('Patched index.html: made script src relative');
+  html = html.replace(/src="\/_expo\//g, 'src="_expo/');
+  // Inject iOS Safari scroll fix
+  const iosFix = `<style>
+    /* iOS Safari scroll fix */
+    html { height: 100%; }
+    body { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
+    #root { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
+  </style>`;
+  if (!html.includes('iOS Safari scroll fix')) {
+    html = html.replace('</head>', iosFix + '\n</head>');
+    console.log('Patched index.html: injected iOS Safari scroll fix');
   }
+  fs.writeFileSync(indexHtml, html, 'utf8');
+  console.log('Patched index.html: made script src relative');
 }
 
 console.log('Post-build patch done.');

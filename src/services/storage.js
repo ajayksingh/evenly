@@ -117,9 +117,22 @@ export const loginUser = async ({ email, password }) => {
 
   // Fetch profile from Supabase
   const { data: userData } = await supabase.from('users').select('*').eq('id', data.user.id).single();
-  const profile = userData
-    ? { id: userData.id, name: userData.name, email: userData.email, avatar: userData.avatar || null, phone: userData.phone || '', createdAt: userData.created_at }
-    : { id: data.user.id, name: email.split('@')[0], email, avatar: null, phone: '', createdAt: new Date().toISOString() };
+  let profile;
+  if (userData) {
+    profile = { id: userData.id, name: userData.name, email: userData.email, avatar: userData.avatar || null, phone: userData.phone || '', createdAt: userData.created_at };
+  } else {
+    // Profile missing from users table — create it now so friend lookups work
+    profile = { id: data.user.id, name: email.split('@')[0], email, avatar: null, phone: '', createdAt: new Date().toISOString() };
+    await supabase.from('users').upsert({
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      avatar: null,
+      phone: '',
+      provider: 'email',
+      created_at: profile.createdAt,
+    });
+  }
 
   await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
   return profile;
@@ -254,6 +267,7 @@ export const createGroup = async (group) => {
   const newGroup = {
     id: uuidv4(),
     name: group.name,
+    type: groupType,
     description: group.description || '',
     created_by: group.createdBy,
     members: group.members,
@@ -262,7 +276,6 @@ export const createGroup = async (group) => {
   };
   const { error } = await supabase.from('groups').insert(newGroup);
   if (error) throw new Error('Failed to create group: ' + error.message);
-  newGroup.type = groupType;
 
   const local = {
     id: newGroup.id, name: newGroup.name, type: newGroup.type,
@@ -281,8 +294,18 @@ export const getGroups = async (userId, userEmail = null) => {
   }
 
   if (!isSupabaseConfigured()) return [];
-  // Use contains filter to let Supabase filter by membership server-side
-  // Fall back to fetching all if RPC not available
+
+  // Use server-side function for reliable JSONB membership lookup
+  const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_groups', { p_user_id: userId });
+  if (!rpcError && rpcData) {
+    return rpcData.map(g => ({
+      id: g.id, name: g.name, type: g.type || 'other', description: g.description || '',
+      createdBy: g.created_by, members: g.members || [],
+      createdAt: g.created_at, updatedAt: g.updated_at,
+    }));
+  }
+
+  // Fallback: query by userId and optionally by email
   const queries = [
     supabase.from('groups').select('*').order('created_at', { ascending: false })
       .filter('members', 'cs', JSON.stringify([{ id: userId }])),
