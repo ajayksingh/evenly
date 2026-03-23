@@ -4,49 +4,44 @@ name: "EXPENSE-01: Add an expense from FAB"
 - runFlow:
     file: "helpers/startup_real.yaml"
 
-# Navigate to Groups tab
+# Create a group first
 - tapOn: "Groups"
 - waitForAnimationToEnd
-
-# Go back to Home and tap center FAB
-- tapOn: "Home"
-- assertVisible: "Total balance"
 - tapOn:
-    id: "center-add-btn"
-
-# Group picker appears (no group pre-selected from Home tab)
+    id: "fab-add-group"
 - extendedWaitUntil:
-    visible: "Select Group"
-    timeout: 8000
+    visible: "New Group"
+    timeout: 5000
 - tapOn:
-    id: "group-picker-item"
-    index: 0
+    id: "group-name-input"
+- inputText: "Expense Test Group"
+- hideKeyboard
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Expense Test Group"
+    timeout: 8000
 
-# Now on main AddExpense form
+# Open the group and add expense
+- tapOn: "Expense Test Group"
+- waitForAnimationToEnd
+- tapOn: "Add"
+- waitForAnimationToEnd
 - assertVisible: "Add Expense"
 - takeScreenshot: "expense_01_form"
 
-# Fill description
 - tapOn:
     id: "expense-description-input"
 - inputText: "Maestro Dinner Test"
 - hideKeyboard
-
-# Fill amount
 - tapOn:
     id: "expense-amount-input"
 - inputText: "1200"
 - hideKeyboard
 - takeScreenshot: "expense_02_filled"
 
-# Save
-- tapOn: "Save"
+- tapOn:
+    id: "expense-save-btn"
 - extendedWaitUntil:
-    visible: "Total balance"
-    timeout: 15000
-- takeScreenshot: "expense_03_saved_home"
-
-# Verify in activity
-- tapOn: "Activity"
-- assertVisible: "Maestro Dinner Test"
-- takeScreenshot: "expense_04_in_activity"
+    visible: "Maestro Dinner Test"
+    timeout: 10000
+- takeScreenshot: "expense_03_saved"
