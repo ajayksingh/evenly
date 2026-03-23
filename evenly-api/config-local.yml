@@ -1,0 +1,29 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 8080
+  adminConnectors:
+    - type: http
+      port: 8081
+
+database:
+  driverClass: org.postgresql.Driver
+  url: jdbc:postgresql://db.your-project-ref.supabase.co:5432/postgres
+  user: postgres
+  password: your-db-password-here
+  properties:
+    charSet: UTF-8
+  maxWaitForConnection: 1s
+  validationQuery: "SELECT 1"
+  minSize: 2
+  maxSize: 8
+
+supabase:
+  jwtSecret: your-supabase-jwt-secret-here
+
+logging:
+  level: DEBUG
+  appenders:
+    - type: console
+      threshold: ALL
+      timeZone: UTC

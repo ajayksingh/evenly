@@ -5,6 +5,15 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from './supabase';
+import {
+  getFriendsRemote, addFriendRemote,
+  getGroupsRemote, getGroupRemote, createGroupRemote, updateGroupRemote,
+  addMemberToGroupRemote, getGroupBalancesRemote,
+  getExpensesRemote, getAllExpensesRemote, addExpenseRemote, deleteExpenseRemote,
+  recordSettlementRemote, getActivityRemote, calculateBalancesRemote,
+  getUserByIdRemote, searchUsersByEmailRemote, updateUserProfileRemote,
+  upsertUserProfile,
+} from './api';
 
 const uuidv4 = () =>
   'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -135,6 +144,8 @@ export const loginUser = async ({ email, password }) => {
   }
 
   await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
+  // Ensure profile is synced to backend
+  upsertUserProfile(profile).catch(() => {});
   return profile;
 };
 
@@ -185,15 +196,9 @@ export const updateUserProfile = async (userId, updates) => {
     await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(safeUser));
     return safeUser;
   }
-  const { data, error } = await supabase.from('users').update({
-    name: updates.name,
-    avatar: updates.avatar || null,
-    phone: updates.phone || '',
-  }).eq('id', userId).select().single();
-  if (error) throw new Error('Failed to update profile');
-  const profile = { id: data.id, name: data.name, email: data.email, avatar: data.avatar || null, phone: data.phone || '', createdAt: data.created_at };
-  await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
-  return profile;
+  const updated = await updateUserProfileRemote(userId, updates);
+  await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(updated));
+  return updated;
 };
 
 // --- Friends ---
@@ -215,24 +220,7 @@ export const addFriend = async (currentUserId, email) => {
     return safeFriend;
   }
 
-  const { data: remoteUser, error: findErr } = await supabase
-    .from('users').select('id,name,email,avatar,phone').eq('email', email).maybeSingle();
-  if (!remoteUser) throw new Error('No user found with that email. They need to register first.');
-  if (remoteUser.id === currentUserId) throw new Error("You can't add yourself");
-
-  const { data: existing } = await supabase.from('friends').select('id')
-    .or(`and(user_id.eq.${currentUserId},friend_id.eq.${remoteUser.id}),and(user_id.eq.${remoteUser.id},friend_id.eq.${currentUserId})`)
-    .maybeSingle();
-  if (existing) throw new Error('Already friends');
-
-  const { error } = await supabase.from('friends').insert({
-    id: uuidv4(),
-    user_id: currentUserId,
-    friend_id: remoteUser.id,
-    created_at: new Date().toISOString(),
-  });
-  if (error) throw new Error('Failed to add friend');
-  return { id: remoteUser.id, name: remoteUser.name, email: remoteUser.email, avatar: remoteUser.avatar || null, phone: remoteUser.phone || '' };
+  return await addFriendRemote(email);
 };
 
 export const getFriends = async (userId) => {
@@ -245,12 +233,8 @@ export const getFriends = async (userId) => {
     return users.filter(u => friendIds.includes(u.id)).map(({ password: _, ...u }) => u);
   }
 
-  const { data: friendRows } = await supabase.from('friends').select('*')
-    .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
-  const friendIds = (friendRows || []).map(f => f.user_id === userId ? f.friend_id : f.user_id);
-  if (friendIds.length === 0) return [];
-  const { data: users } = await supabase.from('users').select('id,name,email,avatar,phone').in('id', friendIds);
-  return (users || []).map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '' }));
+  const friends = await getFriendsRemote(userId);
+  return friends;
 };
 
 // --- Groups ---
@@ -263,28 +247,10 @@ export const createGroup = async (group) => {
     return newGroup;
   }
 
-  const groupType = group.type || 'other';
-  const newGroup = {
-    id: uuidv4(),
-    name: group.name,
-    type: groupType,
-    description: group.description || '',
-    created_by: group.createdBy,
-    members: group.members,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  const { error } = await supabase.from('groups').insert(newGroup);
-  if (error) throw new Error('Failed to create group: ' + error.message);
-
-  const local = {
-    id: newGroup.id, name: newGroup.name, type: newGroup.type,
-    description: newGroup.description,
-    createdBy: newGroup.created_by, members: newGroup.members,
-    createdAt: newGroup.created_at, updatedAt: newGroup.updated_at,
-  };
-  await addActivity({ type: 'group_created', groupId: local.id, groupName: local.name, userId: group.createdBy, createdAt: new Date().toISOString() });
-  return local;
+  const payload = { name: group.name, type: group.type || 'other', description: group.description || '', members: group.members };
+  const created = await createGroupRemote(payload);
+  await addActivity({ type: 'group_created', groupId: created.id, groupName: created.name, userId: group.createdBy, createdAt: new Date().toISOString() });
+  return created;
 };
 
 export const getGroups = async (userId, userEmail = null) => {
@@ -293,50 +259,17 @@ export const getGroups = async (userId, userEmail = null) => {
     return groups.filter(g => g.members.some(m => m.id === userId));
   }
 
-  if (!isSupabaseConfigured()) return [];
-
-  // Use server-side function for reliable JSONB membership lookup
-  const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_groups', { p_user_id: userId });
-  if (!rpcError && rpcData) {
-    return rpcData.map(g => ({
-      id: g.id, name: g.name, type: g.type || 'other', description: g.description || '',
-      createdBy: g.created_by, members: g.members || [],
-      createdAt: g.created_at, updatedAt: g.updated_at,
-    }));
-  }
-
-  // Fallback: query by userId and optionally by email
-  const queries = [
-    supabase.from('groups').select('*').order('created_at', { ascending: false })
-      .filter('members', 'cs', JSON.stringify([{ id: userId }])),
-  ];
-  if (userEmail) {
-    queries.push(
-      supabase.from('groups').select('*').order('created_at', { ascending: false })
-        .filter('members', 'cs', JSON.stringify([{ email: userEmail.toLowerCase() }]))
-    );
-  }
-  const results = await Promise.all(queries);
-  const allRows = results.flatMap(r => r.data || []);
-  const seen = new Set();
-  const deduped = allRows.filter(g => { if (seen.has(g.id)) return false; seen.add(g.id); return true; });
-  return deduped
-    .map(g => ({
-      id: g.id, name: g.name, type: g.type || 'other', description: g.description || '',
-      createdBy: g.created_by, members: g.members || [],
-      createdAt: g.created_at, updatedAt: g.updated_at,
-    }));
+  const groups = await getGroupsRemote(userId);
+  return groups;
 };
 
 export const getGroup = async (groupId) => {
-  // Always check local storage first (demo groups stored here even when Supabase configured)
+  // Always check local storage first (demo groups stored here)
   const localGroups = await getData(KEYS.GROUPS);
   const localGroup = localGroups.find(g => g.id === groupId);
   if (localGroup) return localGroup;
-  if (!isSupabaseConfigured()) return null;
-  const { data } = await supabase.from('groups').select('*').eq('id', groupId).single();
-  if (!data) return null;
-  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
+  const group = await getGroupRemote(groupId);
+  return group;
 };
 
 export const updateGroup = async (groupId, updates) => {
@@ -347,15 +280,7 @@ export const updateGroup = async (groupId, updates) => {
     await setData(KEYS.GROUPS, localGroups);
     return localGroups[idx];
   }
-  if (!isSupabaseConfigured()) throw new Error('Group not found');
-  const { data, error } = await supabase.from('groups').update({
-    ...('name' in updates && { name: updates.name }),
-    ...('description' in updates && { description: updates.description }),
-    ...('members' in updates && { members: updates.members }),
-    updated_at: new Date().toISOString(),
-  }).eq('id', groupId).select().single();
-  if (error) throw new Error('Failed to update group');
-  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
+  return await updateGroupRemote(groupId, updates);
 };
 
 export const addMemberToGroup = async (groupId, user) => {
@@ -368,20 +293,7 @@ export const addMemberToGroup = async (groupId, user) => {
     await setData(KEYS.GROUPS, localGroups);
     return localGroups[idx];
   }
-  if (!isSupabaseConfigured()) throw new Error('Group not found');
-
-  // Fetch current group, add member, save
-  const { data: group, error: fetchErr } = await supabase.from('groups').select('*').eq('id', groupId).single();
-  if (fetchErr || !group) throw new Error('Group not found');
-  if (group.members.find(m => m.id === user.id)) throw new Error('Already a member');
-
-  const updatedMembers = [...group.members, user];
-  const { data, error } = await supabase.from('groups').update({
-    members: updatedMembers,
-    updated_at: new Date().toISOString(),
-  }).eq('id', groupId).select().single();
-  if (error) throw new Error('Failed to add member');
-  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
+  return await addMemberToGroupRemote(groupId, user);
 };
 
 // --- Expenses ---
@@ -394,24 +306,9 @@ export const addExpense = async (expense) => {
     return newExpense;
   }
 
-  const expenseCategory = expense.category || 'general';
-  const expenseDate = expense.date || new Date().toISOString();
-  const newExpense = {
-    id: uuidv4(),
-    group_id: expense.groupId,
-    description: expense.description,
-    amount: expense.amount,
-    currency: expense.currency,
-    paid_by: expense.paidBy,
-    splits: expense.splits,
-    created_at: new Date().toISOString(),
-  };
-  const { error } = await supabase.from('expenses').insert(newExpense);
-  if (error) throw new Error('Failed to add expense: ' + error.message);
-
-  const local = { id: newExpense.id, groupId: newExpense.group_id, description: newExpense.description, amount: newExpense.amount, currency: newExpense.currency, category: expenseCategory, paidBy: newExpense.paid_by, splits: newExpense.splits, date: expenseDate, createdAt: newExpense.created_at };
-  await addActivity({ type: 'expense_added', expenseId: local.id, description: local.description, amount: local.amount, groupId: local.groupId, groupName: expense.groupName, userId: local.paidBy.id, paidByName: local.paidBy.name, createdAt: new Date().toISOString() });
-  return local;
+  const created = await addExpenseRemote(expense);
+  await addActivity({ type: 'expense_added', expenseId: created.id, description: created.description, amount: created.amount, groupId: created.groupId, groupName: expense.groupName, userId: created.paidBy?.id, paidByName: created.paidBy?.name, createdAt: new Date().toISOString() });
+  return created;
 };
 
 export const getExpenses = async (groupId) => {
@@ -421,9 +318,7 @@ export const getExpenses = async (groupId) => {
     const expenses = await getData(KEYS.EXPENSES);
     return expenses.filter(e => e.groupId === groupId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
-  if (!isSupabaseConfigured()) return [];
-  const { data } = await supabase.from('expenses').select('*').eq('group_id', groupId).order('created_at', { ascending: false });
-  return (data || []).map(e => ({ id: e.id, groupId: e.group_id, description: e.description, amount: e.amount, currency: e.currency, category: e.category || 'general', paidBy: e.paid_by, splits: e.splits || [], date: e.date || e.created_at, createdAt: e.created_at }));
+  return await getExpensesRemote(groupId);
 };
 
 export const getAllExpenses = async (userId) => {
@@ -431,14 +326,7 @@ export const getAllExpenses = async (userId) => {
     const expenses = await getData(KEYS.EXPENSES);
     return expenses.filter(e => e.paidBy.id === userId || e.splits.some(s => s.userId === userId)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
-  // Fetch all expenses from user's groups
-  const userGroups = await getGroups(userId);
-  const groupIds = userGroups.map(g => g.id);
-  if (groupIds.length === 0) return [];
-  const { data } = await supabase.from('expenses').select('*').in('group_id', groupIds).order('created_at', { ascending: false }).limit(500);
-  return (data || [])
-    .filter(e => e.paid_by?.id === userId || (e.splits || []).some(s => s.userId === userId))
-    .map(e => ({ id: e.id, groupId: e.group_id, description: e.description, amount: e.amount, currency: e.currency, category: e.category || 'general', paidBy: e.paid_by, splits: e.splits || [], date: e.date || e.created_at, createdAt: e.created_at }));
+  return await getAllExpensesRemote(userId);
 };
 
 export const deleteExpense = async (expenseId) => {
@@ -447,9 +335,7 @@ export const deleteExpense = async (expenseId) => {
     await setData(KEYS.EXPENSES, localExpenses.filter(e => e.id !== expenseId));
     return;
   }
-  if (!isSupabaseConfigured()) return;
-  const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
-  if (error) throw new Error('Failed to delete expense');
+  await deleteExpenseRemote(expenseId, null);
 };
 
 // --- Balances ---
@@ -461,60 +347,7 @@ export const calculateBalances = async (userId) => {
     return _calculateBalancesFromData(userId, expenses, settlements, users);
   }
 
-  const userGroups = await getGroups(userId);
-  const groupIds = userGroups.map(g => g.id);
-
-  let expenses = [];
-  if (groupIds.length > 0) {
-    const { data } = await supabase.from('expenses').select('id,paid_by,splits,amount').in('group_id', groupIds);
-    expenses = (data || []).map(e => ({ paidBy: e.paid_by, splits: e.splits || [], amount: e.amount }));
-  }
-
-  const { data: settlementsData } = await supabase.from('settlements').select('paid_by,paid_to,amount')
-    .or(`paid_by.eq.${userId},paid_to.eq.${userId}`);
-  const settlements = (settlementsData || []).map(s => ({ paidBy: s.paid_by, paidTo: s.paid_to, amount: s.amount }));
-
-  const balanceMap = {};
-  expenses.forEach(expense => {
-    const paidById = expense.paidBy?.id;
-    if (!paidById) return;
-    expense.splits.forEach(split => {
-      if (split.userId === paidById) return;
-      const key = [paidById, split.userId].sort().join('_');
-      if (!balanceMap[key]) balanceMap[key] = { user1: paidById, user2: split.userId, amount: 0 };
-      if (paidById === balanceMap[key].user1) balanceMap[key].amount += split.amount;
-      else balanceMap[key].amount -= split.amount;
-    });
-  });
-
-  settlements.forEach(s => {
-    const key = [s.paidBy, s.paidTo].sort().join('_');
-    if (!balanceMap[key]) balanceMap[key] = { user1: s.paidBy, user2: s.paidTo, amount: 0 };
-    if (s.paidBy === balanceMap[key].user1) balanceMap[key].amount -= s.amount;
-    else balanceMap[key].amount += s.amount;
-  });
-
-  const otherUserIds = [...new Set(
-    Object.values(balanceMap).flatMap(b => [b.user1, b.user2]).filter(id => id !== userId)
-  )];
-  let otherUsers = [];
-  if (otherUserIds.length > 0) {
-    const { data } = await supabase.from('users').select('id,name,email,avatar').in('id', otherUserIds);
-    otherUsers = data || [];
-  }
-
-  const result = [];
-  Object.values(balanceMap).forEach(b => {
-    if (Math.abs(b.amount) < 0.01) return;
-    if (b.user1 === userId || b.user2 === userId) {
-      const otherUserId = b.user1 === userId ? b.user2 : b.user1;
-      const otherUser = otherUsers.find(u => u.id === otherUserId);
-      if (!otherUser) return;
-      const amount = b.user1 === userId ? b.amount : -b.amount;
-      result.push({ userId: otherUserId, name: otherUser.name, email: otherUser.email, avatar: otherUser.avatar, amount });
-    }
-  });
-  return result;
+  return await calculateBalancesRemote(userId);
 };
 
 const _calculateBalancesFromData = (userId, expenses, settlements, users) => {
@@ -558,13 +391,7 @@ export const calculateGroupBalances = async (groupId, members) => {
     return _calculateGroupBalancesFromData(groupId, members, groupExpenses, groupSettlements);
   }
 
-  const [{ data: expensesData }, { data: settlementsData }] = await Promise.all([
-    supabase.from('expenses').select('paid_by,splits,amount').eq('group_id', groupId),
-    supabase.from('settlements').select('paid_by,paid_to,amount').eq('group_id', groupId),
-  ]);
-  const groupExpenses = (expensesData || []).map(e => ({ paidBy: e.paid_by, splits: e.splits || [], amount: e.amount }));
-  const groupSettlements = (settlementsData || []).map(s => ({ paidBy: s.paid_by, paidTo: s.paid_to, amount: s.amount }));
-  return _calculateGroupBalancesFromData(groupId, members, groupExpenses, groupSettlements);
+  return await getGroupBalancesRemote(groupId);
 };
 
 const _calculateGroupBalancesFromData = (groupId, members, groupExpenses, groupSettlements) => {
@@ -599,22 +426,9 @@ export const recordSettlement = async (settlement) => {
     return newSettlement;
   }
 
-  const newSettlement = {
-    id: uuidv4(),
-    paid_by: settlement.paidBy,
-    paid_to: settlement.paidTo,
-    amount: settlement.amount,
-    currency: settlement.currency,
-    group_id: settlement.groupId || null,
-    note: settlement.note || '',
-    created_at: new Date().toISOString(),
-  };
-  const { error } = await supabase.from('settlements').insert(newSettlement);
-  if (error) throw new Error('Failed to record settlement: ' + error.message);
-
-  const local = { id: newSettlement.id, paidBy: newSettlement.paid_by, paidTo: newSettlement.paid_to, amount: newSettlement.amount, currency: newSettlement.currency, groupId: newSettlement.group_id, note: newSettlement.note, createdAt: newSettlement.created_at };
-  await addActivity({ type: 'settlement', settlementId: local.id, amount: local.amount, paidById: local.paidBy, paidToId: local.paidTo, userId: local.paidBy, createdAt: new Date().toISOString() });
-  return local;
+  const created = await recordSettlementRemote(settlement);
+  await addActivity({ type: 'settlement', settlementId: created.id, amount: created.amount, paidById: created.paidBy, paidToId: created.paidTo, userId: created.paidBy, createdAt: new Date().toISOString() });
+  return created;
 };
 
 // --- Activity ---
@@ -656,21 +470,7 @@ export const getActivity = async (userId) => {
     }).slice(0, 50);
   }
 
-  if (!isSupabaseConfigured()) return [];
-  const userGroups = await getGroups(userId);
-  const groupIds = userGroups.map(g => g.id);
-  const groupIdsStr = groupIds.join(',');
-
-  const { data } = await supabase.from('activity').select('*')
-    .or(groupIds.length > 0 ? `user_id.eq.${userId},group_id.in.(${groupIdsStr})` : `user_id.eq.${userId}`)
-    .order('created_at', { ascending: false }).limit(100);
-
-  return (data || []).map(a => ({
-    id: a.id, type: a.type, userId: a.user_id, groupId: a.group_id,
-    expenseId: a.expense_id, description: a.description,
-    amount: a.amount, groupName: a.group_name, paidByName: a.paid_by_name,
-    createdAt: a.created_at,
-  }));
+  return await getActivityRemote(userId);
 };
 
 export const getUserById = async (userId) => {
@@ -681,10 +481,7 @@ export const getUserById = async (userId) => {
     const { password: _, ...safeUser } = user;
     return safeUser;
   }
-  if (!isSupabaseConfigured()) return null;
-  const { data } = await supabase.from('users').select('id,name,email,avatar,phone').eq('id', userId).single();
-  if (!data) return null;
-  return { id: data.id, name: data.name, email: data.email, avatar: data.avatar || null, phone: data.phone || '' };
+  return await getUserByIdRemote(userId);
 };
 
 export const searchUsersByEmail = async (email) => {
@@ -692,10 +489,7 @@ export const searchUsersByEmail = async (email) => {
   const localUsers = await getData(KEYS.USERS);
   const localMatches = localUsers.filter(u => u.email && u.email.toLowerCase().includes(email.toLowerCase())).map(({ password: _, ...u }) => u);
   if (localMatches.length > 0) return localMatches;
-  if (!isSupabaseConfigured()) return [];
-  const { data } = await supabase.from('users').select('id,name,email,avatar,phone')
-    .ilike('email', `%${email}%`).limit(10);
-  return (data || []).map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '' }));
+  return await searchUsersByEmailRemote(email);
 };
 
 // syncFromSupabase is no longer needed — reads go directly to Supabase.
