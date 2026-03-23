@@ -76,8 +76,9 @@ export const sendWhatsAppMessage = async (phone, message) => {
   }
 };
 
-export const buildExpenseWhatsAppMessage = ({ expense, paidBy, splitAmount, groupName, currency = 'USD' }) => {
-  const symbol = { USD: '$', EUR: '€', GBP: '£', INR: '₹' }[currency] || '$';
+export const buildExpenseWhatsAppMessage = ({ expense, paidBy, splitAmount, groupName, currency = 'INR' }) => {
+  const { getCurrencySymbol } = require('./currency');
+  const symbol = getCurrencySymbol(currency);
   return `💸 *Evenly Expense*\n\n` +
     `*${expense.description}*\n` +
     `Group: ${groupName || 'Personal'}\n` +
@@ -87,8 +88,9 @@ export const buildExpenseWhatsAppMessage = ({ expense, paidBy, splitAmount, grou
     `_Sent via Evenly App_`;
 };
 
-export const buildSettlementWhatsAppMessage = ({ payerName, receiverName, amount, currency = 'USD' }) => {
-  const symbol = { USD: '$', EUR: '€', GBP: '£', INR: '₹' }[currency] || '$';
+export const buildSettlementWhatsAppMessage = ({ payerName, receiverName, amount, currency = 'INR' }) => {
+  const { getCurrencySymbol } = require('./currency');
+  const symbol = getCurrencySymbol(currency);
   return `✅ *Evenly Payment*\n\n` +
     `${payerName} paid ${receiverName} ${symbol}${amount.toFixed(2)}\n\n` +
     `_Recorded via Evenly App_`;

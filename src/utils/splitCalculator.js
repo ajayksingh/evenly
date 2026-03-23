@@ -44,9 +44,9 @@ export const validateExactSplit = (amount, exactAmounts) => {
   return Math.abs(total - amount) < 0.01;
 };
 
-export const formatCurrency = (amount, currency = 'USD') => {
-  const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹', CAD: 'C$', AUD: 'A$' };
-  const symbol = symbols[currency] || '$';
+export const formatCurrency = (amount, currency = 'INR') => {
+  const { getCurrencySymbol } = require('../services/currency');
+  const symbol = getCurrencySymbol(currency);
   const num = parseFloat(amount);
   const formatted = isNaN(num) ? '0.00' : Math.abs(num).toFixed(2);
   return `${symbol}${formatted}`;
