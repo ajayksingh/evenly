@@ -1,0 +1,30 @@
+appId: host.exp.exponent
+name: "HELPER: Sign up ajsworld@gmail.com if not already registered"
+---
+# This helper registers ajsworld@gmail.com.
+# It is safe to run multiple times: if already registered it will show an error and we dismiss.
+- tapOn: "Sign Up"
+- extendedWaitUntil:
+    visible: "Full Name"
+    timeout: 5000
+- tapOn: "Full Name"
+- inputText: "Ajs World"
+- hideKeyboard
+- tapOn:
+    id: "auth-email-input"
+- inputText: "ajsworld@gmail.com"
+- hideKeyboard
+- tapOn:
+    id: "auth-password-input"
+- inputText: "abc123"
+- hideKeyboard
+- tapOn: "Confirm Password"
+- inputText: "abc123"
+- hideKeyboard
+- tapOn:
+    id: "auth-submit-btn"
+# If signup succeeded, we land on home — done
+# If already registered, an error dialog appears — dismiss and sign in
+- tapOn:
+    text: "OK"
+    optional: true

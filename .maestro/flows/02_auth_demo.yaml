@@ -1,14 +1,28 @@
 appId: host.exp.exponent
-name: "AUTH-02: Demo account quick login"
+name: "AUTH-02: Real account quick login"
 ---
-- launchApp
+- stopApp
+- launchApp:
+    clearState: true
+- openLink: "exp://10.0.2.2:8082"
+- extendedWaitUntil:
+    visible: "Splitwise"
+    timeout: 60000
+- tapOn:
+    text: "splitwise"
+    optional: true
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 30000
+- tapOn: "Continue"
+- tapOn:
+    text: "Reload"
+    optional: true
+- extendedWaitUntil:
+    visible: "Sign In"
+    timeout: 30000
 - runFlow:
-    when:
-      visible: "Total balance"
-    file: "helpers/logout.yaml"
-
-- assertVisible: "Sign In"
-- tapOn: "Use Demo Account (alice@demo.com)"
+    file: "helpers/login_real.yaml"
 - assertVisible: "Total balance"
 - assertVisible: "Splitwise"
-- takeScreenshot: "auth_02_demo_home"
+- takeScreenshot: "auth_02_real_home"

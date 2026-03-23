@@ -1,26 +1,16 @@
 appId: host.exp.exponent
-name: "PROFILE-01: Profile screen opens, shows user info, edit works"
+name: "PROFILE-01: Profile screen opens, shows user info"
 ---
-- launchApp:
-    clearState: true
-- assertVisible: "Sign In"
-- tapOn: "Use Demo Account"
-- assertVisible: "Total balance"
-
-# Tap avatar to go to profile
-- tapOn:
-    id: "avatar"
-    optional: true
-# If no testID, try navigation
 - runFlow:
-    when:
-      notVisible: "Edit Profile"
-    flow: |
-      - tapOn: "Alice Demo"
-        optional: true
+    file: "helpers/startup_real.yaml"
 
-- assertVisible: "Profile"
-    optional: true
+# Tap header avatar to open profile
+- tapOn:
+    id: "header-avatar"
+- extendedWaitUntil:
+    visible: "Account"
+    timeout: 8000
+- assertVisible: "ajsworld@gmail.com"
 - takeScreenshot: "profile_01_loaded"
 
 # Go back

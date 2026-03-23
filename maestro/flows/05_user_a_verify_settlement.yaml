@@ -1,0 +1,47 @@
+---
+# Flow: User A logs back in and verifies settlement was received
+appId: com.anonymous.splitwise
+---
+
+# --- Logout User B ---
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- tapOn:
+    id: "header-avatar"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    text: "Sign Out"
+- tapOn: "Sign Out"
+- waitForAnimationToEnd
+
+# --- Login as User A ---
+- assertVisible: "SplitWise"
+- tapOn: "Sign In"
+  optional: true
+- runFlow:
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: "deepsags@gmail.com"
+      PASS: "abc123"
+
+# --- Check home screen shows reduced/zero balance ---
+- waitForAnimationToEnd
+- assertVisible: "Total balance"
+
+# --- Verify activity shows the settlement ---
+- tapOn: "Activity"
+  optional: true
+- waitForAnimationToEnd
+
+# --- Check group balances ---
+- tapOn: "Groups"
+- waitForAnimationToEnd
+- tapOn: "Maestro E2E Group"
+- waitForAnimationToEnd
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+
+# Both expenses and settlement should be reflected
+- assertVisible: "Group Balances"

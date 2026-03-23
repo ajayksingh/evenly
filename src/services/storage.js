@@ -62,10 +62,6 @@ export const registerUser = async ({ name, email, password }) => {
     throw new Error(error.message);
   }
 
-  if (!data.session) {
-    throw new Error('Account created! Please check your email to confirm your account, then sign in.');
-  }
-
   const profile = {
     id: data.user.id,
     name,
@@ -75,8 +71,7 @@ export const registerUser = async ({ name, email, password }) => {
     createdAt: new Date().toISOString(),
   };
 
-  await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
-
+  // Always save profile to users table (data.user is available even before email confirmation)
   await supabase.from('users').upsert({
     id: profile.id,
     name: profile.name,
@@ -87,6 +82,11 @@ export const registerUser = async ({ name, email, password }) => {
     created_at: profile.createdAt,
   });
 
+  if (!data.session) {
+    throw new Error('Account created! Please check your email to confirm your account, then sign in.');
+  }
+
+  await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
   return profile;
 };
 
@@ -250,10 +250,10 @@ export const createGroup = async (group) => {
     return newGroup;
   }
 
+  const groupType = group.type || 'other';
   const newGroup = {
     id: uuidv4(),
     name: group.name,
-    type: group.type || 'other',
     description: group.description || '',
     created_by: group.createdBy,
     members: group.members,
@@ -262,6 +262,7 @@ export const createGroup = async (group) => {
   };
   const { error } = await supabase.from('groups').insert(newGroup);
   if (error) throw new Error('Failed to create group: ' + error.message);
+  newGroup.type = groupType;
 
   const local = {
     id: newGroup.id, name: newGroup.name, type: newGroup.type,
@@ -370,22 +371,22 @@ export const addExpense = async (expense) => {
     return newExpense;
   }
 
+  const expenseCategory = expense.category || 'general';
+  const expenseDate = expense.date || new Date().toISOString();
   const newExpense = {
     id: uuidv4(),
     group_id: expense.groupId,
     description: expense.description,
     amount: expense.amount,
     currency: expense.currency,
-    category: expense.category || 'general',
     paid_by: expense.paidBy,
     splits: expense.splits,
-    date: expense.date || new Date().toISOString(),
     created_at: new Date().toISOString(),
   };
   const { error } = await supabase.from('expenses').insert(newExpense);
   if (error) throw new Error('Failed to add expense: ' + error.message);
 
-  const local = { id: newExpense.id, groupId: newExpense.group_id, description: newExpense.description, amount: newExpense.amount, currency: newExpense.currency, category: newExpense.category, paidBy: newExpense.paid_by, splits: newExpense.splits, date: newExpense.date, createdAt: newExpense.created_at };
+  const local = { id: newExpense.id, groupId: newExpense.group_id, description: newExpense.description, amount: newExpense.amount, currency: newExpense.currency, category: expenseCategory, paidBy: newExpense.paid_by, splits: newExpense.splits, date: expenseDate, createdAt: newExpense.created_at };
   await addActivity({ type: 'expense_added', expenseId: local.id, description: local.description, amount: local.amount, groupId: local.groupId, groupName: expense.groupName, userId: local.paidBy.id, paidByName: local.paidBy.name, createdAt: new Date().toISOString() });
   return local;
 };

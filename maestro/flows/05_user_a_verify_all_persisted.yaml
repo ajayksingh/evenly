@@ -1,0 +1,68 @@
+---
+# Flow: User A logs in fresh, verifies all data persisted from Supabase
+appId: com.anonymous.splitwise
+---
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+
+# Dismiss any system crash dialogs
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+- assertVisible: "SplitWise"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "deepsags@gmail.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "abc123"
+- tapOn:
+    id: "auth-submit-btn"
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 15000
+
+- assertVisible: "Recent activity"
+
+- tapOn: "Groups"
+- waitForAnimationToEnd
+- assertVisible: "E2E Test Group"
+
+- tapOn: "E2E Test Group"
+- waitForAnimationToEnd
+
+# All expenses persisted
+- extendedWaitUntil:
+    visible:
+      text: "Dinner at restaurant"
+    timeout: 10000
+- assertVisible: "Cab ride home"
+
+# Balances reflect settlement
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+- assertVisible: "Group Balances"
+
+# Both members present
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+- assertVisible: "Ajay"
+
+# Back to Home via back button
+- back
+- waitForAnimationToEnd
+- back
+- waitForAnimationToEnd
+- assertVisible: "Total balance"
+- assertVisible: "Recent activity"

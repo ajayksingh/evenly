@@ -1,0 +1,96 @@
+---
+# Flow: User A (deepsags) logs in, creates group, adds expense
+appId: com.anonymous.splitwise
+---
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+
+# Dismiss any system crash dialogs (e.g. Chrome)
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# Auth screen
+- assertVisible: "SplitWise"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "deepsags@gmail.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "abc123"
+- tapOn:
+    id: "auth-submit-btn"
+
+# Wait for Supabase to load home screen (allow up to 15s)
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 15000
+
+# Navigate to Groups
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+# Create group via FAB
+- tapOn:
+    id: "fab-add-group"
+- waitForAnimationToEnd
+- assertVisible: "New Group"
+
+- tapOn:
+    id: "group-name-input"
+- waitForAnimationToEnd
+- inputText: "E2E Test Group"
+
+- tapOn: "Create"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "E2E Test Group"
+    timeout: 15000
+
+# Open the group
+- tapOn: "E2E Test Group"
+- waitForAnimationToEnd
+
+# Add expense
+- tapOn: "Add"
+- waitForAnimationToEnd
+- assertVisible: "Add Expense"
+
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "1200"
+
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Dinner at restaurant"
+
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+
+# Verify expense persisted from Supabase
+- extendedWaitUntil:
+    visible:
+      text: "Dinner at restaurant"
+    timeout: 10000
+
+# Check balances tab
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+- assertVisible: "Group Balances"
+
+# Check members tab
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+- assertVisible: "members"

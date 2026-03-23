@@ -1,10 +1,8 @@
 appId: host.exp.exponent
 name: "ACTIVITY-01: Activity screen filter chips work"
 ---
-- launchApp:
-    clearState: true
-- assertVisible: "Sign In"
-- tapOn: "Use Demo Account"
+- runFlow:
+    file: "helpers/startup_real.yaml"
 - tapOn: "Activity"
 - assertVisible: "Activity"
 - takeScreenshot: "activity_01_all"
@@ -18,6 +16,5 @@ name: "ACTIVITY-01: Activity screen filter chips work"
     when:
       notVisible: "No activity yet"
     flow: |
-      # Tap All to reset
       - tapOn: "All"
       - takeScreenshot: "activity_03_all_selected"

@@ -1,0 +1,13 @@
+appId: com.anonymous.splitwise
+---
+# Reusable: logs out the current user
+- tapOn:
+    id: "header-avatar"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+- tapOn: "Sign Out"
+- waitForAnimationToEnd
+- assertVisible: "SplitWise"

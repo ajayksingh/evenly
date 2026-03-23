@@ -87,7 +87,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
   };
 
   const handleSave = async () => {
-    if (!validate()) { hapticError(); return; }
+if (!validate()) { hapticError(); return; }
     hapticMedium();
     setSaving(true);
     try {
@@ -126,7 +126,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
                 const split = splits.find(s => s.userId === friend.id);
                 if (split) {
                   const msg = buildExpenseWhatsAppMessage({
-                    expense: { description: description.trim(), amount: parseFloat(amount) },
+                    expense: { description: descriptionRef.current.trim(), amount: parseFloat(amountRef.current) },
                     paidBy: paidBy.id === user.id ? 'You' : paidBy.name,
                     splitAmount: split.amount,
                     groupName: selectedGroup.name,
@@ -161,7 +161,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Add Expense</Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={handleSave} style={styles.saveBtn} disabled={saving}>
+          <TouchableOpacity testID="expense-save-btn" activeOpacity={0.7} onPress={handleSave} style={styles.saveBtn} disabled={saving}>
             <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text>
           </TouchableOpacity>
         </View>
@@ -194,8 +194,8 @@ const AddExpenseScreen = ({ route, navigation }) => {
               onChangeText={v => { descriptionRef.current = v; }}
               placeholderTextColor={COLORS.textMuted}
               autoCorrect={false}
-              autoCapitalize="none"
-              keyboardType="email-address"
+              autoCapitalize="sentences"
+              keyboardType="default"
             />
           </View>
 

@@ -1,5 +1,5 @@
 appId: host.exp.exponent
-name: "AUTH-01: Login and logout cycle"
+name: "HELPER: Cold start + login with real account"
 ---
 - stopApp
 - launchApp:
@@ -21,25 +21,8 @@ name: "AUTH-01: Login and logout cycle"
 - extendedWaitUntil:
     visible: "Sign In"
     timeout: 30000
-
-# Fill real credentials
-- tapOn:
-    id: "auth-email-input"
-- inputText: "ajsworld@gmail.com"
-- hideKeyboard
-- tapOn:
-    id: "auth-password-input"
-- inputText: "abc123"
-- hideKeyboard
-- tapOn:
-    id: "auth-submit-btn"
+- runFlow:
+    file: "helpers/login_real.yaml"
 - extendedWaitUntil:
     visible: "Total balance"
-    timeout: 20000
-- takeScreenshot: "auth_01_logged_in"
-
-# Now logout
-- runFlow:
-    file: "helpers/logout.yaml"
-- assertVisible: "Sign In"
-- takeScreenshot: "auth_01_logged_out"
+    timeout: 15000

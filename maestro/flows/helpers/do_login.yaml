@@ -1,0 +1,15 @@
+appId: com.anonymous.splitwise
+---
+# Reusable: performs login with EMAIL and PASS env vars
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: ${EMAIL}
+- tapOn:
+    id: "auth-password-input"
+- eraseText: 30
+- inputText: ${PASS}
+- tapOn:
+    id: "auth-submit-btn"
+- waitForAnimationToEnd
+- assertNotVisible: "Sign In"

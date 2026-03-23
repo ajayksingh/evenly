@@ -8,34 +8,30 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - extendedWaitUntil:
     visible: "Splitwise"
     timeout: 60000
-# Tap the project to start loading (clearState may show project picker)
 - tapOn:
     text: "splitwise"
     optional: true
-# Wait for the Expo project dialog "Continue" button, then dismiss it
 - extendedWaitUntil:
     visible: "Continue"
     timeout: 30000
 - tapOn: "Continue"
-# Developer tools panel may appear after Continue — reload to dismiss and get clean app start
 - tapOn:
     text: "Reload"
     optional: true
-# Sign In must now be visible (clearState wiped AsyncStorage)
 - extendedWaitUntil:
     visible: "Sign In"
     timeout: 30000
 - runFlow:
-    file: "helpers/login_demo.yaml"
+    file: "helpers/login_real.yaml"
 - extendedWaitUntil:
     visible: "Total balance"
     timeout: 15000
 
-# ─── SETUP: add bob and carol as friends ─────────────────────────────────────
+# ─── SETUP: add depsags as friend ─────────────────────────────────────────────
 - runFlow:
     file: "helpers/setup_friends.yaml"
 
-# ─── 1. CREATE GROUP WITH PRE-SELECTED FRIENDS ───────────────────────────────
+# ─── 1. CREATE GROUP WITH PRE-SELECTED FRIEND ─────────────────────────────────
 - tapOn: "Groups"
 - tapOn:
     id: "fab-add-group"
@@ -51,16 +47,12 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - tapOn:
     id: "group-type-home"
 
-# Select Bob from member picker
-- assertVisible: "Bob Demo"
-- tapOn: "Bob Demo"
+# Select friend from member picker (tap by email shown below name)
+- assertVisible: "depsags@gmail.com"
+- tapOn: "depsags@gmail.com"
 
-# Select Carol from member picker
-- assertVisible: "Carol Demo"
-- tapOn: "Carol Demo"
-
-# Verify selection count (escape parens — Maestro uses regex matching)
-- assertVisible: "Add Members \\(2 selected\\)"
+# Verify selection count
+- assertVisible: "Add Members \\(1 selected\\)"
 - takeScreenshot: "group_friends_01_members_selected"
 
 # Create the group
@@ -76,17 +68,16 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - extendedWaitUntil:
     visible: "members"
     timeout: 15000
-- assertVisible: "3 members"
+- assertVisible: "2 members"
 - takeScreenshot: "group_friends_03_group_detail_header"
 
-# ─── 3. MEMBERS TAB: ALL 3 LISTED ────────────────────────────────────────────
+# ─── 3. MEMBERS TAB: BOTH LISTED ─────────────────────────────────────────────
 - tapOn:
     id: "tab-members"
 - extendedWaitUntil:
-    visible: "Alice Demo \\(You\\)"
+    visible: "\\(You\\)"
     timeout: 5000
-- assertVisible: "Bob Demo"
-- assertVisible: "Carol Demo"
+- assertVisible: "depsags@gmail.com"
 - assertVisible: "Admin"
 - takeScreenshot: "group_friends_04_members_list"
 
@@ -101,12 +92,12 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - assertVisible: "Add Member"
 - tapOn:
     id: "member-search-input"
-- inputText: "bob@demo.com"
+- inputText: "depsags@gmail.com"
 - hideKeyboard
 - tapOn:
     id: "member-search-btn"
 - extendedWaitUntil:
-    visible: "Bob Demo"
+    visible: "depsags@gmail.com"
     timeout: 8000
 - takeScreenshot: "group_friends_06_member_found"
 
@@ -120,7 +111,7 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - assertVisible: "Add First Expense"
 - takeScreenshot: "group_friends_07_no_expenses"
 
-# ─── 7. ADD EXPENSE SPLIT ACROSS ALL 3 MEMBERS ───────────────────────────────
+# ─── 7. ADD EXPENSE SPLIT ACROSS MEMBERS ─────────────────────────────────────
 - tapOn: "Add First Expense"
 - assertVisible: "Add Expense"
 - tapOn:
@@ -129,9 +120,9 @@ name: "FRIENDS: Add friends to group — create with members and verify"
 - hideKeyboard
 - tapOn:
     id: "expense-amount-input"
-- inputText: "3000"
+- inputText: "2000"
 - hideKeyboard
-# Verify split preview shows 3 members (1000 each equally)
+# Verify split preview
 - scroll
 - assertVisible: "Split Preview"
 - takeScreenshot: "group_friends_08_split_preview"

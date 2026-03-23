@@ -216,8 +216,9 @@ const SettleUpScreen = ({ route, navigation }) => {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Who receives?</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {allParties.filter(p => p.id !== payer?.id).map(p => (
+              {allParties.filter(p => p.id !== payer?.id).map((p, idx) => (
                 <TouchableOpacity
+                  testID={idx === 0 ? 'settle-receiver-first' : `settle-receiver-${idx}`}
                   activeOpacity={0.7}
                   key={p.id}
                   style={[styles.personBtn, receiver?.id === p.id && styles.personBtnActive]}
@@ -241,6 +242,7 @@ const SettleUpScreen = ({ route, navigation }) => {
             <View style={styles.amountInput}>
               <Text style={styles.currency}>{getCurrencySymbol(currency)}</Text>
               <TextInput
+                testID="settle-amount-input"
                 style={styles.amountText}
                 value={amount}
                 onChangeText={setAmount}
@@ -328,7 +330,7 @@ const SettleUpScreen = ({ route, navigation }) => {
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity activeOpacity={0.7} style={styles.settleBtn} onPress={handleSettle} disabled={saving}>
+          <TouchableOpacity testID="settle-record-btn" activeOpacity={0.7} style={styles.settleBtn} onPress={handleSettle} disabled={saving}>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
             <Text style={styles.settleBtnText}>{saving ? 'Recording...' : 'Record Payment'}</Text>
           </TouchableOpacity>

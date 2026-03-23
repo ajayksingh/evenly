@@ -1,0 +1,53 @@
+appId: host.exp.exponent
+name: "HELPER: Sign up depsags@gmail.com if not already registered"
+---
+# Launches app fresh and registers depsags@gmail.com
+- stopApp
+- launchApp:
+    clearState: true
+- openLink: "exp://10.0.2.2:8082"
+- extendedWaitUntil:
+    visible: "Splitwise"
+    timeout: 60000
+- tapOn:
+    text: "splitwise"
+    optional: true
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 30000
+- tapOn: "Continue"
+- tapOn:
+    text: "Reload"
+    optional: true
+- extendedWaitUntil:
+    visible: "Sign In"
+    timeout: 30000
+- tapOn: "Sign Up"
+- extendedWaitUntil:
+    visible: "Full Name"
+    timeout: 5000
+- tapOn: "Full Name"
+- inputText: "Depsags User"
+- hideKeyboard
+- tapOn:
+    id: "auth-email-input"
+- inputText: "depsags@gmail.com"
+- hideKeyboard
+- tapOn:
+    id: "auth-password-input"
+- inputText: "abc123"
+- hideKeyboard
+- tapOn: "Confirm Password"
+- inputText: "abc123"
+- hideKeyboard
+- tapOn:
+    id: "auth-submit-btn"
+# Dismiss any error (already registered)
+- tapOn:
+    text: "OK"
+    optional: true
+# If already signed in (first registration), sign out to leave clean state
+- runFlow:
+    when:
+      visible: "Total balance"
+    file: "logout.yaml"

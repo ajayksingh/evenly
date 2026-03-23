@@ -1,5 +1,5 @@
 appId: host.exp.exponent
-name: "HELPER: Ensure bob and carol are friends"
+name: "HELPER: Ensure depsags is a friend"
 ---
 - tapOn: "Friends"
 - tapOn:
@@ -9,7 +9,7 @@ name: "HELPER: Ensure bob and carol are friends"
     timeout: 10000
 - tapOn:
     id: "friends-email-input"
-- inputText: "bob@demo.com"
+- inputText: "depsags@gmail.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"
@@ -18,26 +18,6 @@ name: "HELPER: Ensure bob and carol are friends"
     text: "OK"
     optional: true
 # Close modal if still open (e.g. after "Already friends" error)
-- tapOn:
-    text: "Cancel"
-    optional: true
-- extendedWaitUntil:
-    visible: "Friends"
-    timeout: 10000
-- tapOn:
-    id: "friends-add-btn"
-- extendedWaitUntil:
-    visible: "Add Friend"
-    timeout: 10000
-- tapOn:
-    id: "friends-email-input"
-- inputText: "carol@demo.com"
-- hideKeyboard
-- tapOn:
-    id: "friends-add-submit"
-- tapOn:
-    text: "OK"
-    optional: true
 - tapOn:
     text: "Cancel"
     optional: true

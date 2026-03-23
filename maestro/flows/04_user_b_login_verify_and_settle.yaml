@@ -1,0 +1,81 @@
+---
+# Flow: User B sees shared expenses and settles payment
+appId: com.anonymous.splitwise
+---
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+
+# Dismiss any system crash dialogs
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+- assertVisible: "SplitWise"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "ajsworld@gmail.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "abc123"
+- tapOn:
+    id: "auth-submit-btn"
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 15000
+
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+- tapOn: "E2E Test Group"
+- waitForAnimationToEnd
+
+# Both expenses from User A visible to User B
+- extendedWaitUntil:
+    visible:
+      text: "Dinner at restaurant"
+    timeout: 10000
+- assertVisible: "Cab ride home"
+
+# Balances: User B owes User A
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+- assertVisible: "Group Balances"
+
+# Settle up
+- tapOn: "Record a Payment"
+- waitForAnimationToEnd
+- assertVisible: "Settle Up"
+
+# Select receiver (deepsags = first non-payer)
+- tapOn:
+    id: "settle-receiver-first"
+- waitForAnimationToEnd
+
+# Enter amount
+- tapOn:
+    id: "settle-amount-input"
+- eraseText: 10
+- inputText: "900"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "settle-record-btn"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Payment Successful!"
+    timeout: 8000
+
+- waitForAnimationToEnd:
+    timeout: 6000

@@ -8,26 +8,21 @@ name: "FRIENDS: Comprehensive friends tab suite"
 - extendedWaitUntil:
     visible: "Splitwise"
     timeout: 60000
-# Tap the project to start loading (clearState may show project picker)
 - tapOn:
     text: "splitwise"
     optional: true
-# Wait for the Expo project dialog "Continue" button, then dismiss it
 - extendedWaitUntil:
     visible: "Continue"
     timeout: 30000
 - tapOn: "Continue"
-# Developer tools panel may appear after Continue — reload to dismiss and get clean app start
 - tapOn:
     text: "Reload"
     optional: true
-# Sign In must now be visible (clearState wiped AsyncStorage)
 - extendedWaitUntil:
     visible: "Sign In"
     timeout: 30000
-# Fresh start — clearState wiped AsyncStorage so demo data is clean
 - runFlow:
-    file: "helpers/login_demo.yaml"
+    file: "helpers/login_real.yaml"
 - extendedWaitUntil:
     visible: "Total balance"
     timeout: 15000
@@ -59,7 +54,7 @@ name: "FRIENDS: Comprehensive friends tab suite"
 - assertVisible: "Friends"
 - takeScreenshot: "friends_04_cancel_works"
 
-# ─── 5. ADD BOB AS FRIEND ────────────────────────────────────────────────────
+# ─── 5. ADD REAL FRIEND ──────────────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
 - extendedWaitUntil:
@@ -67,16 +62,16 @@ name: "FRIENDS: Comprehensive friends tab suite"
     timeout: 5000
 - tapOn:
     id: "friends-email-input"
-- inputText: "bob@demo.com"
+- inputText: "depsags@gmail.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"
 - assertVisible: "Friend Added!"
 - tapOn: "OK"
 - extendedWaitUntil:
-    visible: "Bob Demo"
+    visible: "depsags@gmail.com"
     timeout: 8000
-- takeScreenshot: "friends_05_bob_added"
+- takeScreenshot: "friends_05_friend_added"
 
 # ─── 6. SUMMARY GRID VISIBLE AFTER FIRST FRIEND ──────────────────────────────
 - assertVisible: "owe you"
@@ -84,15 +79,14 @@ name: "FRIENDS: Comprehensive friends tab suite"
 - assertVisible: "settled"
 - takeScreenshot: "friends_06_summary_grid"
 
-# ─── 7. FRIEND CARD SHOWS NAME + EMAIL ───────────────────────────────────────
+# ─── 7. FRIEND CARD SHOWS EMAIL ──────────────────────────────────────────────
 - assertVisible:
     id: "friend-card"
-- assertVisible: "Bob Demo"
-- assertVisible: "bob@demo.com"
+- assertVisible: "depsags@gmail.com"
 - assertVisible: "settled up"
 - takeScreenshot: "friends_07_friend_card"
 
-# ─── 8. ADD CAROL AS SECOND FRIEND ───────────────────────────────────────────
+# ─── 8. DUPLICATE FRIEND BLOCKED ─────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
 - extendedWaitUntil:
@@ -100,36 +94,16 @@ name: "FRIENDS: Comprehensive friends tab suite"
     timeout: 5000
 - tapOn:
     id: "friends-email-input"
-- inputText: "carol@demo.com"
-- hideKeyboard
-- tapOn:
-    id: "friends-add-submit"
-- assertVisible: "Friend Added!"
-- tapOn: "OK"
-- extendedWaitUntil:
-    visible: "Carol Demo"
-    timeout: 8000
-- assertVisible: "Carol Demo"
-- takeScreenshot: "friends_08_carol_added"
-
-# ─── 9. DUPLICATE FRIEND BLOCKED ─────────────────────────────────────────────
-- tapOn:
-    id: "friends-add-btn"
-- extendedWaitUntil:
-    visible: "Add Friend"
-    timeout: 5000
-- tapOn:
-    id: "friends-email-input"
-- inputText: "bob@demo.com"
+- inputText: "depsags@gmail.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"
 - assertVisible: "Already friends"
 - tapOn: "OK"
 - tapOn: "Cancel"
-- takeScreenshot: "friends_09_duplicate_blocked"
+- takeScreenshot: "friends_08_duplicate_blocked"
 
-# ─── 10. INVALID EMAIL ERROR ─────────────────────────────────────────────────
+# ─── 9. INVALID EMAIL ERROR ──────────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
 - extendedWaitUntil:
@@ -144,9 +118,9 @@ name: "FRIENDS: Comprehensive friends tab suite"
 - assertVisible: "Error"
 - tapOn: "OK"
 - tapOn: "Cancel"
-- takeScreenshot: "friends_10_invalid_email"
+- takeScreenshot: "friends_09_invalid_email"
 
-# ─── 11. SELF-ADD BLOCKED ────────────────────────────────────────────────────
+# ─── 10. SELF-ADD BLOCKED ────────────────────────────────────────────────────
 - tapOn:
     id: "friends-add-btn"
 - extendedWaitUntil:
@@ -154,15 +128,15 @@ name: "FRIENDS: Comprehensive friends tab suite"
     timeout: 5000
 - tapOn:
     id: "friends-email-input"
-- inputText: "alice@demo.com"
+- inputText: "ajsworld@gmail.com"
 - hideKeyboard
 - tapOn:
     id: "friends-add-submit"
 - assertVisible: "Error"
 - tapOn: "OK"
 - tapOn: "Cancel"
-- takeScreenshot: "friends_11_self_add_blocked"
+- takeScreenshot: "friends_10_self_add_blocked"
 
-# ─── 12. SECTION HEADER VISIBLE ──────────────────────────────────────────────
+# ─── 11. SECTION HEADER VISIBLE ──────────────────────────────────────────────
 - assertVisible: "Settled up"
-- takeScreenshot: "friends_12_section_headers"
+- takeScreenshot: "friends_11_section_headers"

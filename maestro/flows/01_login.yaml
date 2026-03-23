@@ -1,0 +1,17 @@
+---
+# Flow: Login as User A (deepsags@gmail.com)
+appId: com.anonymous.splitwise
+env:
+  EMAIL: ${USER_A_EMAIL}
+  PASS: ${USER_A_PASS}
+---
+- launchApp:
+    clearState: false
+- assertVisible:
+    text: "SplitWise"
+    optional: true
+# If already logged in, logout first
+- runFlow:
+    when:
+      visible: "Sign In"
+    file: ./helpers/do_login.yaml

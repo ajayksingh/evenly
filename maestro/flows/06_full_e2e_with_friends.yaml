@@ -1,0 +1,108 @@
+---
+# Flow: Full E2E — friends, multiple expenses, verify data persists on backend
+appId: com.anonymous.splitwise
+---
+
+# === USER A: Add User B as friend if not already ===
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# Ensure logged in as User A
+- runFlow:
+    when:
+      visible: "SplitWise"
+    commands:
+      - tapOn: "Sign In"
+        optional: true
+      - runFlow:
+          file: ./helpers/do_login.yaml
+          env:
+            EMAIL: "deepsags@gmail.com"
+            PASS: "abc123"
+
+- waitForAnimationToEnd
+
+# --- Navigate to Friends ---
+- tapOn: "Friends"
+- waitForAnimationToEnd
+
+# Add User B as friend (if not already added)
+- runFlow:
+    when:
+      notVisible: "ajsworld"
+    commands:
+      - tapOn:
+          text: "Add Friend"
+          optional: true
+      - tapOn:
+          id: "add-friend-input"
+          optional: true
+      - typeText: "ajsworld@gmail.com"
+      - tapOn: "Add"
+        optional: true
+      - waitForAnimationToEnd
+
+# Verify friend appears
+- assertVisible:
+    text: "ajsworld"
+    optional: true
+
+# --- Navigate to Groups and open shared group ---
+- tapOn: "Groups"
+- waitForAnimationToEnd
+- tapOn: "Maestro E2E Group"
+- waitForAnimationToEnd
+
+# --- Add expense for a different category ---
+- tapOn: "Add"
+- waitForAnimationToEnd
+
+# Amount
+- tapOn:
+    id: "expense-amount-input"
+- typeText: "900"
+
+# Description
+- tapOn:
+    id: "expense-description-input"
+- typeText: "Hotel stay"
+
+# Save
+- tapOn: "Save"
+- waitForAnimationToEnd
+
+# Verify it persisted
+- assertVisible: "Hotel stay"
+
+# --- Check Members tab ---
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+- assertVisible: "members"
+
+# --- Verify back on Groups screen it shows updated total ---
+- tapOn: "Back"
+  optional: true
+- tapOn: "Groups"
+  optional: true
+- waitForAnimationToEnd
+- assertVisible: "Maestro E2E Group"
+
+# --- Go to Activity screen ---
+- tapOn: "Activity"
+  optional: true
+- waitForAnimationToEnd
+
+# --- Go to Home and pull-to-refresh ---
+- tapOn: "Home"
+  optional: true
+- waitForAnimationToEnd
+- scroll:
+    direction: DOWN
+    duration: 200
+- scroll:
+    direction: UP
+    duration: 200
+- waitForAnimationToEnd
+- assertVisible: "Total balance"

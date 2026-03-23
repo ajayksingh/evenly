@@ -1,10 +1,8 @@
 appId: host.exp.exponent
 name: "GROUPS-02: Create a new group"
 ---
-- launchApp:
-    clearState: true
-- assertVisible: "Sign In"
-- tapOn: "Use Demo Account"
+- runFlow:
+    file: "helpers/startup_real.yaml"
 - tapOn: "Groups"
 - assertVisible: "Groups"
 
@@ -23,11 +21,14 @@ name: "GROUPS-02: Create a new group"
 - hideKeyboard
 
 # Select Trip type
-- tapOn: "Trip"
+- tapOn:
+    id: "group-type-trip"
 - takeScreenshot: "groups_create_02_type_selected"
 
 # Create
 - tapOn: "Create"
-- assertVisible: "Groups"
+- extendedWaitUntil:
+    visible: "Groups"
+    timeout: 8000
 - assertVisible: "Maestro Test Group"
 - takeScreenshot: "groups_create_03_success"

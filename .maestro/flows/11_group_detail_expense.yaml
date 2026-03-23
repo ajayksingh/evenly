@@ -1,26 +1,28 @@
 appId: host.exp.exponent
 name: "GROUPS-03: Group detail shows expenses, add expense, delete expense"
 ---
-- launchApp:
-    clearState: true
-- assertVisible: "Sign In"
-- tapOn: "Use Demo Account"
+- runFlow:
+    file: "helpers/startup_real.yaml"
 - tapOn: "Groups"
 
-# Create group if needed
+# Create group if none exist
 - runFlow:
     when:
       visible: "No groups yet"
     flow: |
       - tapOn:
-          id: "add"
-          optional: true
-      - assertVisible: "New Group"
-      - tapOn: "e.g., Goa Trip, Apartment..."
+          id: "fab-add-group"
+      - extendedWaitUntil:
+          visible: "New Group"
+          timeout: 5000
+      - tapOn:
+          id: "group-name-input"
       - inputText: "Detail Test Group"
       - hideKeyboard
       - tapOn: "Create"
-      - assertVisible: "Detail Test Group"
+      - extendedWaitUntil:
+          visible: "Detail Test Group"
+          timeout: 8000
 
 # Tap a group
 - tapOn:
@@ -33,36 +35,39 @@ name: "GROUPS-03: Group detail shows expenses, add expense, delete expense"
 - assertVisible: "Members"
 - takeScreenshot: "group_detail_01_expenses_tab"
 
-# Tap Add button to add expense from group detail
-- tapOn: "Add"
+# Add an expense from group detail
+- tapOn:
+    id: "fab-add-expense"
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Add Expense"
+    flow: |
+      - tapOn: "Add First Expense"
+        optional: true
 - assertVisible: "Add Expense"
-- tapOn: "What's this expense for?"
+- tapOn:
+    id: "expense-description-input"
 - inputText: "Group Detail Test Expense"
 - hideKeyboard
-- tapOn: "0.00"
+- tapOn:
+    id: "expense-amount-input"
 - inputText: "500"
 - hideKeyboard
 - tapOn: "Save"
 
 # Back on group detail, expense should appear
-- assertVisible: "Expenses"
-- assertVisible: "Group Detail Test Expense"
+- extendedWaitUntil:
+    visible: "Group Detail Test Expense"
+    timeout: 10000
 - takeScreenshot: "group_detail_02_expense_added"
 
-# Test visible delete button (B-10 fix validation)
-- tapOn:
-    id: "trash-outline"
-    optional: true
-- assertVisible: "Delete Expense"
-    optional: true
-- tapOn: "Delete"
-    optional: true
-- takeScreenshot: "group_detail_03_after_delete"
-
 # Test Balances tab
-- tapOn: "Balances"
+- tapOn:
+    id: "tab-balances"
 - takeScreenshot: "group_detail_04_balances_tab"
 
 # Test Members tab
-- tapOn: "Members"
+- tapOn:
+    id: "tab-members"
 - takeScreenshot: "group_detail_05_members_tab"

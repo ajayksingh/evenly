@@ -1,0 +1,105 @@
+---
+# Flow: User A adds User B as member, adds second expense
+appId: com.anonymous.splitwise
+---
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "Sign In"
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: "deepsags@gmail.com"
+      PASS: "abc123"
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 15000
+
+- tapOn: "Groups"
+- waitForAnimationToEnd
+- tapOn: "E2E Test Group"
+- waitForAnimationToEnd
+
+# Members tab → Add User B
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+- tapOn:
+    id: "add-member-btn"
+- waitForAnimationToEnd
+- assertVisible: "Add Member"
+
+- tapOn:
+    id: "member-search-input"
+- inputText: "ajsworld@gmail.com"
+- tapOn:
+    id: "member-search-btn"
+
+# Wait for the Add button on result card (proves foundUser is set)
+- extendedWaitUntil:
+    visible:
+      id: "add-member-action-btn"
+    timeout: 8000
+
+# Dismiss keyboard, then tap the Add button on the result card
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: "add-member-action-btn"
+
+# Wait for modal to close by checking Cancel disappears (Cancel is only in the modal)
+- extendedWaitUntil:
+    notVisible:
+      text: "Cancel"
+    timeout: 8000
+- waitForAnimationToEnd
+
+# Verify User B added - Ajay should be visible in members tab
+- assertVisible: "Ajay"
+
+# Add second expense
+- tapOn:
+    id: "tab-expenses"
+- waitForAnimationToEnd
+- tapOn: "Add"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "600"
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Cab ride home"
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+# Handle WhatsApp notification prompt if it appears
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+# Both expenses visible
+- extendedWaitUntil:
+    visible:
+      text: "Cab ride home"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: "Dinner at restaurant"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 10
+
+# Balances updated
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+- assertVisible: "Group Balances"

@@ -1,0 +1,63 @@
+---
+# Flow: User B settles payment to User A
+appId: com.anonymous.splitwise
+---
+
+# User B is still logged in from previous flow
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# --- Navigate to the group ---
+- tapOn: "Groups"
+- waitForAnimationToEnd
+- tapOn: "Maestro E2E Group"
+- waitForAnimationToEnd
+
+# --- Go to Balances tab ---
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+
+# --- Tap Record a Payment ---
+- tapOn: "Record a Payment"
+- waitForAnimationToEnd
+- assertVisible: "Settle Up"
+
+# --- Payer is User B (already selected as current user) ---
+# --- Receiver: User A ---
+- tapOn: "deepsags"
+  optional: true
+- tapOn: "Deep"
+  optional: true
+
+# --- Amount should be auto-suggested ---
+# If not, enter manually
+- tapOn:
+    id: "settle-amount-input"
+    optional: true
+- clearText
+  optional: true
+- typeText: "600"
+  optional: true
+
+# --- Add note ---
+- tapOn:
+    text: "Add a note..."
+- typeText: "Settling cab ride"
+
+# --- Record payment ---
+- tapOn: "Record Payment"
+- waitForAnimationToEnd
+
+# --- Verify success screen ---
+- assertVisible: "Payment Successful!"
+
+# --- Wait for auto-navigation back ---
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# --- Verify balance updated on Home ---
+- tapOn: "Home"
+  optional: true
+- waitForAnimationToEnd

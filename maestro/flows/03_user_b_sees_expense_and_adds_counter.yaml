@@ -1,0 +1,70 @@
+---
+# Flow: User B (ajsworld) logs in, sees User A's expense, adds a counter expense
+appId: com.anonymous.splitwise
+---
+
+# --- Step 1: Logout User A ---
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# Navigate to profile to logout
+- tapOn:
+    id: "header-avatar"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    text: "Sign Out"
+- tapOn: "Sign Out"
+- waitForAnimationToEnd
+
+# --- Step 2: Login as User B ---
+- assertVisible: "SplitWise"
+- tapOn: "Sign In"
+  optional: true
+- runFlow:
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: "ajsworld@gmail.com"
+      PASS: "abc123"
+
+# --- Step 3: Navigate to Groups ---
+- waitForAnimationToEnd
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+# --- Step 4: Open the shared group ---
+- tapOn: "Maestro E2E Group"
+- waitForAnimationToEnd
+
+# --- Step 5: Verify User A's expense is visible ---
+- assertVisible: "Dinner at restaurant"
+
+# --- Step 6: Check balance shows User B owes User A ---
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+- assertVisible: "owes"
+
+# --- Step 7: User B adds a counter expense ---
+- tapOn: "Add"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "expense-amount-input"
+- typeText: "600"
+
+- tapOn:
+    id: "expense-description-input"
+- typeText: "Cab ride"
+
+- tapOn: "Save"
+- waitForAnimationToEnd
+
+# --- Step 8: Verify User B's expense appears ---
+- assertVisible: "Cab ride"
+
+# --- Step 9: Go home and check balance ---
+- tapOn: "Home"
+  optional: true
+- waitForAnimationToEnd
+- assertVisible: "Total balance"

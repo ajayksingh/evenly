@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Alert, Modal, TextInput, ActivityIndicator,
@@ -9,6 +9,7 @@ import { useApp } from '../context/AppContext';
 import { COLORS, CATEGORIES } from '../constants/colors';
 import Avatar from '../components/Avatar';
 import { getGroup, getExpenses, calculateGroupBalances, addMemberToGroup, searchUsersByEmail, deleteExpense } from '../services/storage';
+import { supabase } from '../services/supabase';
 import { formatCurrency, formatDate, getSimplifiedDebts } from '../utils/splitCalculator';
 import { confirmAlert } from '../utils/alert';
 
@@ -39,6 +40,18 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
+  // Realtime subscription: reload when any expense or settlement changes for this group
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase
+      .channel(`group-detail-${groupId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${groupId}` }, () => { loadData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements', filter: `group_id=eq.${groupId}` }, () => { loadData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'groups', filter: `id=eq.${groupId}` }, () => { loadData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [groupId, loadData]);
+
   const handleDeleteExpense = (expense) => {
     confirmAlert({
       title: 'Delete Expense',
@@ -65,17 +78,23 @@ const GroupDetailScreen = ({ route, navigation }) => {
   };
 
   const handleAddMember = async () => {
+    console.log('[AddMember] foundUser:', foundUser ? foundUser.email : 'null');
     if (!foundUser) return;
     try {
       await addMemberToGroup(groupId, foundUser);
+      console.log('[AddMember] success');
+    } catch (e) {
+      console.log('[AddMember] error:', e.message);
+      if (e.message !== 'Already a member') {
+        Alert.alert('Error', e.message);
+      }
+    } finally {
       setShowAddMember(false);
       setSearchEmail('');
       setFoundUser(null);
       notifyWrite('add_member');
       globalRefresh();
       loadData();
-    } catch (e) {
-      Alert.alert('Error', e.message);
     }
   };
 
@@ -300,7 +319,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Member</Text>
-            <TouchableOpacity activeOpacity={0.7} onPress={handleAddMember} disabled={!foundUser}>
+            <TouchableOpacity testID="add-member-confirm-btn" activeOpacity={foundUser ? 0.7 : 1.0} onPress={handleAddMember}>
               <Text style={[styles.saveText, !foundUser && { opacity: 0.4 }]}>Add</Text>
             </TouchableOpacity>
           </View>
@@ -319,14 +338,16 @@ const GroupDetailScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
           {foundUser && (
-            <View style={styles.foundUser}>
+            <TouchableOpacity testID="add-member-action-btn" activeOpacity={0.7} onPress={handleAddMember} style={styles.foundUser}>
               <Avatar name={foundUser.name} size={44} />
-              <View style={{ marginLeft: 12 }}>
+              <View style={{ marginLeft: 12, flex: 1 }}>
                 <Text style={styles.foundName}>{foundUser.name}</Text>
                 <Text style={styles.foundEmail}>{foundUser.email}</Text>
               </View>
-              <Ionicons name="checkmark-circle" size={22} color={COLORS.success} style={{ marginLeft: 'auto' }} />
-            </View>
+              <View style={{ backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}>
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Add</Text>
+              </View>
+            </TouchableOpacity>
           )}
         </View>
       </Modal>

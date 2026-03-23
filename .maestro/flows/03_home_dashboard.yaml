@@ -1,12 +1,8 @@
 appId: host.exp.exponent
 name: "HOME-01: Dashboard renders balance, stats, activity"
 ---
-- launchApp:
-    clearState: true
-# Login via demo
-- assertVisible: "Sign In"
-- tapOn: "Use Demo Account"
-- assertVisible: "Total balance"
+- runFlow:
+    file: "helpers/startup_real.yaml"
 - takeScreenshot: "home_01_balance_card"
 
 # Stats grid visible
