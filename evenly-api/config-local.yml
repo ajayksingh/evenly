@@ -13,8 +13,7 @@ database:
   driverClass: org.postgresql.Driver
   url: jdbc:postgresql://db.eexxrssfgrybcquoocne.supabase.co:5432/postgres?sslmode=require
   user: postgres
-  # Get from: Supabase Dashboard → Settings → Database → Database password
-  password: YOUR_SUPABASE_DB_PASSWORD
+  password: qarsag-fodPav-3hegcu
   properties:
     charSet: UTF-8
     ssl: "true"
@@ -29,8 +28,7 @@ database:
   minIdleTime: 1 minute
 
 supabase:
-  # Get from: Supabase Dashboard → Settings → API → JWT Settings → JWT Secret
-  jwtSecret: YOUR_SUPABASE_JWT_SECRET
+  jwtSecret: 81EF0C22-FB4C-4E42-BA53-FB0804129B63
 
 logging:
   level: DEBUG
