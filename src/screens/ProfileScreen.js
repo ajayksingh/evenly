@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, TextInput, Modal, Switch,
+  Alert, TextInput, Modal, Switch, Animated as RNAnimated,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, withDelay,
@@ -36,6 +36,10 @@ const ProfileScreen = ({ navigation }) => {
     screenOpacity.value = withTiming(1, { duration: 380 });
     screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
   }, []));
+
+  const scrollY = useRef(new RNAnimated.Value(0)).current;
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.08)'], extrapolate: 'clamp' });
 
   const totalOwed = balances.filter(b => b.amount > 0).reduce((s, b) => s + b.amount, 0);
   const totalOwing = balances.filter(b => b.amount < 0).reduce((s, b) => s + Math.abs(b.amount), 0);
@@ -85,7 +89,20 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={{ flex: 1 }}>
+      <RNAnimated.View style={[styles.fixedHeader, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={{ padding: 4 }}>
+          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.8)" />
+        </TouchableOpacity>
+        <Text style={styles.fixedHeaderTitle}>My Account</Text>
+        <View style={{ width: 32 }} />
+      </RNAnimated.View>
+    <RNAnimated.ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      scrollEventThrottle={16}
+      onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+    >
       {/* Hero Card */}
       <View style={styles.header}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -159,6 +176,9 @@ const ProfileScreen = ({ navigation }) => {
 
       <View style={{ height: 100 }} />
 
+    </RNAnimated.ScrollView>
+    </View>
+
       {/* Edit Modal */}
       <Modal visible={showEdit} animationType="slide" presentationStyle="formSheet">
         <View style={styles.modal}>
@@ -204,13 +224,19 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-    </ScrollView>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  fixedHeader: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  fixedHeaderTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
   header: {
     paddingTop: 60, paddingBottom: 24, alignItems: 'center',
     backgroundColor: '#1a1a24',

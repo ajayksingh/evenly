@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Animated as RNAnimated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
@@ -25,6 +25,10 @@ const CurrencyScreen = ({ navigation }) => {
     screenOpacity.value = withTiming(1, { duration: 380 });
     screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
   }, []));
+
+  const scrollY = useRef(new RNAnimated.Value(0)).current;
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.08)'], extrapolate: 'clamp' });
 
   const [rates, setRates] = useState({});
   const [loading, setLoading] = useState(true);
@@ -58,13 +62,13 @@ const CurrencyScreen = ({ navigation }) => {
   return (
     <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <View style={styles.container}>
-      <View style={styles.header}>
+      <RNAnimated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Currency Settings</Text>
         <View style={{ width: 24 }} />
-      </View>
+      </RNAnimated.View>
 
       <View style={styles.infoCard}>
         <Ionicons name="location" size={18} color={COLORS.primary} />
@@ -87,6 +91,8 @@ const CurrencyScreen = ({ navigation }) => {
         <FlatList
           data={SUPPORTED_CURRENCIES}
           keyExtractor={item => item.code}
+          scrollEventThrottle={16}
+          onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
           renderItem={({ item }) => {
             const rate = rates[item.code];
             const isSelected = item.code === currency;

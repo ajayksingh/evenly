@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform,
+  StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform, Animated as RNAnimated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +33,10 @@ const AddExpenseScreen = ({ route, navigation }) => {
     screenOpacity.value = withTiming(1, { duration: 380 });
     screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
   }, []));
+
+  const scrollY = useRef(new RNAnimated.Value(0)).current;
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.08)'], extrapolate: 'clamp' });
 
   const descriptionRef = useRef('');
   const amountRef = useRef('');
@@ -179,7 +183,7 @@ if (!validate()) { hapticError(); return; }
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <RNAnimated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
           <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.cancelBtn}>
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
@@ -194,9 +198,14 @@ if (!validate()) { hapticError(); return; }
               <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </RNAnimated.View>
 
-        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <RNAnimated.ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          scrollEventThrottle={16}
+          onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        >
           {/* Amount Input */}
           <View style={styles.amountSection}>
             <TouchableOpacity activeOpacity={0.7} style={styles.catBtn} onPress={() => setShowCatPicker(true)}>
@@ -379,7 +388,7 @@ if (!validate()) { hapticError(); return; }
           </TouchableOpacity>
 
           <View style={{ height: 40 }} />
-        </ScrollView>
+        </RNAnimated.ScrollView>
 
         {/* Group Picker Modal */}
         <Modal visible={showGroupPicker} animationType="slide" presentationStyle="formSheet">

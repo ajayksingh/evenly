@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, Modal, TextInput, ActivityIndicator, Platform, StatusBar,
+  Alert, Modal, TextInput, ActivityIndicator, Platform, StatusBar, Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,10 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const [searchEmail, setSearchEmail] = useState('');
   const [searching, setSearching] = useState(false);
   const [foundUser, setFoundUser] = useState(null);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', COLORS.border], extrapolate: 'clamp' });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -105,7 +109,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
@@ -121,7 +125,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           <Ionicons name="add" size={20} color="#fff" />
           <Text style={styles.addExpText}>Add</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Tabs */}
       <View style={styles.tabs}>
@@ -170,7 +174,12 @@ const GroupDetailScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+      >
         {/* Expenses Tab */}
         {tab === 'expenses' && (
           <View>
@@ -302,7 +311,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
             )}
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Add Member Modal */}
       <Modal visible={showAddMember} animationType="slide" presentationStyle="formSheet">

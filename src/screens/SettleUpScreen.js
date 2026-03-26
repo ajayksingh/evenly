@@ -39,6 +39,9 @@ const SettleUpScreen = ({ route, navigation }) => {
   const [settledWith, setSettledWith] = useState(null);
 
   const spinAnim = useRef(new RNAnimated.Value(0)).current;
+  const scrollY = useRef(new RNAnimated.Value(0)).current;
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.08)'], extrapolate: 'clamp' });
 
   const screenOpacity = useSharedValue(0);
   const screenTranslateY = useSharedValue(32);
@@ -193,15 +196,20 @@ const SettleUpScreen = ({ route, navigation }) => {
     <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={{ flex: 1 }}>
       <View style={styles.container}>
-        <View style={styles.header}>
+        <RNAnimated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
           <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Settle Up</Text>
           <View style={{ width: 24 }} />
-        </View>
+        </RNAnimated.View>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+        <RNAnimated.ScrollView
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        >
           {/* Payer selection */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Who's paying?</Text>
@@ -374,7 +382,7 @@ const SettleUpScreen = ({ route, navigation }) => {
               ))}
             </View>
           )}
-        </ScrollView>
+        </RNAnimated.ScrollView>
 
         <View style={styles.footer}>
           <TouchableOpacity testID="settle-record-btn" activeOpacity={0.8} onPress={handleSettle} disabled={saving}>
