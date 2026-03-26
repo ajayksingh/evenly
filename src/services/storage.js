@@ -607,7 +607,7 @@ export const calculateBalances = async (userId, userEmail = null, cachedGroupIds
       const otherUserId = b.user1 === userId ? b.user2 : b.user1;
       const otherUser = userInfoMap[otherUserId];
       if (!otherUser) return;
-      const amount = b.user1 === userId ? b.amount : -b.amount;
+      const amount = parseFloat((b.user1 === userId ? b.amount : -b.amount).toFixed(2));
       result.push({ userId: otherUserId, name: otherUser.name, email: otherUser.email, avatar: otherUser.avatar, amount });
     }
   });
@@ -641,7 +641,7 @@ const _calculateBalancesFromData = (userId, expenses, settlements, users) => {
       const otherUserId = b.user1 === userId ? b.user2 : b.user1;
       const otherUser = users.find(u => u.id === otherUserId);
       if (!otherUser) return;
-      const amount = b.user1 === userId ? b.amount : -b.amount;
+      const amount = parseFloat((b.user1 === userId ? b.amount : -b.amount).toFixed(2));
       result.push({ userId: otherUserId, name: otherUser.name, email: otherUser.email, avatar: otherUser.avatar, amount });
     }
   });
@@ -649,6 +649,7 @@ const _calculateBalancesFromData = (userId, expenses, settlements, users) => {
 };
 
 export const calculateGroupBalances = async (groupId, members) => {
+  if (!members || members.length === 0) return [];
   if (isDemo(members[0]?.id)) {
     const expenses = await getData(KEYS.EXPENSES);
     const settlements = await getData(KEYS.SETTLEMENTS);
@@ -657,16 +658,13 @@ export const calculateGroupBalances = async (groupId, members) => {
     return _calculateGroupBalancesFromData(groupId, members, groupExpenses, groupSettlements);
   }
 
-  const memberIds = members.map(m => m.id);
   const [{ data: expensesData }, { data: settlementsData }] = await Promise.all([
     supabase.from('expenses').select('paid_by,splits,amount').eq('group_id', groupId),
-    supabase.from('settlements').select('paid_by,paid_to,amount,group_id')
-      .or(`group_id.eq.${groupId},group_id.is.null`),
+    supabase.from('settlements').select('paid_by,paid_to,amount').eq('group_id', groupId),
   ]);
   const groupExpenses = (expensesData || []).map(e => ({ paidBy: e.paid_by, splits: e.splits || [], amount: e.amount }));
-  // Include group-specific settlements AND null-group settlements between group members
+  // Only include settlements explicitly recorded for this group
   const groupSettlements = (settlementsData || [])
-    .filter(s => s.group_id === groupId || (memberIds.includes(s.paid_by) && memberIds.includes(s.paid_to)))
     .map(s => ({ paidBy: s.paid_by, paidTo: s.paid_to, amount: s.amount }));
   return _calculateGroupBalancesFromData(groupId, members, groupExpenses, groupSettlements);
 };
@@ -690,7 +688,7 @@ const _calculateGroupBalancesFromData = (groupId, members, groupExpenses, groupS
     if (balanceMap[paidTo] !== undefined) balanceMap[paidTo] -= s.amount;
   });
 
-  return members.map(m => ({ ...m, balance: balanceMap[m.id] || 0 }));
+  return members.map(m => ({ ...m, balance: parseFloat((balanceMap[m.id] || 0).toFixed(2)) }));
 };
 
 // --- Settlements ---

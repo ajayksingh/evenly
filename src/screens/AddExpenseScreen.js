@@ -92,7 +92,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
     if (splitType === SPLIT_TYPES.EXACT) {
       const total = Object.values(exactAmounts).reduce((s, v) => s + parseFloat(v || 0), 0);
       if (Math.abs(total - amt) > 0.01) {
-        Alert.alert('Error', `Exact amounts total ${formatCurrency(total)}, should be ${formatCurrency(amt)}`);
+        Alert.alert('Error', `Exact amounts total ${formatCurrency(total, currency)}, should be ${formatCurrency(amt, currency)}`);
         return false;
       }
     }
@@ -331,45 +331,53 @@ if (!validate()) { hapticError(); return; }
                 </View>
               ))}
 
-              {splitType === SPLIT_TYPES.PERCENTAGE && participants.map(m => (
-                <View key={m.id} style={styles.splitInputRow}>
-                  <Avatar name={m.name} size={36} />
-                  <Text style={styles.splitName}>{m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}</Text>
-                  <View style={styles.splitExactInput}>
-                    <TextInput
-                      style={styles.splitInput}
-                      value={String(percentages[m.id] || '')}
-                      onChangeText={v => setPercentages(prev => ({ ...prev, [m.id]: v }))}
-                      keyboardType="decimal-pad"
-                      placeholder="0"
-                      placeholderTextColor={COLORS.textMuted}
-                    />
-                    <Text style={styles.splitCurrency}>%</Text>
+              {splitType === SPLIT_TYPES.PERCENTAGE && participants.map(m => {
+                const split = splits.find(s => s.userId === m.id);
+                return (
+                  <View key={m.id} style={styles.splitInputRow}>
+                    <Avatar name={m.name} size={36} />
+                    <Text style={styles.splitName}>{m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}</Text>
+                    <View style={styles.splitExactInput}>
+                      <TextInput
+                        style={styles.splitInput}
+                        value={String(percentages[m.id] || '')}
+                        onChangeText={v => setPercentages(prev => ({ ...prev, [m.id]: v }))}
+                        keyboardType="decimal-pad"
+                        placeholder="0"
+                        placeholderTextColor={COLORS.textMuted}
+                      />
+                      <Text style={styles.splitCurrency}>%</Text>
+                    </View>
+                    {split && <Text style={styles.splitPreviewAmount}>{formatCurrency(split.amount, currency)}</Text>}
                   </View>
-                </View>
-              ))}
+                );
+              })}
 
-              {splitType === SPLIT_TYPES.SHARES && participants.map(m => (
-                <View key={m.id} style={styles.splitInputRow}>
-                  <Avatar name={m.name} size={36} />
-                  <Text style={styles.splitName}>{m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}</Text>
-                  <View style={styles.sharesControl}>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => setShares(prev => ({ ...prev, [m.id]: Math.max(0, (prev[m.id] || 1) - 1) }))}>
-                      <Ionicons name="remove-circle" size={28} color={COLORS.primary} />
-                    </TouchableOpacity>
-                    <Text style={styles.sharesCount}>{shares[m.id] || 0}</Text>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => setShares(prev => ({ ...prev, [m.id]: (prev[m.id] || 0) + 1 }))}>
-                      <Ionicons name="add-circle" size={28} color={COLORS.primary} />
-                    </TouchableOpacity>
+              {splitType === SPLIT_TYPES.SHARES && participants.map(m => {
+                const split = splits.find(s => s.userId === m.id);
+                return (
+                  <View key={m.id} style={styles.splitInputRow}>
+                    <Avatar name={m.name} size={36} />
+                    <Text style={styles.splitName}>{m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}</Text>
+                    <View style={styles.sharesControl}>
+                      <TouchableOpacity activeOpacity={0.7} onPress={() => setShares(prev => ({ ...prev, [m.id]: Math.max(0, (prev[m.id] || 1) - 1) }))}>
+                        <Ionicons name="remove-circle" size={28} color={COLORS.primary} />
+                      </TouchableOpacity>
+                      <Text style={styles.sharesCount}>{shares[m.id] || 0}</Text>
+                      <TouchableOpacity activeOpacity={0.7} onPress={() => setShares(prev => ({ ...prev, [m.id]: (prev[m.id] || 0) + 1 }))}>
+                        <Ionicons name="add-circle" size={28} color={COLORS.primary} />
+                      </TouchableOpacity>
+                    </View>
+                    {split && <Text style={styles.splitPreviewAmount}>{formatCurrency(split.amount, currency)}</Text>}
                   </View>
-                </View>
-              ))}
+                );
+              })}
 
               {splitType === SPLIT_TYPES.EQUAL && splits.map(s => (
                 <View key={s.userId} style={styles.splitPreviewRow}>
                   <Avatar name={s.name} size={36} />
                   <Text style={styles.splitPreviewName}>{s.userId === user.id ? 'You' : (s.name || '').split(' ')[0]}</Text>
-                  <Text style={styles.splitPreviewAmount}>{formatCurrency(s.amount)}</Text>
+                  <Text style={styles.splitPreviewAmount}>{formatCurrency(s.amount, currency)}</Text>
                 </View>
               ))}
             </View>

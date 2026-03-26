@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, TextInput, Modal, Switch, Animated as RNAnimated,
+  Alert, TextInput, Modal, Switch, Animated as RNAnimated, Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, withDelay,
@@ -90,14 +90,14 @@ const ProfileScreen = ({ navigation }) => {
   return (
     <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <View style={{ flex: 1 }}>
-      <RNAnimated.View style={[styles.fixedHeader, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
+      <RNAnimated.View style={styles.fixedHeader}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={{ padding: 4 }}>
           <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
         <Text style={styles.fixedHeaderTitle}>My Account</Text>
         <View style={{ width: 32 }} />
       </RNAnimated.View>
-    <RNAnimated.ScrollView
+      <RNAnimated.ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
       scrollEventThrottle={16}
@@ -173,7 +173,7 @@ const ProfileScreen = ({ navigation }) => {
 
       <View style={{ height: 100 }} />
 
-    </RNAnimated.ScrollView>
+      </RNAnimated.ScrollView>
     </View>
 
       {/* Edit Modal */}
@@ -228,14 +228,15 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   fixedHeader: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
+    paddingHorizontal: 16, paddingTop: Platform.select({ web: 16, default: 52 }), paddingBottom: 12,
     borderBottomWidth: 1,
+    backgroundColor: '#0a0a0f',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   fixedHeaderTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
   header: {
-    paddingTop: 60, paddingBottom: 24, alignItems: 'center',
+    paddingTop: 24, paddingBottom: 24, alignItems: 'center',
     backgroundColor: '#1a1a24',
     borderTopWidth: 3, borderTopColor: '#00d4aa',
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',

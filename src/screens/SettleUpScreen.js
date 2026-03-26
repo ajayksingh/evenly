@@ -72,15 +72,19 @@ const SettleUpScreen = ({ route, navigation }) => {
     if (!preselectedPayer && allParties.length > 0) setPayer(allParties[0]);
   }, []);
 
-  // Auto-suggest amount from balances
+  // Auto-suggest amount from balances — only when direction matches the actual debt
   useEffect(() => {
     if (payer && receiver) {
-      let balanceUserId = null;
-      if (payer.id === user.id) balanceUserId = receiver.id;
-      else if (receiver.id === user.id) balanceUserId = payer.id;
-      if (balanceUserId) {
-        const bal = globalBalances.find(b => b.userId === balanceUserId);
-        if (bal && Math.abs(bal.amount) > 0) setAmount(Math.abs(bal.amount).toFixed(2));
+      if (payer.id === user.id) {
+        // User is paying: only suggest if user actually owes the receiver (bal < 0)
+        const bal = globalBalances.find(b => b.userId === receiver.id);
+        if (bal && bal.amount < 0) setAmount(Math.abs(bal.amount).toFixed(2));
+        else setAmount('');
+      } else if (receiver.id === user.id) {
+        // User is receiving: only suggest if payer actually owes the user (bal > 0)
+        const bal = globalBalances.find(b => b.userId === payer.id);
+        if (bal && bal.amount > 0) setAmount(bal.amount.toFixed(2));
+        else setAmount('');
       }
     }
   }, [payer, receiver]);
@@ -144,7 +148,7 @@ const SettleUpScreen = ({ route, navigation }) => {
           });
           sendWhatsAppMessage(friendWithPhone.phone, msg).catch(() => {});
         }
-        setTimeout(() => navigation.navigate('Main'), 1500);
+        setTimeout(() => navigation.popToTop(), 1500);
       }, 1000);
     } catch (e) {
       Alert.alert('Error', e.message);
@@ -152,10 +156,11 @@ const SettleUpScreen = ({ route, navigation }) => {
     }
   };
 
-  // Get simplified debts
+  // Get simplified debts — negate amounts to convert from user-perspective (positive = others owe user)
+  // to getSimplifiedDebts convention (positive = this person is a creditor)
   const debts = getSimplifiedDebts(
-    globalBalances.map(b => ({ userId: b.userId, name: b.name, amount: b.amount }))
-      .concat([{ userId: user.id, name: user.name, amount: -globalBalances.reduce((s, b) => s + b.amount, 0) }])
+    globalBalances.map(b => ({ userId: b.userId, name: b.name, amount: -b.amount }))
+      .concat([{ userId: user.id, name: user.name, amount: globalBalances.reduce((s, b) => s + b.amount, 0) }])
   );
 
   // --- Processing state ---
@@ -375,7 +380,7 @@ const SettleUpScreen = ({ route, navigation }) => {
                     <Text style={styles.debtName}>{d.toName === user.name ? 'You' : d.toName}</Text>
                   </Text>
                   <View style={styles.debtAmountRow}>
-                    <Text style={styles.debtAmount}>{formatCurrency(d.amount)}</Text>
+                    <Text style={styles.debtAmount}>{formatCurrency(d.amount, currency)}</Text>
                     <Ionicons name="arrow-forward-circle" size={18} color={COLORS.primary} style={{ marginLeft: 6 }} />
                   </View>
                 </TouchableOpacity>

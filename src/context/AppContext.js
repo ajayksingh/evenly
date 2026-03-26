@@ -236,7 +236,7 @@ export const AppProvider = ({ children }) => {
     await resetPasswordForEmail(email);
   };
 
-  const totalBalance = balances.reduce((sum, b) => sum + b.amount, 0);
+  const totalBalance = parseFloat(balances.reduce((sum, b) => sum + b.amount, 0).toFixed(2));
 
   return (
     <AppContext.Provider value={{

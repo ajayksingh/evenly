@@ -187,7 +187,7 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.heroGlow} />
           <Text style={styles.heroLabel}>Total balance</Text>
           <Text style={styles.heroAmount}>
-            {formatAmount(Math.abs(totalBalance), currency)}
+            {formatAmount(isSettled ? 0 : Math.abs(totalBalance), currency)}
           </Text>
           <View style={[styles.heroBadge, { backgroundColor: isSettled ? COLORS.primaryLight : totalBalance > 0 ? COLORS.primaryLight : 'rgba(255,107,107,0.12)' }]}>
             <View style={[styles.heroDot, { backgroundColor: isSettled ? COLORS.primary : totalBalance > 0 ? COLORS.primary : COLORS.negative }]} />

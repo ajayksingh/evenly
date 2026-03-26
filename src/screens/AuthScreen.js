@@ -296,6 +296,8 @@ const InputField = ({ icon, placeholder, value, onChangeText, testID, secureText
       keyboardType={keyboardType}
       autoCapitalize={autoCapitalize || 'none'}
       autoCorrect={false}
+      autoComplete="off"
+      importantForAutofill="no"
     />
     {rightIcon}
   </View>
