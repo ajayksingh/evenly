@@ -14,7 +14,7 @@
 
 A production-grade, offline-first expense splitting and settlement app. Track shared costs with friends and groups, calculate fair splits four ways, and settle up with built-in WhatsApp sharing — all in real time across devices.
 
-[**Try the live web demo →**](https://ajayksingh.github.io/evenly/)  
+[**Try the live web demo →**](https://ajayksingh.github.io/evenly/)
 *Demo accounts: `alice@demo.com` / `demo123`*
 
 </div>
@@ -32,6 +32,7 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 - [Services and Modules](#-services-and-modules)
 - [State Management](#-state-management)
 - [Observability and Analytics](#-observability-and-analytics)
+- [Monetisation](#-monetisation)
 - [Testing](#-testing)
 - [Build and Deployment](#-build-and-deployment)
 - [Getting Started](#-getting-started)
@@ -57,6 +58,9 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | **Cross-platform** | Native iOS, Android, and Progressive Web App from a single codebase |
 | **Analytics** | Built-in event tracking with zero external services |
 | **Deep linking** | `evenly://` URI scheme for native navigation |
+| **Monetisation** | Google AdMob banner (HomeScreen) + interstitial (post-settlement) on Android |
+| **Scroll-fade headers** | Headers fade from transparent to opaque as the user scrolls — all screens |
+| **Entrance animations** | Fade-in + slide-up on screen focus (native only; disabled on web to prevent flicker) |
 
 ---
 
@@ -78,7 +82,7 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | `@react-navigation/native` | ^7.1.33 | Navigation container |
 | `@react-navigation/bottom-tabs` | ^7.15.5 | Tab bar |
 | `@react-navigation/stack` | ^7.8.6 | Stack screens and modals |
-| `react-native-reanimated` | ^4.2.2 | 60fps animations |
+| `react-native-reanimated` | ^4.2.2 | 60fps entrance animations |
 | `react-native-gesture-handler` | ^2.30.0 | Touch interactions |
 | `expo-linear-gradient` | ^55.0.9 | Gradient UI elements |
 | `expo-haptics` | ~55.0.9 | Tactile feedback |
@@ -95,6 +99,12 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | `expo-secure-store` | ^55.0.9 | Secure credential storage |
 | `uuid` | ^13.0.0 | Unique ID generation |
 
+### Monetisation
+
+| Package | Version | Purpose |
+|---|---|---|
+| `react-native-google-mobile-ads` | ^16.3.1 | AdMob banner + interstitial ads (Android) |
+
 ### Device APIs
 
 | Package | Version | Purpose |
@@ -103,6 +113,7 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | `expo-image-picker` | ^55.0.13 | Avatar photo selection |
 | `expo-linking` | ^55.0.8 | Deep link handling |
 | `expo-web-browser` | ^55.0.10 | In-app browser |
+| `expo-system-ui` | ~55.0.10 | System UI / dark mode support |
 | `firebase` | ^12.11.0 | Analytics (configured) |
 
 ### Tooling
@@ -110,9 +121,9 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | Tool | Purpose |
 |---|---|
 | Maestro CLI | E2E test automation |
-| EAS Build | Cloud native builds |
 | Metro Bundler | JS bundling (web + native) |
 | GitHub Pages | Web hosting |
+| Gradle (local) | Android release APK builds |
 
 ---
 
@@ -164,6 +175,7 @@ Evenly follows an **offline-first, cloud-synced** architecture. Every user actio
 | **Demo isolation** | Accounts with `demo-*` IDs never touch Supabase; fully local |
 | **Eventual consistency** | Optimistic UI -> background sync -> reconciliation on next `loadData()` |
 | **Denormalized reads** | Activity log written at event time to avoid expensive JOINs on read |
+| **Platform-aware animations** | Entrance animations run on native; skipped on web to prevent reanimated flicker |
 
 ---
 
@@ -209,11 +221,13 @@ AppContext.restore() -> getCurrentUser() from AsyncStorage
       v
 User found?
   +-- No  -> Show AuthScreen
-  +-- Yes -> Promise.all([
-               getGroups(userId, userEmail),
+  +-- Yes -> getGroups(userId, userEmail)  [fetch first for groupIds]
+             Promise.all([
                getFriends(userId),
-               calculateBalances(userId),
-               getActivity(userId),
+               calculateBalances(userId, userEmail, groupIds),
+               getActivity(userId, groupIds),
+               getGroupInvites(userId),
+               getFriendRequests(userId),
              ])
              |
              v
@@ -346,6 +360,7 @@ CREATE TABLE analytics (
 | **Denormalized `activity` table** | Single-query feed — no JOINs across 4 tables at read time |
 | **`analytics` in-database** | Zero-cost event tracking on existing free tier |
 | **Currency on every amount** | Future multi-currency groups without a schema migration |
+| **`group_id` on settlements** | Group-scoped balance calculations; null = global/friend settlement |
 
 ---
 
@@ -358,7 +373,7 @@ NavigationContainer (deep link scheme: evenly://)
   |
   +-- Main (Bottom Tabs)
        |
-       +-- Home            -> Balance card, stats, activity feed
+       +-- Home            -> Balance card, stats, activity feed + AdMob banner
        +-- Activity        -> Filterable transaction log
        +-- [+] FAB         -> AddExpense modal (4 split modes)
        +-- Groups          -> Group list + FAB to create
@@ -367,7 +382,7 @@ NavigationContainer (deep link scheme: evenly://)
   Modal / Stack Screens:
   +-- GroupDetail          -> Expenses / Balances / Members tabs
   +-- AddExpense           -> Add expense to specific group
-  +-- SettleUp             -> Record a payment
+  +-- SettleUp             -> Record a payment (triggers AdMob interstitial on success)
   +-- CreateGroup          -> Name, type, description
   +-- Profile              -> Account settings, currency selection
   +-- Currency             -> 10-currency picker with live rates
@@ -382,7 +397,7 @@ Deep Link Routes:
 
 ## Services and Modules
 
-### `src/services/storage.js` — Data CRUD Layer (692 lines)
+### `src/services/storage.js` — Data CRUD Layer
 
 Primary interface between UI and data stores. Automatically routes to AsyncStorage (demo accounts) or Supabase (real accounts).
 
@@ -395,17 +410,71 @@ Primary interface between UI and data stores. Automatically routes to AsyncStora
 | `createGroup(group)` | Create group with member list |
 | `addMemberToGroup(groupId, user)` | Append member to JSONB array |
 | `addExpense(expense)` | Write expense and create activity event |
-| `settleUp(settlement)` | Record payment and create activity event |
-| `calculateBalances(userId)` | Compute net balances across all groups |
-| `getActivity(userId)` | Fetch filtered, sorted activity feed |
+| `recordSettlement(settlement)` | Record payment and create activity event |
+| `calculateBalances(userId, email, groupIds)` | Compute net balances across all groups; rounds to 2dp |
+| `calculateGroupBalances(groupId, members)` | Per-member balances within a single group; group-scoped settlements only |
+| `getActivity(userId, groupIds)` | Fetch filtered, sorted activity feed |
 | `sendFriendRequest(userId, email)` | Send a friend request (Supabase users); direct add for demo |
 | `getFriendRequests(userId)` | Fetch pending incoming friend requests |
 | `respondToFriendRequest(id, accept, userId)` | Accept or reject a friend request |
-| `getSentFriendRequests(userId)` | Fetch pending outgoing requests |
+
+**Balance calculation fixes (v1.0.2):**
+- All returned balance amounts rounded with `parseFloat(x.toFixed(2))` to eliminate float accumulation
+- `calculateGroupBalances` narrowed to group-scoped settlements only (no null-group bleed)
+- Empty members guard added to `calculateGroupBalances`
 
 ---
 
-### `src/services/syncService.js` — Offline Sync Queue (185 lines)
+### `src/services/ads.js` — AdMob Integration
+
+Google AdMob integration for Android. No-ops silently on web.
+
+```javascript
+// Initialise at app start (App.js)
+initAds()
+
+// Show interstitial after settlement success (SettleUpScreen.js)
+showInterstitial()
+
+// Banner rendered in HomeScreen JSX (native only)
+<BannerAd unitId={AD_UNIT_IDS.banner} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} />
+```
+
+| Export | Description |
+|---|---|
+| `initAds()` | Initialize AdMob SDK once at app launch |
+| `showInterstitial()` | Load and show interstitial; auto-shows when loaded |
+| `AD_UNIT_IDS.banner` | Test ID in `__DEV__`, live `ca-app-pub-9004418283363709/7297137403` in production |
+| `AD_UNIT_IDS.interstitial` | Test ID in `__DEV__`, live `ca-app-pub-9004418283363709/4684384107` in production |
+| `BannerAd`, `BannerAdSize` | Re-exported from `react-native-google-mobile-ads` for use in screens |
+
+---
+
+### `src/hooks/useScrollHeader.js` — Scroll-Fade Header Hook
+
+Returns animated values for the scroll-to-fade header effect used on all screens.
+
+```javascript
+const { onScroll, scrollEventThrottle, bgOpacity, borderOpacity } = useScrollHeader();
+
+// In JSX:
+<Animated.View style={[styles.header, {
+  backgroundColor: bgOpacity.interpolate({...}),
+  borderBottomColor: borderOpacity.interpolate({...}),
+}]} />
+<Animated.ScrollView onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} />
+```
+
+| Return | Description |
+|---|---|
+| `onScroll` | `Animated.event` handler to attach to ScrollView |
+| `scrollEventThrottle` | Fixed at `16` (60fps) |
+| `bgOpacity` | Interpolated 0→1 value for header background opacity |
+| `borderOpacity` | Interpolated 0→1 value for header border opacity |
+
+---
+
+### `src/services/syncService.js` — Offline Sync Queue
 
 Manages a persistent queue of write operations for offline-to-online synchronisation.
 
@@ -434,7 +503,7 @@ Field mapping (JS camelCase to Postgres snake_case):
 
 ---
 
-### `src/services/currency.js` — Multi-Currency Engine (118 lines)
+### `src/services/currency.js` — Multi-Currency Engine
 
 | Function | Description |
 |---|---|
@@ -444,11 +513,11 @@ Field mapping (JS camelCase to Postgres snake_case):
 | `getCurrencySymbol(code)` | Single canonical source for all symbol rendering |
 | `formatAmount(amount, code)` | Locale-formatted: `1,234.56` |
 
-Supported: **INR INR · USD $ · EUR EUR · GBP GBP · AUD A$ · CAD C$ · SGD S$ · JPY JPY · AED AED · MYR RM**
+Supported: **INR ₹ · USD $ · EUR € · GBP £ · AUD A$ · CAD C$ · SGD S$ · JPY ¥ · AED AED · MYR RM**
 
 ---
 
-### `src/services/analytics.js` — Built-in Event Tracking (49 lines)
+### `src/services/analytics.js` — Built-in Event Tracking
 
 Zero external dependencies. Events stored in the `analytics` Supabase table. Non-blocking — errors silently suppressed.
 
@@ -463,7 +532,7 @@ UX:       screen_view · whatsapp_notify
 
 ---
 
-### `src/services/contacts.js` — Native Address Book (97 lines)
+### `src/services/contacts.js` — Native Address Book
 
 | Function | Description |
 |---|---|
@@ -476,7 +545,7 @@ UX:       screen_view · whatsapp_notify
 
 ---
 
-### `src/utils/splitCalculator.js` — Split Algorithms (115 lines)
+### `src/utils/splitCalculator.js` — Split Algorithms
 
 ```
 EQUAL      -> amount / N  (remainder to first member)
@@ -486,8 +555,9 @@ SHARES     -> proportional units (2:1:1 splits 400 as 200/100/100)
 ```
 
 Also provides:
-- `getSimplifiedDebts(balances)` — minimum-transactions debt simplification
+- `getSimplifiedDebts(balances)` — minimum-transactions debt simplification (expects positive = creditor)
 - `formatDate(dateString)` — relative timestamps (just now, 2h ago, Yesterday)
+- `formatCurrency(amount, currency)` — always requires `currency` argument to avoid INR default
 - `generateAvatarColor(name)` — deterministic hex colour from name
 
 ---
@@ -506,7 +576,7 @@ Evenly uses **React Context** (`AppContext`) as its single source of truth. No R
   groups:         Group[],
   friends:        User[],
   balances:       { userId, name, amount }[],  // positive = owed to you
-  totalBalance:   number,
+  totalBalance:   number,   // rounded to 2dp
   activity:       ActivityItem[],
   friendRequests: FriendRequest[],
   groupInvites:   GroupInvite[],
@@ -536,15 +606,19 @@ Mount
   +-- restore() getCurrentUser()  re-auth from AsyncStorage
 
   (user found)
-  +-- loadData()                  fetch all data in parallel
+  +-- loadData()                  fetch groups first, then 5 parallel queries
   +-- NetInfo.addEventListener()  online -> trigger loadData
   +-- setInterval(30000)          polling fallback
   +-- supabase.channel()          Postgres Changes for live sync
+                                  (groups, expenses, settlements, friends,
+                                   activity, group_invites, friend_requests)
 
 Unmount
   +-- clearInterval(pollRef)
   +-- supabase.removeAllChannels()
 ```
+
+**`loadData` optimisation:** groups are fetched first so their IDs can be passed to `calculateBalances` and `getActivity`, avoiding two extra `getGroups` calls.
 
 ---
 
@@ -595,38 +669,59 @@ The `SyncBanner` component surfaces real-time sync state:
 
 ---
 
+## Monetisation
+
+### Android — Google AdMob
+
+AdMob is integrated via `react-native-google-mobile-ads`. It is a no-op on web and in Expo Go — requires a native build.
+
+| Placement | Type | Trigger |
+|---|---|---|
+| HomeScreen bottom | Anchored adaptive banner | Always visible while logged in |
+| Post-settlement | Full-screen interstitial | Fires when user confirms a payment |
+
+**Ad Unit IDs (production):**
+
+| Unit | ID |
+|---|---|
+| Banner | `ca-app-pub-9004418283363709/7297137403` |
+| Interstitial | `ca-app-pub-9004418283363709/4684384107` |
+
+In `__DEV__` builds, Google's test IDs are substituted automatically — no real ad impressions during development.
+
+**`app.json` plugin config:**
+```json
+["react-native-google-mobile-ads", {
+  "androidAppId": "ca-app-pub-9004418283363709~4207939635",
+  "iosAppId":     "ca-app-pub-9004418283363709~4207939635"
+}]
+```
+
+---
+
 ## Testing
 
 ### E2E Test Suite — Maestro CLI
 
-23 automated flows covering all critical user journeys against the installed APK (`com.ajayksingh.evenly`).
+Automated flows covering all critical user journeys against the installed APK (`com.ajayksingh.evenly`).
 
 ```bash
 # Run full suite
-maestro --device emulator-5554 test .maestro/flows/
+maestro --device emulator-5554 test maestro/flows/
 
 # Run single flow
-maestro test .maestro/flows/01_auth_login.yaml
+maestro test maestro/flows/02_user_a_create_group_and_add_expense.yaml
 ```
 
 ### Flow Coverage
 
 | Flow | What it tests |
 |---|---|
-| `01_auth_login.yaml` | Email/password login and logout cycle |
-| `02_auth_demo.yaml` | Demo account quick-access login |
-| `03_home_dashboard.yaml` | Balance card, stats, and activity feed |
-| `04_groups_list.yaml` | Groups tab navigation and list display |
-| `05_create_group.yaml` | Group name input, type picker, creation |
-| `06_add_expense.yaml` | Create group, add expense, verify in list |
-| `07_activity_filter.yaml` | All/Expense/Settlement filter chips |
-| `08_friends_add.yaml` | Search and add friend by email |
-| `09_settle_up.yaml` | Navigate to settle, record payment |
-| `10_profile.yaml` | Profile screen, user email, account settings |
-| `11_group_detail_expense.yaml` | Expenses/Balances/Members tabs, add expense |
-| `12_smoke_suite.yaml` | Full critical path: login to group to expense to settle |
-| `13_friends_tab.yaml` | Friends tab balance display and interactions |
-| `14_add_friend_to_group.yaml` | Member search and add to group |
+| `00_setup_user_b.yaml` | Register second test account for multi-user flows |
+| `02_user_a_create_group_and_add_expense.yaml` | Group creation + expense addition |
+| `03_add_member_and_second_expense.yaml` | Add member to group, add second expense |
+| `04_settle_payment.yaml` | Record a settlement payment |
+| `05_user_a_verify_settlement.yaml` | Verify settlement appears in activity and balances |
 
 ### Testing Patterns
 
@@ -636,23 +731,6 @@ maestro test .maestro/flows/01_auth_login.yaml
 - **Optional steps**: Keyboard dismiss and prompts use `optional: true`
 - **Extended waits**: Network assertions use `extendedWaitUntil` (8-15s timeout)
 
-### Latest Results
-
-```
-  AUTH-01: Login and logout cycle           48s  PASS
-  AUTH-02: Real account quick login         24s  PASS
-  HOME-01: Dashboard renders                46s  PASS
-  GROUPS-01: Groups tab                     32s  PASS
-  GROUPS-02: Create a new group             46s  PASS
-  EXPENSE-01: Add an expense              1m13s  PASS
-  ACTIVITY-01: Activity filter chips        40s  PASS
-  SETTLE-01: Settle up flow                 29s  PASS
-  PROFILE-01: Profile screen                31s  PASS
-  GROUPS-03: Group detail + expense       1m13s  PASS
-
-  10 / 10 Passed
-```
-
 ---
 
 ## Build and Deployment
@@ -660,54 +738,43 @@ maestro test .maestro/flows/01_auth_login.yaml
 ### Web — GitHub Pages
 
 ```bash
-npm run build:web   # Export + patch asset paths for /evenly/ subdirectory
-npm run deploy      # Build and push to gh-pages branch
+bash scripts/deploy-web.sh
 ```
 
-Pipeline:
+This script builds and deploys in one step:
 
 ```
-expo export --platform web
+npx expo export --platform web --output-dir dist
   |
-  v  postbuild:web (scripts/patch-web-assets.js)
-  +-- Patch JS bundle: "/assets/" -> "/evenly/assets/"
-  +-- Create .nojekyll (exposes _expo/ on GitHub Pages)
-  +-- Make index.html script src relative
+  v
+touch dist/.nojekyll        <- exposes _expo/ dir (Jekyll ignores _ prefixes)
   |
-  v  scripts/deploy-gh-pages.js
-  +-- Copy public/404.html -> dist/ (SPA fallback routing)
-  +-- git init in dist/
-  +-- git checkout -b gh-pages
-  +-- git push --force origin gh-pages
-          |
-          v
-  https://ajayksingh.github.io/evenly/  (~1 min propagation)
+  v
+git init dist/
+git push -f origin HEAD:gh-pages
+  |
+  v
+https://ajayksingh.github.io/evenly/  (~1 min propagation)
 ```
 
-### Android — Local Debug APK
+### Android — Local Release APK
+
+Builds a signed, production APK locally using Gradle. No EAS cloud build required.
 
 ```bash
-# Bundle JS (no Metro server needed at runtime)
-npx expo export --platform android --output-dir /tmp/expo-export
-cp /tmp/expo-export/_expo/static/js/android/index-*.hbc \
-   android/app/src/main/assets/index.android.bundle
+# Apply plugin changes to native files (run after app.json plugin changes)
+npx expo prebuild --platform android
 
-# Build
-cd android && ./gradlew assembleDebug
+# Build signed release APK
+cd android && ./gradlew assembleRelease
 
-# Install
-adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+# Output
+android/app/build/outputs/apk/release/app-release.apk
 ```
 
-### Native — EAS Cloud Build
+Signing config is in `android/app/build.gradle` under `signingConfigs.release`, pointing to `@ajayksingh__evenly.jks` in the project root.
 
-```bash
-eas build --platform android --profile preview     # APK for testing
-eas build --platform android --profile production  # Production APK
-eas build --platform ios     --profile preview     # iOS IPA
-```
-
-EAS Project: `expo.dev/@ajayksingh/evenly` (ID: `ac20106b-0447-4a6f-8bcd-5d09f0a5b103`)
+**Build time:** ~2–3 minutes on first build; ~45 seconds on subsequent builds (incremental).
 
 ---
 
@@ -717,7 +784,8 @@ EAS Project: `expo.dev/@ajayksingh/evenly` (ID: `ac20106b-0447-4a6f-8bcd-5d09f0a
 
 - Node.js 18+
 - npm or yarn
-- Android Studio (for Android) / Xcode 15+ (for iOS)
+- Android Studio + JDK 17 (for Android builds)
+- Xcode 15+ (for iOS)
 - Maestro CLI (for E2E tests): `brew install maestro`
 
 ### Quick Start
@@ -751,7 +819,7 @@ export const SUPABASE_ANON_KEY = 'your-anon-key';
 
 ```bash
 brew install maestro
-maestro --device emulator-5554 test .maestro/flows/
+maestro --device emulator-5554 test maestro/flows/
 ```
 
 ---
@@ -762,27 +830,31 @@ maestro --device emulator-5554 test .maestro/flows/
 evenly/
 |
 +-- src/
-|   +-- screens/                  # 11 UI screens (~3,600 LOC)
+|   +-- screens/                  # 11 UI screens
 |   |   +-- AuthScreen.js         # Login, register, demo quick-access
-|   |   +-- HomeScreen.js         # Balance dashboard, activity feed
+|   |   +-- HomeScreen.js         # Balance dashboard, activity feed, AdMob banner
 |   |   +-- ActivityScreen.js     # Filterable transaction log
 |   |   +-- GroupsScreen.js       # Group list with FAB
 |   |   +-- GroupDetailScreen.js  # Expenses / Balances / Members tabs
 |   |   +-- CreateGroupScreen.js  # Group creation form
 |   |   +-- AddExpenseScreen.js   # Expense form, 4 split modes
-|   |   +-- SettleUpScreen.js     # Payment recording
+|   |   +-- SettleUpScreen.js     # Payment recording + AdMob interstitial
 |   |   +-- FriendsScreen.js      # Friend list, balance grid
-|   |   +-- ProfileScreen.js      # Account settings
+|   |   +-- ProfileScreen.js      # Account settings (in-flow header, no position:absolute)
 |   |   +-- CurrencyScreen.js     # Multi-currency selector
 |   |
-|   +-- services/                 # Business logic (~1,300 LOC)
+|   +-- services/                 # Business logic
 |   |   +-- storage.js            # Data CRUD (AsyncStorage + Supabase)
 |   |   +-- supabase.js           # Supabase client + low-level API
 |   |   +-- syncService.js        # Offline queue and flush logic
 |   |   +-- analytics.js          # Event tracking
 |   |   +-- currency.js           # Multi-currency with live rates
 |   |   +-- contacts.js           # Native address book + WhatsApp
+|   |   +-- ads.js                # Google AdMob (banner + interstitial)
 |   |   +-- firebase.js           # Firebase config (analytics)
+|   |
+|   +-- hooks/
+|   |   +-- useScrollHeader.js    # Scroll-to-fade header animation hook
 |   |
 |   +-- context/
 |   |   +-- AppContext.js         # Global state, auth, network, sync
@@ -798,25 +870,22 @@ evenly/
 |   |
 |   +-- constants/
 |   |   +-- colors.js             # Color palette and gradients
-|   |   +-- categories.js         # 9 expense categories
-|   |   +-- groupTypes.js         # 4 group types
 |   |
 |   +-- utils/
 |       +-- splitCalculator.js    # 4 split algorithms + debt simplification
 |       +-- haptics.js            # Haptic feedback wrappers
 |       +-- alert.js              # Cross-platform alert helpers
 |
-+-- .maestro/flows/               # Primary Maestro E2E suite (14 flows)
-+-- maestro/flows/                # Extended E2E suite (9 flows + helpers)
++-- maestro/flows/                # E2E test suite (5 flows + helpers)
+|   +-- helpers/
+|       +-- do_login.yaml
+|       +-- do_logout.yaml
 |
 +-- scripts/
-|   +-- deploy-gh-pages.js        # GitHub Pages deployment
-|   +-- patch-web-assets.js       # Post-build asset path patching
+|   +-- deploy-web.sh             # Web build + gh-pages deploy (one command)
 |
-+-- public/
-|   +-- 404.html                  # SPA deep-link fallback
-|
-+-- app.json                      # Expo + EAS configuration
++-- android/                      # Native Android project (bare workflow)
++-- app.json                      # Expo + EAS + AdMob configuration
 +-- eas.json                      # EAS Build profiles
 +-- metro.config.js               # Metro bundler config
 +-- babel.config.js               # Babel config
@@ -841,6 +910,7 @@ evenly/
 | Expo Slug | `evenly` |
 | EAS Project ID | `ac20106b-0447-4a6f-8bcd-5d09f0a5b103` |
 | Web Base URL | `/evenly` |
+| AdMob App ID | `ca-app-pub-9004418283363709~4207939635` |
 
 ### npm Scripts
 
@@ -850,8 +920,14 @@ evenly/
 | `npm run android` | Run on Android |
 | `npm run ios` | Run on iOS |
 | `npm run web` | Run in browser |
-| `npm run build:web` | Export web bundle to `dist/` |
-| `npm run deploy` | Build and deploy to GitHub Pages |
+
+### Build Commands
+
+| Command | Output |
+|---|---|
+| `bash scripts/deploy-web.sh` | Build web + deploy to GitHub Pages |
+| `cd android && ./gradlew assembleRelease` | Signed release APK |
+| `npx expo prebuild --platform android` | Regenerate native Android files from app.json |
 
 ---
 
@@ -861,7 +937,7 @@ MIT (c) Ajay Singh — https://github.com/ajayksingh
 
 ---
 
-Built with React Native · Expo · Supabase
+Built with React Native · Expo · Supabase · Google AdMob
 
 **Live Demo: https://ajayksingh.github.io/evenly/**
 **GitHub: https://github.com/ajayksingh/evenly**
