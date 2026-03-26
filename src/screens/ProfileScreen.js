@@ -105,9 +105,6 @@ const ProfileScreen = ({ navigation }) => {
     >
       {/* Hero Card */}
       <View style={styles.header}>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.8)" />
-        </TouchableOpacity>
         <TouchableOpacity activeOpacity={0.7} style={styles.profileTop} onPress={() => setShowEdit(true)}>
           <View style={styles.avatarCircle}>
             <Avatar name={user?.name} avatar={user?.avatar} size={80} />
