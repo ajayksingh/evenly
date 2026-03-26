@@ -1,15 +1,49 @@
 appId: com.ajayksingh.evenly
 ---
-# Reusable: performs login with EMAIL and PASS env vars
+# Reusable: performs login with EMAIL and PASS env vars.
+# The Back-press strategy dismisses Samsung/Google credential manager popups
+# that appear when the password field is tapped.
+# We re-type email after each Back press in case credential manager auto-filled wrong values.
+
+- tapOn:
+    id: "auth-email-input"
+- inputText: ${EMAIL}
+# Tap password field - credential manager may appear and corrupt email field
+- tapOn:
+    id: "auth-password-input"
+    optional: true
+- pressKey: Back
+- waitForAnimationToEnd
+# Re-type email to ensure it wasn't overwritten by credential manager auto-fill
 - tapOn:
     id: "auth-email-input"
 - eraseText: 50
 - inputText: ${EMAIL}
+# Second attempt at password field
 - tapOn:
     id: "auth-password-input"
-- eraseText: 30
+    optional: true
+- pressKey: Back
+- waitForAnimationToEnd
+# Re-type email again (safety net for second credential manager appearance)
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: ${EMAIL}
+# Now tap password and type (credential manager should be suppressed by now)
+- tapOn:
+    id: "auth-password-input"
 - inputText: ${PASS}
+- hideKeyboard
 - tapOn:
     id: "auth-submit-btn"
 - waitForAnimationToEnd
-- assertNotVisible: "Sign In"
+# Dismiss any auth error dialog (optional)
+- tapOn:
+    text: "OK"
+    optional: true
+# Wait until auth screen is gone
+- extendedWaitUntil:
+    notVisible:
+      text: "Welcome back"
+    timeout: 30000

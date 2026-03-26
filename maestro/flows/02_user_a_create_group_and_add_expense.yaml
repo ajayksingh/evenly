@@ -1,6 +1,9 @@
 ---
 # Flow: User A (deepsags) logs in, creates group, adds expense
 appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
 ---
 
 - launchApp:
@@ -14,20 +17,20 @@ appId: com.ajayksingh.evenly
 - extendedWaitUntil:
     visible: "Welcome back"
     timeout: 30000
-- tapOn:
-    id: "auth-email-input"
-- inputText: ${USER_A_EMAIL}
-- tapOn:
-    id: "auth-password-input"
-- inputText: ${USER_A_PASS}
-- tapOn:
-    id: "auth-submit-btn"
+# Wait for entrance animation (formAnim 400ms) to finish before interacting
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
 
-# Wait for Supabase to load home screen (allow up to 15s)
+# Wait for Supabase to load home screen (allow up to 30s)
 - extendedWaitUntil:
     visible:
       text: "Total balance"
-    timeout: 15000
+    timeout: 30000
 
 # Navigate to Groups
 - tapOn: "Groups"

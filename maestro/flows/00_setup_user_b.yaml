@@ -1,0 +1,86 @@
+---
+# Setup flow: Register User B (ajsworld@gmail.com) if they don't already exist.
+# Run this ONCE before the E2E test suite if User B is not in the database.
+appId: com.ajayksingh.evenly
+env:
+  USER_B_NAME: Ajay
+  USER_B_EMAIL: ajsworld@gmail.com
+  USER_B_PASS: abc123
+---
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# If already logged in as someone, logout first
+- runFlow:
+    when:
+      notVisible: "Welcome back"
+    file: ./helpers/do_logout.yaml
+
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000
+
+# Tap Sign Up tab to switch to registration mode
+- tapOn:
+    text: "Sign Up"
+- waitForAnimationToEnd
+
+# Enter name (no testID, use placeholder text)
+- tapOn:
+    text: "Full Name"
+- inputText: ${USER_B_NAME}
+
+# Enter email
+- tapOn:
+    id: "auth-email-input"
+# Dismiss credential manager popup if it appears
+- tapOn:
+    id: "auth-password-input"
+    optional: true
+- pressKey: Back
+- waitForAnimationToEnd
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: ${USER_B_EMAIL}
+
+# Enter password
+- tapOn:
+    id: "auth-password-input"
+    optional: true
+- pressKey: Back
+- waitForAnimationToEnd
+- tapOn:
+    id: "auth-password-input"
+- inputText: ${USER_B_PASS}
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Enter confirm password (no testID, use placeholder)
+- tapOn:
+    text: "Confirm Password"
+- inputText: ${USER_B_PASS}
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Submit registration
+- tapOn:
+    id: "auth-submit-btn"
+- waitForAnimationToEnd
+
+# If "email already in use" or similar error — dismiss and continue (user exists)
+- tapOn:
+    text: "OK"
+    optional: true
+
+# If registration succeeded, we're logged in as User B — logout
+- runFlow:
+    when:
+      notVisible: "Welcome back"
+    file: ./helpers/do_logout.yaml
+
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000

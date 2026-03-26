@@ -1,17 +1,41 @@
 ---
 # Flow: User B settles payment to User A
 appId: com.ajayksingh.evenly
+env:
+  USER_B_EMAIL: ajsworld@gmail.com
+  USER_B_PASS: abc123
 ---
 
-# User B is still logged in from previous flow
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
 
+# Navigate to Home first (header-avatar only exists on Home tab)
+- tapOn:
+    text: "Home"
+    optional: true
+- waitForAnimationToEnd
+# Logout User A and login as User B
+- runFlow:
+    file: ./helpers/do_logout.yaml
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000
+- runFlow:
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ajsworld@gmail.com
+      PASS: abc123
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
 # --- Navigate to the group ---
 - tapOn: "Groups"
 - waitForAnimationToEnd
-- tapOn: "Maestro E2E Group"
+- tapOn: "E2E Test Group"
 - waitForAnimationToEnd
 
 # --- Go to Balances tab ---

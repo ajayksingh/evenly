@@ -1,6 +1,10 @@
 ---
 # Flow: User A adds User B as member, adds second expense
 appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+  USER_B_EMAIL: ajsworld@gmail.com
 ---
 
 - launchApp:
@@ -18,7 +22,7 @@ appId: com.ajayksingh.evenly
 - extendedWaitUntil:
     visible:
       text: "Total balance"
-    timeout: 15000
+    timeout: 30000
 
 - tapOn: "Groups"
 - waitForAnimationToEnd

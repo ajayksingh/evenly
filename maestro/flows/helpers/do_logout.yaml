@@ -10,4 +10,9 @@ appId: com.ajayksingh.evenly
     direction: DOWN
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
-- assertVisible: "Welcome back"
+# Confirm the "Are you sure?" sign out dialog
+- tapOn: "SIGN OUT"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000

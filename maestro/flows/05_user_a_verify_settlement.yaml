@@ -1,6 +1,9 @@
 ---
 # Flow: User A logs back in and verifies settlement was received
 appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
 ---
 
 # --- Logout User B ---
@@ -15,9 +18,14 @@ appId: com.ajayksingh.evenly
       text: "Sign Out"
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
+# Confirm sign out dialog
+- tapOn: "SIGN OUT"
+- waitForAnimationToEnd
 
 # --- Login as User A ---
-- assertVisible: "Welcome back"
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000
 - tapOn:
     text: "Sign In"
     optional: true
@@ -40,7 +48,7 @@ appId: com.ajayksingh.evenly
 # --- Check group balances ---
 - tapOn: "Groups"
 - waitForAnimationToEnd
-- tapOn: "Maestro E2E Group"
+- tapOn: "E2E Test Group"
 - waitForAnimationToEnd
 - tapOn:
     id: "tab-balances"
