@@ -1,0 +1,81 @@
+#!/bin/bash
+# ─────────────────────────────────────────────────────────────────────────────
+# pre-push hook
+# Watches for changes to spec files. If any are detected in the commits being
+# pushed, runs the core E2E test suite before allowing the push through.
+#
+# Spec files tracked:
+#   app.json · package.json · eas.json · maestro/flows/
+#
+# Install: bash scripts/install-hooks.sh
+# ─────────────────────────────────────────────────────────────────────────────
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+HOOKS_SCRIPT="$REPO_ROOT/scripts/run-tests.sh"
+
+# Files whose change triggers the test gate
+SPEC_PATTERNS=(
+  "app\.json"
+  "package\.json"
+  "eas\.json"
+  "maestro/flows/"
+  "src/services/storage\.js"
+  "src/utils/splitCalculator\.js"
+)
+
+spec_changed=false
+
+# Read the push refs from stdin (format: <local_ref> <local_sha> <remote_ref> <remote_sha>)
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # New branch — compare against empty tree
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    diff_base="$(git hash-object -t tree /dev/null)"
+  else
+    diff_base="$remote_sha"
+  fi
+
+  changed_files=$(git diff --name-only "$diff_base" "$local_sha" 2>/dev/null)
+
+  for pattern in "${SPEC_PATTERNS[@]}"; do
+    if echo "$changed_files" | grep -qE "$pattern"; then
+      spec_changed=true
+      echo "  spec change detected: $(echo "$changed_files" | grep -E "$pattern" | head -3)"
+      break 2
+    fi
+  done
+done
+
+if [ "$spec_changed" = false ]; then
+  # No spec files changed — let push through without running tests
+  exit 0
+fi
+
+echo ""
+echo "┌─────────────────────────────────────────────────────┐"
+echo "│  Spec file changed — running core E2E test gate...  │"
+echo "└─────────────────────────────────────────────────────┘"
+echo ""
+
+if [ ! -f "$HOOKS_SCRIPT" ]; then
+  echo "✗ Test runner not found: $HOOKS_SCRIPT"
+  echo "  Cannot verify stability. Push blocked."
+  exit 1
+fi
+
+bash "$HOOKS_SCRIPT"
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "┌──────────────────────────────────────────────────────┐"
+  echo "│  PUSH BLOCKED — tests failed. Fix before pushing.    │"
+  echo "│  To skip (emergency only): git push --no-verify      │"
+  echo "└──────────────────────────────────────────────────────┘"
+  exit 1
+fi
+
+echo ""
+echo "┌──────────────────────────────────────────────────────┐"
+echo "│  All tests passed — push approved.                   │"
+echo "└──────────────────────────────────────────────────────┘"
+exit 0

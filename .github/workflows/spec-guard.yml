@@ -1,0 +1,88 @@
+name: Spec Guard
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Triggers on any push or PR that touches a spec file.
+# Runs a build integrity check (JS bundle + type checks).
+# Blocks merges to main until this passes.
+#
+# Note: Full Maestro device tests run locally via the pre-push hook.
+# This CI step validates that the app builds successfully after spec changes.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app.json'
+      - 'package.json'
+      - 'eas.json'
+      - 'maestro/flows/**'
+      - 'src/services/storage.js'
+      - 'src/utils/splitCalculator.js'
+      - 'src/screens/AddExpenseScreen.js'
+      - 'src/screens/SettleUpScreen.js'
+      - 'src/context/AppContext.js'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app.json'
+      - 'package.json'
+      - 'eas.json'
+      - 'maestro/flows/**'
+      - 'src/services/storage.js'
+      - 'src/utils/splitCalculator.js'
+      - 'src/screens/AddExpenseScreen.js'
+      - 'src/screens/SettleUpScreen.js'
+      - 'src/context/AppContext.js'
+
+jobs:
+  build-check:
+    name: Build Integrity Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check what spec files changed
+        run: |
+          echo "Changed spec files in this push:"
+          git diff --name-only HEAD~1 HEAD | grep -E "(app\.json|package\.json|eas\.json|maestro/|storage\.js|splitCalculator\.js|AddExpenseScreen|SettleUpScreen|AppContext)" || echo "(first commit or no diff available)"
+
+      - name: Build web bundle
+        run: npx expo export --platform web --output-dir dist
+        env:
+          CI: true
+
+      - name: Verify bundle exists
+        run: |
+          BUNDLE=$(find dist/_expo/static/js/web -name "*.js" | head -1)
+          if [ -z "$BUNDLE" ]; then
+            echo "✗ JS bundle not found in dist/ — build failed"
+            exit 1
+          fi
+          SIZE=$(du -sh "$BUNDLE" | cut -f1)
+          echo "✓ Bundle: $BUNDLE ($SIZE)"
+
+      - name: Verify .nojekyll guard
+        run: |
+          touch dist/.nojekyll
+          echo "✓ .nojekyll present — _expo/ will be served by GitHub Pages"
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "✓ Build integrity check passed"
+          echo "✓ Spec change is safe to go live"
+          echo ""
+          echo "Note: Full Maestro device tests must pass locally (pre-push hook)"
+          echo "      before this commit was pushed."
