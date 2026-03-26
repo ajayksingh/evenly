@@ -14,17 +14,20 @@ import { useFocusEffect } from '@react-navigation/native';
 const CreateGroupScreen = ({ navigation }) => {
   const { user, friends, currency, refresh } = useApp();
 
-  const screenOpacity = useSharedValue(0);
-  const screenTranslateY = useSharedValue(32);
+  const isWeb = Platform.OS === 'web';
+  const screenOpacity = useSharedValue(isWeb ? 1 : 0);
+  const screenTranslateY = useSharedValue(isWeb ? 0 : 32);
   const screenAnimStyle = useAnimatedStyle(() => ({
     opacity: screenOpacity.value,
     transform: [{ translateY: screenTranslateY.value }],
   }));
   useFocusEffect(useCallback(() => {
-    screenOpacity.value = 0;
-    screenTranslateY.value = 32;
-    screenOpacity.value = withTiming(1, { duration: 380 });
-    screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+    if (!isWeb) {
+      screenOpacity.value = 0;
+      screenTranslateY.value = 32;
+      screenOpacity.value = withTiming(1, { duration: 380 });
+      screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+    }
   }, []));
 
   const groupNameRef = useRef('');

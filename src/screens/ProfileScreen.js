@@ -23,18 +23,21 @@ const ProfileScreen = ({ navigation }) => {
   const [saving, setSaving] = useState(false);
   const [notifications, setNotifications] = useState(true);
 
-  const screenOpacity = useSharedValue(0);
-  const screenTranslateY = useSharedValue(32);
+  const isWeb = Platform.OS === 'web';
+  const screenOpacity = useSharedValue(isWeb ? 1 : 0);
+  const screenTranslateY = useSharedValue(isWeb ? 0 : 32);
   const screenAnimStyle = useAnimatedStyle(() => ({
     opacity: screenOpacity.value,
     transform: [{ translateY: screenTranslateY.value }],
   }));
 
   useFocusEffect(useCallback(() => {
-    screenOpacity.value = 0;
-    screenTranslateY.value = 32;
-    screenOpacity.value = withTiming(1, { duration: 380 });
-    screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+    if (!isWeb) {
+      screenOpacity.value = 0;
+      screenTranslateY.value = 32;
+      screenOpacity.value = withTiming(1, { duration: 380 });
+      screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+    }
   }, []));
 
   const scrollY = useRef(new RNAnimated.Value(0)).current;
