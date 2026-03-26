@@ -23,20 +23,28 @@ export const calculateEqualSplit = (amount, members) => {
 };
 
 export const calculatePercentageSplit = (amount, members, percentages) => {
-  return members.map(m => ({
+  const baseAmounts = members.map(m =>
+    parseFloat(((amount * (percentages[m.id] || 0)) / 100).toFixed(2))
+  );
+  const diff = parseFloat((amount - baseAmounts.reduce((s, v) => s + v, 0)).toFixed(2));
+  return members.map((m, idx) => ({
     userId: m.id,
     name: m.name,
-    amount: parseFloat(((amount * (percentages[m.id] || 0)) / 100).toFixed(2)),
+    amount: idx === 0 ? parseFloat((baseAmounts[0] + diff).toFixed(2)) : baseAmounts[idx],
   }));
 };
 
 export const calculateSharesSplit = (amount, members, shares) => {
   const totalShares = Object.values(shares).reduce((s, v) => s + v, 0);
   if (totalShares === 0) return calculateEqualSplit(amount, members);
-  return members.map(m => ({
+  const baseAmounts = members.map(m =>
+    parseFloat(((amount * (shares[m.id] || 0)) / totalShares).toFixed(2))
+  );
+  const diff = parseFloat((amount - baseAmounts.reduce((s, v) => s + v, 0)).toFixed(2));
+  return members.map((m, idx) => ({
     userId: m.id,
     name: m.name,
-    amount: parseFloat(((amount * (shares[m.id] || 0)) / totalShares).toFixed(2)),
+    amount: idx === 0 ? parseFloat((baseAmounts[0] + diff).toFixed(2)) : baseAmounts[idx],
   }));
 };
 
@@ -71,7 +79,7 @@ export const getSimplifiedDebts = (balances) => {
     const receive = receivers[r];
     const amount = Math.min(give.amount, receive.amount);
     if (amount > 0.01) {
-      transactions.push({ from: give.userId, to: receive.userId, fromName: give.name, toName: receive.name, amount });
+      transactions.push({ from: give.userId, to: receive.userId, fromName: give.name, toName: receive.name, amount: parseFloat(amount.toFixed(2)) });
     }
     givers[g].amount -= amount;
     receivers[r].amount -= amount;

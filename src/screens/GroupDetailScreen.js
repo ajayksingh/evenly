@@ -15,7 +15,7 @@ import { confirmAlert } from '../utils/alert';
 
 const GroupDetailScreen = ({ route, navigation }) => {
   const { groupId } = route.params;
-  const { user, refresh: globalRefresh, notifyWrite } = useApp();
+  const { user, refresh: globalRefresh, notifyWrite, currency } = useApp();
   const [group, setGroup] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [memberBalances, setMemberBalances] = useState([]);
@@ -147,7 +147,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           <Text style={styles.heroLabel}>Total group spending</Text>
         </View>
         {/* Row 2: total amount */}
-        <Text style={styles.heroAmount}>{formatCurrency(totalSpending)}</Text>
+        <Text style={styles.heroAmount}>{formatCurrency(totalSpending, currency)}</Text>
         {/* Row 3: expense count */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 20 }}>
           <View style={styles.heroPulseDot} />
@@ -168,7 +168,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
             <View style={styles.heroIconBoxCoral}>
               <Ionicons name="trending-up-outline" size={20} color="#ff6b6b" />
             </View>
-            <Text style={styles.heroStatValue}>{formatCurrency(perPersonAvg)}</Text>
+            <Text style={styles.heroStatValue}>{formatCurrency(perPersonAvg, currency)}</Text>
             <Text style={styles.heroStatLabel}>per person avg</Text>
           </View>
         </View>
@@ -208,19 +208,19 @@ const GroupDetailScreen = ({ route, navigation }) => {
                     <View style={styles.expInfo}>
                       <Text style={styles.expName}>{exp.description}</Text>
                       <Text style={styles.expMeta}>
-                        {iPaid ? 'You' : exp.paidBy.name} paid {formatCurrency(exp.amount)} · {formatDate(exp.createdAt)}
+                        {iPaid ? 'You' : exp.paidBy.name} paid {formatCurrency(exp.amount, currency)} · {formatDate(exp.createdAt)}
                       </Text>
                     </View>
                     <View style={styles.expRight}>
                       {iPaid ? (
                         <>
                           <Text style={styles.expLabelGreen}>you paid</Text>
-                          <Text style={[styles.expAmount, { color: COLORS.success }]}>{formatCurrency(exp.amount)}</Text>
+                          <Text style={[styles.expAmount, { color: COLORS.success }]}>{formatCurrency(exp.amount, currency)}</Text>
                         </>
                       ) : myShare ? (
                         <>
                           <Text style={styles.expLabelRed}>your share</Text>
-                          <Text style={[styles.expAmount, { color: COLORS.negative }]}>{formatCurrency(myShare.amount)}</Text>
+                          <Text style={[styles.expAmount, { color: COLORS.negative }]}>{formatCurrency(myShare.amount, currency)}</Text>
                         </>
                       ) : (
                         <Text style={styles.expLabelNeutral}>not involved</Text>
@@ -252,8 +252,8 @@ const GroupDetailScreen = ({ route, navigation }) => {
                   <Text style={[styles.balanceAmount, {
                     color: m.balance > 0.01 ? COLORS.success : m.balance < -0.01 ? COLORS.negative : COLORS.textLight
                   }]}>
-                    {m.balance > 0.01 ? `gets back ${formatCurrency(m.balance)}`
-                      : m.balance < -0.01 ? `owes ${formatCurrency(Math.abs(m.balance))}`
+                    {m.balance > 0.01 ? `gets back ${formatCurrency(m.balance, currency)}`
+                      : m.balance < -0.01 ? `owes ${formatCurrency(Math.abs(m.balance), currency)}`
                         : 'settled up'}
                   </Text>
                 </View>
@@ -271,7 +271,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
                       {' owes '}
                       <Text style={styles.debtName}>{d.toName === user.name ? 'you' : d.toName}</Text>
                     </Text>
-                    <Text style={styles.debtAmount}>{formatCurrency(d.amount)}</Text>
+                    <Text style={styles.debtAmount}>{formatCurrency(d.amount, currency)}</Text>
                   </View>
                 ))}
               </>

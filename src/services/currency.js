@@ -101,7 +101,8 @@ export const getCurrencySymbol = (code) => {
 
 export const formatAmount = (amount, currencyCode) => {
   const symbol = getCurrencySymbol(currencyCode);
-  const formatted = Math.abs(amount).toLocaleString('en-IN', {
+  const locale = currencyCode === 'INR' ? 'en-IN' : 'en-US';
+  const formatted = Math.abs(amount).toLocaleString(locale, {
     minimumFractionDigits: 2, maximumFractionDigits: 2,
   });
   return `${symbol}${formatted}`;
