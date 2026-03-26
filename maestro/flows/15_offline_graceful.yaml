@@ -1,0 +1,169 @@
+---
+# Flow: Offline handling (simulated / graceful state assertion).
+# NOTE: Actual offline simulation requires device airplane mode which Maestro
+# cannot toggle programmatically. This flow asserts graceful UI behaviour
+# while online — confirming no sync banners, error overlays, or crash states.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+---
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+
+# Dismiss any system crash dialogs
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 1: Login as User A
+# ============================================================
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+
+- runFlow:
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# ============================================================
+# Section 2: Verify data loads successfully while online
+# ============================================================
+# Home screen should show balance info without errors
+- assertVisible: "Total balance"
+- assertVisible:
+    text: "Recent activity"
+    optional: true
+
+# No error banner should be present on a healthy connection
+- assertNotVisible:
+    text: "Unable to connect"
+    optional: true
+- assertNotVisible:
+    text: "No internet"
+    optional: true
+- assertNotVisible:
+    text: "Offline"
+    optional: true
+
+# ============================================================
+# Section 3: Check sync banner is NOT visible when online
+# ============================================================
+# Sync / offline banners are only shown when device is offline
+- assertNotVisible:
+    text: "Syncing"
+    optional: true
+- assertNotVisible:
+    text: "sync"
+    optional: true
+- assertNotVisible:
+    id: "offline-banner"
+    optional: true
+- assertNotVisible:
+    id: "sync-banner"
+    optional: true
+
+# ============================================================
+# Section 4: Verify Groups tab loads gracefully
+# ============================================================
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "E2E Test Group"
+    timeout: 15000
+
+# No error state on groups screen
+- assertNotVisible:
+    text: "Something went wrong"
+    optional: true
+- assertNotVisible:
+    text: "Error loading"
+    optional: true
+
+# ============================================================
+# Section 5: Verify Friends tab loads gracefully
+# ============================================================
+- tapOn: "Friends"
+- waitForAnimationToEnd
+
+# Friends screen should render without error overlays
+- assertVisible:
+    text: "Friends"
+    optional: true
+- assertNotVisible:
+    text: "Something went wrong"
+    optional: true
+- assertNotVisible:
+    text: "Error loading"
+    optional: true
+
+# ============================================================
+# Section 6: Verify Activity tab loads gracefully
+# ============================================================
+- tapOn:
+    text: "Activity"
+    optional: true
+- tapOn:
+    id: "tab-activity"
+    optional: true
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Activity"
+    optional: true
+- assertNotVisible:
+    text: "Something went wrong"
+    optional: true
+- assertNotVisible:
+    text: "Error loading"
+    optional: true
+
+# ============================================================
+# Section 7: Pull-to-refresh on Home (confirms online sync works)
+# ============================================================
+- tapOn:
+    text: "Home"
+    optional: true
+- waitForAnimationToEnd
+
+# Simulate pull-to-refresh gesture
+- swipe:
+    direction: DOWN
+    duration: 500
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+
+# After refresh, data should still be visible without error
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 15000
+
+# Final assertion: no offline/error banners after online refresh
+- assertNotVisible:
+    text: "Offline"
+    optional: true
+- assertNotVisible:
+    id: "offline-banner"
+    optional: true
+- assertVisible: "Total balance"

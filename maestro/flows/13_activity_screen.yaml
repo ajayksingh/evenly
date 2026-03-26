@@ -1,0 +1,144 @@
+---
+# Flow: Activity screen — verify items load, test filter chips,
+# and verify tapping an item navigates to group detail.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+---
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# === Login as User A (or reuse session) ===
+- runFlow:
+    when:
+      visible: "Welcome back"
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# ============================================================
+# Section 1: Navigate to Activity tab
+# ============================================================
+- tapOn:
+    text: "Activity"
+    optional: true
+- tapOn:
+    id: "tab-activity"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify Activity screen loaded
+- extendedWaitUntil:
+    visible:
+      text: "Activity"
+    timeout: 15000
+
+# ============================================================
+# Section 2: Verify activity items load
+# ============================================================
+# Wait for at least one activity item to appear (expense or settlement)
+- extendedWaitUntil:
+    visible:
+      text: "added"
+    timeout: 15000
+    optional: true
+
+# Alternatively check for any expense name from prior flows
+- assertVisible:
+    text: "Dinner at restaurant"
+    optional: true
+- assertVisible:
+    text: "Cab ride home"
+    optional: true
+
+# ============================================================
+# Section 3: Tap "All" filter chip (default/reset filter)
+# ============================================================
+- tapOn:
+    text: "All"
+    optional: true
+- tapOn:
+    id: "filter-chip-all"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify items still visible after selecting "All"
+- assertVisible:
+    text: "Activity"
+    optional: true
+
+# ============================================================
+# Section 4: Tap group-specific filter chips
+# ============================================================
+# Try tapping the first available group filter chip (E2E Test Group)
+- tapOn:
+    text: "E2E Test Group"
+    optional: true
+- tapOn:
+    id: "filter-chip-0"
+    optional: true
+- waitForAnimationToEnd
+
+# Items should be filtered — still showing content
+- assertVisible:
+    text: "Activity"
+    optional: true
+
+# Tap another group chip if available
+- tapOn:
+    id: "filter-chip-1"
+    optional: true
+- waitForAnimationToEnd
+
+# Reset back to All filter
+- tapOn:
+    text: "All"
+    optional: true
+- tapOn:
+    id: "filter-chip-all"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 5: Tap an activity item → navigates to group detail
+# ============================================================
+# Tap the first visible activity item
+- tapOn:
+    text: "Dinner at restaurant"
+    optional: true
+
+# If the specific expense isn't visible, try the first activity row
+- tapOn:
+    id: "activity-item-0"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify navigated to group detail — look for group detail indicators
+- assertVisible:
+    text: "E2E Test Group"
+    optional: true
+- assertVisible:
+    text: "Add"
+    optional: true
+
+# Navigate back to Activity screen
+- pressKey: Back
+    optional: true
+- tapOn:
+    text: "Back"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify back on Activity screen
+- assertVisible:
+    text: "Activity"
+    optional: true

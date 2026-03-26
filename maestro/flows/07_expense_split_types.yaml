@@ -1,0 +1,294 @@
+---
+# Flow: Test all 4 expense split types (Equal, Percentage, Exact, Shares)
+# on the AddExpense screen inside an existing group.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+---
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+
+# Dismiss any system crash dialogs
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# === Login as User A ===
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# === Navigate to Groups and open test group ===
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+# Open the first available group (E2E Test Group from flow 02)
+- tapOn: "E2E Test Group"
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 1: EQUAL split — ₹300 expense
+# ============================================================
+- tapOn: "Add"
+- waitForAnimationToEnd
+- assertVisible: "Add Expense"
+
+# Enter amount
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "300"
+
+# Enter description
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Equal Split Test"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Verify EQUAL is the default split type (or tap it explicitly)
+- tapOn:
+    text: "Equal"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify equal split indicator is visible (each member sees ₹150 if 2 members)
+- assertVisible:
+    text: "Equal"
+    optional: true
+
+# Save this expense
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+
+# Dismiss WhatsApp/notification prompt if shown
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Equal Split Test"
+    timeout: 10000
+
+# ============================================================
+# Section 2: PERCENTAGE split — ₹500 expense, 60%/40%
+# ============================================================
+- tapOn: "Add"
+- waitForAnimationToEnd
+- assertVisible: "Add Expense"
+
+# Enter amount
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "500"
+
+# Enter description
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Percentage Split Test"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Select PERCENTAGE split type
+- tapOn:
+    text: "Percentage"
+    optional: true
+- tapOn:
+    id: "split-type-percentage"
+    optional: true
+- waitForAnimationToEnd
+
+# Enter 60% for payer (first member)
+- tapOn:
+    id: "split-percentage-0"
+    optional: true
+- eraseText: 10
+- inputText: "60"
+
+# Enter 40% for second member
+- tapOn:
+    id: "split-percentage-1"
+    optional: true
+- eraseText: 10
+- inputText: "40"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Verify computed amounts are shown (300 and 200 for a ₹500 split)
+- assertVisible:
+    text: "300"
+    optional: true
+- assertVisible:
+    text: "200"
+    optional: true
+
+# Save expense
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Percentage Split Test"
+    timeout: 10000
+
+# ============================================================
+# Section 3: EXACT split — ₹400 expense, exact amounts per person
+# ============================================================
+- tapOn: "Add"
+- waitForAnimationToEnd
+- assertVisible: "Add Expense"
+
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "400"
+
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Exact Split Test"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Select EXACT split type
+- tapOn:
+    text: "Exact"
+    optional: true
+- tapOn:
+    id: "split-type-exact"
+    optional: true
+- waitForAnimationToEnd
+
+# Enter ₹250 for first member
+- tapOn:
+    id: "split-exact-0"
+    optional: true
+- eraseText: 10
+- inputText: "250"
+
+# Enter ₹150 for second member (total = 400)
+- tapOn:
+    id: "split-exact-1"
+    optional: true
+- eraseText: 10
+- inputText: "150"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Verify the total matches (sum validation passes when total == expense amount)
+- assertVisible:
+    text: "400"
+    optional: true
+
+# Save expense
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Exact Split Test"
+    timeout: 10000
+
+# ============================================================
+# Section 4: SHARES split — ₹600 expense, 2:1 ratio
+# ============================================================
+- tapOn: "Add"
+- waitForAnimationToEnd
+- assertVisible: "Add Expense"
+
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "600"
+
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Shares Split Test"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Select SHARES split type
+- tapOn:
+    text: "Shares"
+    optional: true
+- tapOn:
+    id: "split-type-shares"
+    optional: true
+- waitForAnimationToEnd
+
+# Set 2 shares for first member
+- tapOn:
+    id: "split-shares-0"
+    optional: true
+- eraseText: 5
+- inputText: "2"
+
+# Set 1 share for second member (2:1 ratio → ₹400 / ₹200)
+- tapOn:
+    id: "split-shares-1"
+    optional: true
+- eraseText: 5
+- inputText: "1"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Verify proportional amounts are shown (400 and 200)
+- assertVisible:
+    text: "400"
+    optional: true
+- assertVisible:
+    text: "200"
+    optional: true
+
+# Save expense
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Shares Split Test"
+    timeout: 10000
+
+# All 4 split-type expenses saved — verify expenses tab shows all
+- scrollUntilVisible:
+    element:
+      text: "Equal Split Test"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 10

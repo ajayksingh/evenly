@@ -44,3 +44,12 @@ yarn-error.*
 *.png
 !assets/*.png
 !public/*.png
+
+# Playwright
+e2e/reports/
+test-results/
+playwright-report/
+/tmp/evenly_monitor_hashes
+
+# Maestro results
+maestro/results/logs/

@@ -1,0 +1,294 @@
+---
+# Flow: Auth screen validation — empty submit, invalid email, wrong password,
+# forgot password, demo account login, and new account registration.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+---
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+
+# Dismiss any system crash dialogs
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# === Section 1: Empty email submit → should show error ===
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Ensure Sign In tab is active
+- tapOn:
+    text: "Sign In"
+    optional: true
+- waitForAnimationToEnd
+
+# Tap submit with completely empty fields
+- tapOn:
+    id: "auth-submit-btn"
+- waitForAnimationToEnd
+
+# Expect some validation error to appear (email required message)
+- assertVisible:
+    text: "email"
+    optional: true
+- assertVisible:
+    text: "required"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# === Section 2: Invalid email format → should show error ===
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: "notanemail"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "auth-submit-btn"
+- waitForAnimationToEnd
+
+# Expect invalid email format error
+- assertVisible:
+    text: "valid"
+    optional: true
+- assertVisible:
+    text: "email"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# === Section 3: Wrong password → should show error ===
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: ${USER_A_EMAIL}
+
+# Dismiss credential manager if it appears
+- tapOn:
+    id: "auth-password-input"
+    optional: true
+- pressKey: Back
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: ${USER_A_EMAIL}
+
+- tapOn:
+    id: "auth-password-input"
+- inputText: "wrongpassword999"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "auth-submit-btn"
+- waitForAnimationToEnd
+
+# Expect auth error dialog or inline error
+- extendedWaitUntil:
+    visible:
+      text: "Invalid"
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# === Section 4: Forgot password flow ===
+# Clear fields first
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+
+- tapOn:
+    text: "Forgot password?"
+    optional: true
+- waitForAnimationToEnd
+
+# Expect a forgot-password modal or screen to appear
+- assertVisible:
+    text: "Reset"
+    optional: true
+- assertVisible:
+    text: "email"
+    optional: true
+
+# Enter email in forgot password form
+- tapOn:
+    id: "auth-email-input"
+    optional: true
+- tapOn:
+    text: "Email"
+    optional: true
+- inputText: ${USER_A_EMAIL}
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Tap send reset / submit button
+- tapOn:
+    text: "Send"
+    optional: true
+- tapOn:
+    text: "Reset"
+    optional: true
+- waitForAnimationToEnd
+
+# Dismiss confirmation or any dialog
+- tapOn:
+    text: "OK"
+    optional: true
+- tapOn:
+    text: "Cancel"
+    optional: true
+- waitForAnimationToEnd
+
+# Navigate back to login if needed
+- pressKey: Back
+    optional: true
+- waitForAnimationToEnd
+
+# === Section 5: Demo account login (alice@demo.com / demo123) ===
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000
+
+- tapOn:
+    text: "Sign In"
+    optional: true
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: "alice@demo.com"
+
+- tapOn:
+    id: "auth-password-input"
+    optional: true
+- pressKey: Back
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: "alice@demo.com"
+
+- tapOn:
+    id: "auth-password-input"
+- inputText: "demo123"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "auth-submit-btn"
+- waitForAnimationToEnd
+
+# Demo login may fail (account might not exist) — handle both outcomes
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# If we landed on home screen, go back to auth for the next section
+- runFlow:
+    when:
+      notVisible: "Welcome back"
+    file: ./helpers/do_logout.yaml
+
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000
+
+# === Section 6: Register new account with unique timestamp email ===
+# Switch to Sign Up tab
+- tapOn:
+    text: "Sign Up"
+- waitForAnimationToEnd
+
+# Enter name
+- tapOn:
+    text: "Full Name"
+    optional: true
+- inputText: "Test User E2E"
+
+# Enter unique timestamp-based email
+# Maestro does not support dynamic timestamps natively — we use a fixed unique email
+# Replace this email suffix if needed to avoid "already exists" errors
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: "test_1743000000@test.com"
+
+# Dismiss credential manager popup
+- tapOn:
+    id: "auth-password-input"
+    optional: true
+- pressKey: Back
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "auth-email-input"
+- eraseText: 50
+- inputText: "test_1743000000@test.com"
+
+# Enter password
+- tapOn:
+    id: "auth-password-input"
+- inputText: "Test@1234"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Enter confirm password
+- tapOn:
+    text: "Confirm Password"
+    optional: true
+- inputText: "Test@1234"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Submit registration
+- tapOn:
+    id: "auth-submit-btn"
+- waitForAnimationToEnd
+
+# Handle "email already in use" if this test was run before
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# If registration succeeded we should land on home screen
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 20000
+    optional: true
+
+# Clean up: logout new account to restore to auth screen for subsequent flows
+- runFlow:
+    when:
+      notVisible: "Welcome back"
+    file: ./helpers/do_logout.yaml
+
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000

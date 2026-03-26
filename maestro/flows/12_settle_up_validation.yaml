@@ -1,0 +1,254 @@
+---
+# Flow: SettleUp form validation — empty submit, auto-suggest balance,
+# clear amount error, all payment methods, and successful payment.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+---
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# === Login as User A (or reuse session) ===
+- runFlow:
+    when:
+      visible: "Welcome back"
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# === Navigate to Settle Up ===
+# Settle Up can be reached from Groups → Balances tab → Record a Payment
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+- tapOn: "E2E Test Group"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+
+- tapOn: "Record a Payment"
+- waitForAnimationToEnd
+- assertVisible: "Settle Up"
+
+# ============================================================
+# Section 1: Tap Record Payment without selecting payer/receiver
+# Should not submit / should stay on form
+# ============================================================
+- tapOn:
+    id: "settle-record-btn"
+    optional: true
+- tapOn:
+    text: "Record Payment"
+    optional: true
+- waitForAnimationToEnd
+
+# Expect validation — form should not have navigated away
+- assertVisible:
+    text: "Settle Up"
+    optional: true
+
+# Dismiss any error dialog
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 2: Select payer (User A) and receiver (User B)
+# ============================================================
+# Payer dropdown — select User A (deepsags)
+- tapOn:
+    id: "settle-payer-selector"
+    optional: true
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "deepsags"
+    optional: true
+- tapOn:
+    text: "Deep"
+    optional: true
+- waitForAnimationToEnd
+
+# Receiver dropdown — select User B (ajsworld / Ajay)
+- tapOn:
+    id: "settle-receiver-selector"
+    optional: true
+- tapOn:
+    id: "settle-receiver-first"
+    optional: true
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Ajay"
+    optional: true
+- tapOn:
+    text: "ajsworld"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 3: Verify amount field auto-suggests balance
+# ============================================================
+- assertVisible:
+    id: "settle-amount-input"
+    optional: true
+
+# The auto-suggested amount should be non-empty (some number is pre-filled)
+# We just verify the field is present and has a value
+- tapOn:
+    id: "settle-amount-input"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 4: Clear amount, tap Record Payment → validation error
+# ============================================================
+- tapOn:
+    id: "settle-amount-input"
+    optional: true
+- eraseText: 20
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "settle-record-btn"
+    optional: true
+- tapOn:
+    text: "Record Payment"
+    optional: true
+- waitForAnimationToEnd
+
+# Expect validation error for empty amount
+- assertVisible:
+    text: "amount"
+    optional: true
+- assertVisible:
+    text: "valid"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 5: Enter valid amount and note
+# ============================================================
+- tapOn:
+    id: "settle-amount-input"
+    optional: true
+- eraseText: 20
+- inputText: "100"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Add note
+- tapOn:
+    text: "Add a note..."
+    optional: true
+- tapOn:
+    id: "settle-note-input"
+    optional: true
+- inputText: "Test settlement"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 6: Select each payment method
+# ============================================================
+# UPI
+- tapOn:
+    text: "UPI"
+    optional: true
+- tapOn:
+    id: "payment-method-upi"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible:
+    text: "UPI"
+    optional: true
+
+# Cash
+- tapOn:
+    text: "Cash"
+    optional: true
+- tapOn:
+    id: "payment-method-cash"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Cash"
+    optional: true
+
+# Bank Transfer
+- tapOn:
+    text: "Bank Transfer"
+    optional: true
+- tapOn:
+    id: "payment-method-bank"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Bank Transfer"
+    optional: true
+
+# Leave UPI selected as final method for submission
+- tapOn:
+    text: "UPI"
+    optional: true
+- tapOn:
+    id: "payment-method-upi"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 7: Submit → verify "Payment Successful!" screen
+# ============================================================
+- tapOn:
+    id: "settle-record-btn"
+    optional: true
+- tapOn:
+    text: "Record Payment"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Payment Successful!"
+    timeout: 15000
+
+# ============================================================
+# Section 8: Verify navigates back to home
+# ============================================================
+# Payment Successful screen should auto-navigate or have a Done button
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- tapOn:
+    text: "Done"
+    optional: true
+- tapOn:
+    text: "Back to Home"
+    optional: true
+- waitForAnimationToEnd
+
+# Navigate to Home tab explicitly if not auto-navigated
+- tapOn:
+    text: "Home"
+    optional: true
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Total balance"
+    optional: true

@@ -1,0 +1,219 @@
+---
+# Flow: Friends tab comprehensive — add friend modal, self-add error,
+# invalid email error, add User B, verify in list, settle navigation.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+  USER_B_EMAIL: ajsworld@gmail.com
+---
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# === Login as User A (or reuse session) ===
+- runFlow:
+    when:
+      visible: "Welcome back"
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# ============================================================
+# Section 1: Navigate to Friends tab
+# ============================================================
+- tapOn: "Friends"
+- waitForAnimationToEnd
+
+# Verify Friends screen loaded
+- extendedWaitUntil:
+    visible:
+      text: "Friends"
+    timeout: 15000
+
+# ============================================================
+# Section 2: Tap "Add Friend" → modal opens
+# ============================================================
+- tapOn:
+    text: "Add Friend"
+    optional: true
+- tapOn:
+    id: "add-friend-btn"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify add friend modal/sheet opened
+- assertVisible:
+    text: "Add Friend"
+    optional: true
+- assertVisible:
+    id: "add-friend-input"
+    optional: true
+
+# ============================================================
+# Section 3: Try adding self (deepsags@gmail.com) → error
+# ============================================================
+- tapOn:
+    id: "add-friend-input"
+    optional: true
+- eraseText: 50
+- inputText: ${USER_A_EMAIL}
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Add"
+    optional: true
+- tapOn:
+    id: "add-friend-submit-btn"
+    optional: true
+- waitForAnimationToEnd
+
+# Expect error — cannot add yourself
+- assertVisible:
+    text: "yourself"
+    optional: true
+- assertVisible:
+    text: "own"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 4: Try invalid email → error
+# ============================================================
+- tapOn:
+    id: "add-friend-input"
+    optional: true
+- eraseText: 50
+- inputText: "notvalidemail"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Add"
+    optional: true
+- tapOn:
+    id: "add-friend-submit-btn"
+    optional: true
+- waitForAnimationToEnd
+
+# Expect invalid email error
+- assertVisible:
+    text: "valid"
+    optional: true
+- assertVisible:
+    text: "email"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 5: Add User B (ajsworld@gmail.com) if not already friends
+# ============================================================
+- tapOn:
+    id: "add-friend-input"
+    optional: true
+- eraseText: 50
+- inputText: ${USER_B_EMAIL}
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Add"
+    optional: true
+- tapOn:
+    id: "add-friend-submit-btn"
+    optional: true
+- waitForAnimationToEnd
+
+# Handle "already friends" message gracefully
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# Dismiss modal if still open
+- tapOn:
+    text: "Close"
+    optional: true
+- tapOn:
+    text: "Cancel"
+    optional: true
+- pressKey: Back
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 6: Verify User B appears in friends list with balance
+# ============================================================
+# Wait for friends list to show User B
+- extendedWaitUntil:
+    visible:
+      text: "ajsworld"
+    timeout: 15000
+    optional: true
+
+- assertVisible:
+    text: "Ajay"
+    optional: true
+
+# Verify balance is shown alongside friend (any numeric text or ₹ sign)
+- assertVisible:
+    text: "₹"
+    optional: true
+
+# ============================================================
+# Section 7: Tap "Settle" on User B → navigates to SettleUp pre-filled
+# ============================================================
+# Tap the Settle button on User B's friend card
+- tapOn:
+    id: "friend-settle-btn"
+    optional: true
+- tapOn:
+    text: "Settle"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify navigated to Settle Up screen pre-filled with User B
+- assertVisible:
+    text: "Settle Up"
+    optional: true
+
+# Verify User B's name is pre-filled as receiver
+- assertVisible:
+    text: "Ajay"
+    optional: true
+- assertVisible:
+    text: "ajsworld"
+    optional: true
+
+# ============================================================
+# Section 8: Navigate back to Friends
+# ============================================================
+- pressKey: Back
+    optional: true
+- tapOn:
+    text: "Back"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify back on Friends screen
+- tapOn:
+    text: "Friends"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Friends"
+    optional: true

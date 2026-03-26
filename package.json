@@ -9,7 +9,12 @@
     "web": "expo start --web",
     "build:web": "EXPO_PUBLIC_BUILDING_FOR_WEB=1 npx expo export --platform web",
     "postbuild:web": "node scripts/patch-web-assets.js",
-    "deploy": "npm run build:web && node scripts/deploy-gh-pages.js"
+    "deploy": "bash scripts/deploy-web.sh",
+    "test:web": "playwright test",
+    "test:web:ui": "playwright test --ui",
+    "test:web:report": "playwright show-report e2e/reports",
+    "test:android": "bash scripts/run-tests.sh",
+    "test:all": "bash scripts/orchestrate.sh"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",
@@ -52,6 +57,7 @@
   "private": true,
   "devDependencies": {
     "@babel/preset-env": "^7.29.2",
+    "@playwright/test": "^1.58.2",
     "jest": "^30.3.0"
   }
 }

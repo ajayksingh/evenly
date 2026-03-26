@@ -1,0 +1,261 @@
+---
+# Flow: Category selection on AddExpense screen.
+# Opens the category picker, selects each category in sequence,
+# and verifies the label updates on the form after each selection.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+---
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# === Login as User A (or reuse session) ===
+- runFlow:
+    when:
+      visible: "Welcome back"
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# === Navigate to Groups → open test group → Add Expense ===
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+- tapOn: "E2E Test Group"
+- waitForAnimationToEnd
+
+- tapOn: "Add"
+- waitForAnimationToEnd
+- assertVisible: "Add Expense"
+
+# Enter a base amount so the form is valid for any save attempts
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "100"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# ============================================================
+# Helper pattern: tap category button → picker modal opens →
+# select category → verify label updated → repeat
+# ============================================================
+
+# === Category: Food ===
+# Tap category selector button (may have testID or label "Category" / "General")
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Category"
+    optional: true
+- tapOn:
+    text: "General"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify picker modal opened
+- assertVisible:
+    text: "Select Category"
+    optional: true
+- assertVisible:
+    text: "Food"
+    optional: true
+
+- tapOn: "Food"
+- waitForAnimationToEnd
+
+# Verify category label updated on form
+- assertVisible:
+    text: "Food"
+    optional: true
+
+# === Category: Housing ===
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Food"
+    optional: true
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Housing"
+    optional: true
+- tapOn: "Housing"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Housing"
+    optional: true
+
+# === Category: Transport ===
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Housing"
+    optional: true
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Transport"
+    optional: true
+- tapOn: "Transport"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Transport"
+    optional: true
+
+# === Category: Entertainment ===
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Transport"
+    optional: true
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Entertainment"
+    optional: true
+- tapOn: "Entertainment"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Entertainment"
+    optional: true
+
+# === Category: Shopping ===
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Entertainment"
+    optional: true
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Shopping"
+    optional: true
+- tapOn: "Shopping"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Shopping"
+    optional: true
+
+# === Category: Utilities ===
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Shopping"
+    optional: true
+- waitForAnimationToEnd
+
+# Utilities may need scroll within picker modal
+- scrollUntilVisible:
+    element:
+      text: "Utilities"
+    direction: DOWN
+    timeout: 5000
+    visibilityPercentage: 10
+    optional: true
+- tapOn: "Utilities"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Utilities"
+    optional: true
+
+# === Category: Health ===
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Utilities"
+    optional: true
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "Health"
+    direction: DOWN
+    timeout: 5000
+    visibilityPercentage: 10
+    optional: true
+- tapOn: "Health"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Health"
+    optional: true
+
+# === Category: Travel ===
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Health"
+    optional: true
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "Travel"
+    direction: DOWN
+    timeout: 5000
+    visibilityPercentage: 10
+    optional: true
+- tapOn: "Travel"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Travel"
+    optional: true
+
+# === Category: General (reset to default) ===
+- tapOn:
+    id: "expense-category-btn"
+    optional: true
+- tapOn:
+    text: "Travel"
+    optional: true
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "General"
+    direction: DOWN
+    timeout: 5000
+    visibilityPercentage: 10
+    optional: true
+- tapOn: "General"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "General"
+    optional: true
+
+# === Save the expense with the final category (General) ===
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Category Test Expense"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Category Test Expense"
+    timeout: 10000

@@ -1,12 +1,13 @@
 name: Spec Guard
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Triggers on any push or PR that touches a spec file.
-# Runs a build integrity check (JS bundle + type checks).
-# Blocks merges to main until this passes.
+# Triggers on any push or PR that touches a spec file or core source.
+# Runs:
+#   1. Build integrity check (web bundle)
+#   2. Playwright web E2E tests against https://ajayksingh.github.io/evenly/
 #
-# Note: Full Maestro device tests run locally via the pre-push hook.
-# This CI step validates that the app builds successfully after spec changes.
+# Full Maestro Android device tests run locally via the pre-push hook.
+# Blocks merges to main until all checks pass.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -17,11 +18,14 @@ on:
       - 'package.json'
       - 'eas.json'
       - 'maestro/flows/**'
+      - 'e2e/**'
       - 'src/services/storage.js'
       - 'src/utils/splitCalculator.js'
       - 'src/screens/AddExpenseScreen.js'
       - 'src/screens/SettleUpScreen.js'
       - 'src/context/AppContext.js'
+      - 'src/screens/**'
+      - 'src/services/**'
   pull_request:
     branches: [main]
     paths:
@@ -29,23 +33,18 @@ on:
       - 'package.json'
       - 'eas.json'
       - 'maestro/flows/**'
-      - 'src/services/storage.js'
-      - 'src/utils/splitCalculator.js'
-      - 'src/screens/AddExpenseScreen.js'
-      - 'src/screens/SettleUpScreen.js'
-      - 'src/context/AppContext.js'
+      - 'e2e/**'
+      - 'src/**'
 
 jobs:
+  # ── Job 1: Build integrity ──────────────────────────────────────────────────
   build-check:
-    name: Build Integrity Check
+    name: Build Integrity
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
@@ -53,36 +52,113 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check what spec files changed
-        run: |
-          echo "Changed spec files in this push:"
-          git diff --name-only HEAD~1 HEAD | grep -E "(app\.json|package\.json|eas\.json|maestro/|storage\.js|splitCalculator\.js|AddExpenseScreen|SettleUpScreen|AppContext)" || echo "(first commit or no diff available)"
-
       - name: Build web bundle
         run: npx expo export --platform web --output-dir dist
         env:
           CI: true
 
-      - name: Verify bundle exists
+      - name: Verify bundle
         run: |
           BUNDLE=$(find dist/_expo/static/js/web -name "*.js" | head -1)
-          if [ -z "$BUNDLE" ]; then
-            echo "✗ JS bundle not found in dist/ — build failed"
+          [ -z "$BUNDLE" ] && echo "✗ Bundle missing" && exit 1
+          echo "✓ Bundle: $(du -sh $BUNDLE | cut -f1)"
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 1
+
+  # ── Job 2: Playwright web E2E ───────────────────────────────────────────────
+  web-e2e:
+    name: Web E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: build-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npx playwright test --reporter=list,html
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: e2e/reports/
+          retention-days: 7
+
+  # ── Job 3: Maestro flow lint ────────────────────────────────────────────────
+  maestro-lint:
+    name: Maestro Flow Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate YAML syntax on all flows
+        run: |
+          pip install pyyaml -q
+          python3 - <<'EOF'
+          import yaml, os, sys
+          flows_dir = "maestro/flows"
+          errors = []
+          for root, _, files in os.walk(flows_dir):
+              for f in files:
+                  if f.endswith(".yaml"):
+                      path = os.path.join(root, f)
+                      try:
+                          # Maestro YAMLs use --- separator — parse each doc
+                          with open(path) as fh:
+                              list(yaml.safe_load_all(fh.read()))
+                          print(f"  ✓ {path}")
+                      except yaml.YAMLError as e:
+                          errors.append(f"  ✗ {path}: {e}")
+          if errors:
+              print("\nYAML errors found:")
+              for e in errors: print(e)
+              sys.exit(1)
+          print(f"\n✓ All {sum(1 for _ in os.walk(flows_dir) for f in _[2] if f.endswith('.yaml'))} flow files are valid YAML")
+          EOF
+
+      - name: Check all flows have appId
+        run: |
+          missing=()
+          for f in maestro/flows/*.yaml; do
+            grep -q "appId:" "$f" || missing+=("$f")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "✗ Flows missing appId: ${missing[*]}"
             exit 1
           fi
-          SIZE=$(du -sh "$BUNDLE" | cut -f1)
-          echo "✓ Bundle: $BUNDLE ($SIZE)"
+          echo "✓ All flows have appId"
 
-      - name: Verify .nojekyll guard
+  # ── Summary gate ────────────────────────────────────────────────────────────
+  all-checks-pass:
+    name: All Checks Pass
+    runs-on: ubuntu-latest
+    needs: [build-check, web-e2e, maestro-lint]
+    if: always()
+    steps:
+      - name: Check all jobs passed
         run: |
-          touch dist/.nojekyll
-          echo "✓ .nojekyll present — _expo/ will be served by GitHub Pages"
-
-      - name: Summary
-        run: |
-          echo ""
-          echo "✓ Build integrity check passed"
-          echo "✓ Spec change is safe to go live"
-          echo ""
-          echo "Note: Full Maestro device tests must pass locally (pre-push hook)"
-          echo "      before this commit was pushed."
+          if [ "${{ needs.build-check.result }}" != "success" ] || \
+             [ "${{ needs.web-e2e.result }}"    != "success" ] || \
+             [ "${{ needs.maestro-lint.result }}" != "success" ]; then
+            echo "✗ One or more checks failed — changes blocked from going live"
+            exit 1
+          fi
+          echo "✓ All checks passed — safe to deploy"

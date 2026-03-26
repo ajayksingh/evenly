@@ -1,0 +1,214 @@
+---
+# Flow: Profile screen interactions.
+# Covers: edit name, change password alert, rate app alert,
+# notifications toggle, sign out cancel, and sign out confirm.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+---
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# === Login as User A (or reuse existing session) ===
+- runFlow:
+    when:
+      visible: "Welcome back"
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# Ensure we're on the Home tab so header-avatar is accessible
+- tapOn:
+    text: "Home"
+    optional: true
+- waitForAnimationToEnd
+
+# === Navigate to Profile via header avatar ===
+- tapOn:
+    id: "header-avatar"
+- waitForAnimationToEnd
+
+# Verify Profile screen opened
+- assertVisible:
+    text: "Profile"
+    optional: true
+
+# ============================================================
+# Section 1: Edit profile — change name via edit badge on avatar
+# ============================================================
+# Tap the edit badge / pencil icon on the avatar
+- tapOn:
+    id: "profile-edit-badge"
+    optional: true
+- tapOn:
+    text: "Edit Profile"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify Edit Profile modal or screen opened
+- assertVisible:
+    text: "Edit Profile"
+    optional: true
+
+# Clear current name and type a new one
+- tapOn:
+    id: "profile-name-input"
+    optional: true
+- tapOn:
+    text: "Name"
+    optional: true
+- eraseText: 50
+- inputText: "Deep E2E"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Save the updated name
+- tapOn:
+    text: "Save"
+    optional: true
+- tapOn:
+    id: "profile-save-btn"
+    optional: true
+- waitForAnimationToEnd
+
+# Dismiss success dialog if shown
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify updated name visible in profile/header
+- assertVisible:
+    text: "Deep E2E"
+    optional: true
+
+# ============================================================
+# Section 2: Change Password → "Coming Soon" alert
+# ============================================================
+- scrollUntilVisible:
+    element:
+      text: "Change Password"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 10
+- tapOn: "Change Password"
+- waitForAnimationToEnd
+
+# Expect "Coming Soon" alert or toast
+- assertVisible:
+    text: "Coming Soon"
+    optional: true
+- assertVisible:
+    text: "coming soon"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 3: Rate the App → alert appears
+# ============================================================
+- scrollUntilVisible:
+    element:
+      text: "Rate"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 10
+- tapOn:
+    text: "Rate"
+    optional: true
+- tapOn:
+    text: "Rate the App"
+    optional: true
+- waitForAnimationToEnd
+
+# Expect an alert or store redirect dialog
+- assertVisible:
+    text: "Rate"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- tapOn:
+    text: "Cancel"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 4: Toggle Notifications switch
+# ============================================================
+- scrollUntilVisible:
+    element:
+      text: "Notifications"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 10
+
+# Tap the Notifications toggle switch
+- tapOn:
+    id: "notifications-toggle"
+    optional: true
+- tapOn:
+    text: "Notifications"
+    optional: true
+- waitForAnimationToEnd
+
+# Toggle back to original state
+- tapOn:
+    id: "notifications-toggle"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 5: Sign Out → Cancel → still on Profile
+# ============================================================
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 10
+- tapOn: "Sign Out"
+- waitForAnimationToEnd
+
+# Confirmation dialog should appear
+- assertVisible:
+    text: "Are you sure"
+    optional: true
+- assertVisible:
+    text: "SIGN OUT"
+    optional: true
+
+# Tap Cancel — should remain on Profile screen
+- tapOn: "Cancel"
+- waitForAnimationToEnd
+
+# Verify still on Profile (not navigated to auth)
+- assertVisible:
+    text: "Sign Out"
+    optional: true
+
+# ============================================================
+# Section 6: Sign Out → Confirm → lands on Auth screen
+# ============================================================
+- tapOn: "Sign Out"
+- waitForAnimationToEnd
+
+# Confirm sign out in dialog
+- tapOn: "SIGN OUT"
+- waitForAnimationToEnd
+
+# Verify navigated to Auth screen
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 15000

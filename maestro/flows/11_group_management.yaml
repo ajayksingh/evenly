@@ -1,0 +1,189 @@
+---
+# Flow: Full group lifecycle — create Trip & Household groups,
+# verify both in list, open one and add User B as member.
+appId: com.ajayksingh.evenly
+env:
+  USER_A_EMAIL: deepsags@gmail.com
+  USER_A_PASS: abc123
+  USER_B_EMAIL: ajsworld@gmail.com
+---
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# === Login as User A (or reuse existing session) ===
+- runFlow:
+    when:
+      visible: "Welcome back"
+    file: ./helpers/do_login.yaml
+    env:
+      EMAIL: ${USER_A_EMAIL}
+      PASS: ${USER_A_PASS}
+
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# === Navigate to Groups tab ===
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 1: Create group type "Trip" named "Paris Trip"
+# ============================================================
+- tapOn:
+    id: "fab-add-group"
+- waitForAnimationToEnd
+- assertVisible: "New Group"
+
+# Select Trip group type
+- tapOn:
+    text: "Trip"
+    optional: true
+- tapOn:
+    id: "group-type-trip"
+    optional: true
+- waitForAnimationToEnd
+
+# Enter group name
+- tapOn:
+    id: "group-name-input"
+- eraseText: 50
+- inputText: "Paris Trip"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Submit group creation
+- tapOn: "Create"
+- waitForAnimationToEnd
+
+# Verify group was created and appears in the list
+- extendedWaitUntil:
+    visible:
+      text: "Paris Trip"
+    timeout: 15000
+
+# Navigate back to Groups list for second group creation
+- pressKey: Back
+    optional: true
+- tapOn:
+    text: "Back"
+    optional: true
+- tapOn:
+    text: "Groups"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 2: Create group type "Household" named "Flat Share"
+# ============================================================
+- tapOn:
+    id: "fab-add-group"
+- waitForAnimationToEnd
+- assertVisible: "New Group"
+
+# Select Household group type
+- tapOn:
+    text: "Household"
+    optional: true
+- tapOn:
+    id: "group-type-household"
+    optional: true
+- waitForAnimationToEnd
+
+# Enter group name
+- tapOn:
+    id: "group-name-input"
+- eraseText: 50
+- inputText: "Flat Share"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn: "Create"
+- waitForAnimationToEnd
+
+# Verify "Flat Share" appears in the list
+- extendedWaitUntil:
+    visible:
+      text: "Flat Share"
+    timeout: 15000
+
+# Navigate back to Groups list
+- pressKey: Back
+    optional: true
+- tapOn:
+    text: "Back"
+    optional: true
+- tapOn:
+    text: "Groups"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 3: Verify both groups appear in Groups list
+# ============================================================
+- extendedWaitUntil:
+    visible:
+      text: "Paris Trip"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element:
+      text: "Flat Share"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 10
+
+- assertVisible: "Flat Share"
+
+# ============================================================
+# Section 4: Open Paris Trip → Members tab → Add User B
+# ============================================================
+- tapOn: "Paris Trip"
+- waitForAnimationToEnd
+
+# Navigate to Members tab
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+- assertVisible: "members"
+
+# Tap Add Member button
+- tapOn:
+    id: "add-member-btn"
+- waitForAnimationToEnd
+- assertVisible: "Add Member"
+
+# Search for User B by email
+- tapOn:
+    id: "member-search-input"
+- inputText: ${USER_B_EMAIL}
+- tapOn:
+    id: "member-search-btn"
+
+# Wait for the Add action button on the result card
+- extendedWaitUntil:
+    visible:
+      id: "add-member-action-btn"
+    timeout: 8000
+
+# Dismiss keyboard then tap Add
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: "add-member-action-btn"
+
+# Wait for modal to close (Cancel button disappears when modal closes)
+- extendedWaitUntil:
+    notVisible:
+      text: "Cancel"
+    timeout: 8000
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 5: Verify User B appears in members list
+# ============================================================
+# User B's display name is "Ajay" (from 00_setup_user_b.yaml)
+- assertVisible: "Ajay"
