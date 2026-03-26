@@ -1,7 +1,7 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  RefreshControl, StatusBar,
+  RefreshControl, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming, withDelay,
@@ -9,6 +9,7 @@ import Animated, {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
+import { respondToGroupInvite } from '../services/storage';
 import { COLORS } from '../constants/colors';
 import Avatar from '../components/Avatar';
 import BackgroundOrbs from '../components/BackgroundOrbs';
@@ -16,8 +17,9 @@ import { formatDate } from '../utils/splitCalculator';
 import { formatAmount } from '../services/currency';
 
 const HomeScreen = ({ navigation }) => {
-  const { user, balances, activity, groups, totalBalance, currency, refresh } = useApp();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const { user, balances, activity, groups, totalBalance, currency, refresh, groupInvites, notifyWrite } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
+  const [respondingInvite, setRespondingInvite] = useState(null);
 
   // Balance card entrance animation
   const cardOpacity = useSharedValue(0);
@@ -53,6 +55,18 @@ const HomeScreen = ({ navigation }) => {
     setTimeout(() => setRefreshing(false), 800);
   };
 
+  const handleInviteResponse = async (invite, accept) => {
+    setRespondingInvite(invite.id);
+    try {
+      await respondToGroupInvite(invite.id, accept, user.id);
+      await notifyWrite(accept ? 'accept_invite' : 'reject_invite');
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setRespondingInvite(null);
+    }
+  };
+
   const oweMe = balances.filter(b => b.amount > 0);
   const iOwe = balances.filter(b => b.amount < 0);
   const totalOwedToMe = oweMe.reduce((s, b) => s + b.amount, 0);
@@ -63,6 +77,7 @@ const HomeScreen = ({ navigation }) => {
       case 'expense_added': return { icon: 'receipt', color: '#4fc3f7' };
       case 'settlement': return { icon: 'checkmark-circle', color: COLORS.success };
       case 'group_created': return { icon: 'people', color: COLORS.primary };
+      case 'member_joined': return { icon: 'person-add', color: '#00d4aa' };
       default: return { icon: 'ellipse', color: COLORS.textLight };
     }
   };
@@ -75,6 +90,8 @@ const HomeScreen = ({ navigation }) => {
         return `Payment of ${formatAmount(item.amount, currency)} recorded`;
       case 'group_created':
         return `Group "${item.groupName}" created`;
+      case 'member_joined':
+        return `${item.paidByName || 'Someone'} joined "${item.groupName}"`;
       default:
         return 'Activity';
     }
@@ -94,7 +111,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.appHeader}>
           <View style={styles.logoRow}>
             <View style={styles.logoBox}>
-              <Text style={styles.logoText}>S</Text>
+              <Text style={styles.logoText}>E</Text>
             </View>
             <Text style={styles.appName}>Evenly</Text>
           </View>
@@ -102,6 +119,46 @@ const HomeScreen = ({ navigation }) => {
             <Avatar name={user?.name} avatar={user?.avatar} size={40} />
           </TouchableOpacity>
         </View>
+
+        {/* Pending Group Invites */}
+        {groupInvites && groupInvites.length > 0 && (
+          <View style={styles.inviteSection}>
+            <Text style={styles.inviteSectionTitle}>Group Invitations</Text>
+            {groupInvites.map(invite => (
+              <View key={invite.id} style={styles.inviteCard}>
+                <View style={styles.inviteIconBox}>
+                  <Ionicons name="people" size={20} color="#00d4aa" />
+                </View>
+                <View style={styles.inviteInfo}>
+                  <Text style={styles.inviteGroupName}>{invite.groupName}</Text>
+                  <Text style={styles.inviteSubtext}>{invite.invitedByName} invited you</Text>
+                </View>
+                <View style={styles.inviteActions}>
+                  {respondingInvite === invite.id ? (
+                    <ActivityIndicator size="small" color="#00d4aa" />
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={styles.inviteAcceptBtn}
+                        onPress={() => handleInviteResponse(invite, true)}
+                      >
+                        <Text style={styles.inviteAcceptText}>Accept</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={styles.inviteRejectBtn}
+                        onPress={() => handleInviteResponse(invite, false)}
+                      >
+                        <Text style={styles.inviteRejectText}>Decline</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Hero Balance Card */}
         <Animated.View style={[styles.heroCard, cardAnimStyle]}>
@@ -121,20 +178,30 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Stats Grid */}
         <Animated.View style={[styles.statsGrid, statsAnimStyle]}>
-          <View style={[styles.statCard, styles.statCardPositive]}>
+          <TouchableOpacity
+            activeOpacity={totalOwedToMe > 0 ? 0.7 : 1}
+            style={[styles.statCard, styles.statCardPositive]}
+            onPress={() => totalOwedToMe > 0 && navigation.navigate('Friends')}
+          >
             <View style={[styles.statIcon, { backgroundColor: 'rgba(0,212,170,0.1)' }]}>
               <Ionicons name="trending-up" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.statAmount}>{formatAmount(totalOwedToMe, currency)}</Text>
             <Text style={styles.statLabel}>you're owed</Text>
-          </View>
-          <View style={[styles.statCard, styles.statCardNegative]}>
+            {totalOwedToMe > 0 && <Text style={styles.statTapHint}>tap to see who →</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={totalIOwe > 0 ? 0.7 : 1}
+            style={[styles.statCard, styles.statCardNegative]}
+            onPress={() => totalIOwe > 0 && navigation.navigate('Friends')}
+          >
             <View style={[styles.statIcon, { backgroundColor: 'rgba(255,107,107,0.1)' }]}>
               <Ionicons name="trending-down" size={20} color={COLORS.negative} />
             </View>
             <Text style={[styles.statAmount, { color: COLORS.negative }]}>{formatAmount(totalIOwe, currency)}</Text>
             <Text style={styles.statLabel}>you owe</Text>
-          </View>
+            {totalIOwe > 0 && <Text style={[styles.statTapHint, { color: '#ff6b6b' }]}>tap to see who →</Text>}
+          </TouchableOpacity>
         </Animated.View>
 
         {/* Balances Section */}
@@ -191,8 +258,11 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.activityList}>
               {activity.slice(0, 5).map((item, idx) => {
                 const { icon, color } = getActivityIcon(item.type);
+                const handlePress = () => item.groupId
+                  ? navigation.navigate('GroupDetail', { groupId: item.groupId })
+                  : navigation.navigate('Activity');
                 return (
-                  <View key={item.id || idx} style={[styles.activityItem, idx < activity.slice(0, 5).length - 1 && styles.activityBorder]}>
+                  <TouchableOpacity key={item.id || idx} activeOpacity={0.7} onPress={handlePress} style={[styles.activityItem, idx < activity.slice(0, 5).length - 1 && styles.activityBorder]}>
                     <View style={[styles.activityIcon, { backgroundColor: color + '18' }]}>
                       <Ionicons name={icon} size={18} color={color} />
                     </View>
@@ -200,7 +270,8 @@ const HomeScreen = ({ navigation }) => {
                       <Text style={styles.activityText} numberOfLines={2}>{getActivityText(item)}</Text>
                       <Text style={styles.activityTime}>{formatDate(item.createdAt)}</Text>
                     </View>
-                  </View>
+                    <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.2)" />
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -282,6 +353,7 @@ const styles = StyleSheet.create({
   statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   statAmount: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginBottom: 4 },
   statLabel: { fontSize: 12, color: COLORS.textLight, fontWeight: '600' },
+  statTapHint: { fontSize: 10, color: '#00d4aa', marginTop: 6, fontWeight: '600' },
 
   // Sections
   section: {
@@ -344,6 +416,40 @@ const styles = StyleSheet.create({
     shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5, shadowRadius: 12, elevation: 10,
   },
+
+  // Invites
+  inviteSection: {
+    marginHorizontal: 16, marginBottom: 12,
+  },
+  inviteSectionTitle: {
+    fontSize: 13, fontWeight: '700', color: '#a1a1aa',
+    letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
+  },
+  inviteCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a24', borderRadius: 20, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(0,212,170,0.25)',
+    marginBottom: 8,
+  },
+  inviteIconBox: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: 'rgba(0,212,170,0.1)',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  inviteInfo: { flex: 1 },
+  inviteGroupName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  inviteSubtext: { fontSize: 12, color: '#a1a1aa', marginTop: 2 },
+  inviteActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  inviteAcceptBtn: {
+    backgroundColor: '#00d4aa', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 7,
+  },
+  inviteAcceptText: { color: '#0a0a0f', fontWeight: '700', fontSize: 13 },
+  inviteRejectBtn: {
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  inviteRejectText: { color: '#a1a1aa', fontWeight: '600', fontSize: 13 },
 });
 
 export default HomeScreen;
