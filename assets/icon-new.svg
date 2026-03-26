@@ -1,0 +1,52 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background gradient: deep teal to rich indigo -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0D1B3E"/>
+      <stop offset="100%" style="stop-color:#0A3D3A"/>
+    </linearGradient>
+
+    <!-- Text glow -->
+    <filter id="textGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft shadow -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="1024" height="1024" rx="230" ry="230" fill="url(#bgGrad)"/>
+
+  <!-- Subtle border overlay -->
+  <rect width="1024" height="1024" rx="230" ry="230" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.04"/>
+
+  <!-- Top arc highlight -->
+  <ellipse cx="512" cy="-60" rx="500" ry="340" fill="none" stroke="#00E5B0" stroke-width="1.5" opacity="0.12"/>
+
+  <!-- Green pill / badge behind the "E" initial -->
+  <circle cx="512" cy="420" r="200" fill="#00E5B0" filter="url(#shadow)" opacity="0.15"/>
+
+  <!-- Large "E" initial mark -->
+  <text x="512" y="500" font-family="-apple-system, Helvetica Neue, Arial, sans-serif" font-size="340"
+        font-weight="800" fill="#00E5B0" text-anchor="middle" filter="url(#textGlow)" opacity="0.95">E</text>
+
+  <!-- App name "evenly" -->
+  <text x="512" y="720" font-family="-apple-system, Helvetica Neue, Arial, sans-serif" font-size="108"
+        font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="14" opacity="0.95">evenly</text>
+
+  <!-- Bottom accent line -->
+  <line x1="300" y1="760" x2="724" y2="760" stroke="#00E5B0" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- Corner dots decoration -->
+  <circle cx="180" cy="180" r="6" fill="#00E5B0" opacity="0.3"/>
+  <circle cx="200" cy="180" r="3" fill="#00E5B0" opacity="0.2"/>
+  <circle cx="844" cy="180" r="6" fill="#00E5B0" opacity="0.3"/>
+  <circle cx="824" cy="180" r="3" fill="#00E5B0" opacity="0.2"/>
+</svg>

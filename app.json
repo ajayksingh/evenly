@@ -22,9 +22,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0D1B3E",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.ajayksingh.evenly"
@@ -32,8 +31,16 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
-      "output": "single",
+      "output": "single"
+    },
+    "experiments": {
       "baseUrl": "/evenly"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ac20106b-0447-4a6f-8bcd-5d09f0a5b103"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
     },
     "extra": {
       "eas": {
