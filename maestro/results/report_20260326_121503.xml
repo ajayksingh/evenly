@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="Pixel_7" tests="9" failures="8" time="226.0">
+    <testcase id="01_login" name="01_login" classname="01_login" time="12.0" status="SUCCESS"/>
+    <testcase id="02_user_a_create_group_and_add_expense" name="02_user_a_create_group_and_add_expense" classname="02_user_a_create_group_and_add_expense" time="32.0" status="ERROR">
+      <failure>Assertion is false: "Evenly" is visible</failure>
+    </testcase>
+    <testcase id="03_add_member_and_second_expense" name="03_add_member_and_second_expense" classname="03_add_member_and_second_expense" time="37.0" status="ERROR">
+      <failure>Assertion is false: "Total balance" is visible</failure>
+    </testcase>
+    <testcase id="03_user_b_sees_expense_and_adds_counter" name="03_user_b_sees_expense_and_adds_counter" classname="03_user_b_sees_expense_and_adds_counter" time="21.0" status="ERROR">
+      <failure>Element not found: Id matching regex: header-avatar</failure>
+    </testcase>
+    <testcase id="04_settle_payment" name="04_settle_payment" classname="04_settle_payment" time="20.0" status="ERROR">
+      <failure>Element not found: Text matching regex: Groups</failure>
+    </testcase>
+    <testcase id="04_user_b_login_verify_and_settle" name="04_user_b_login_verify_and_settle" classname="04_user_b_login_verify_and_settle" time="27.0" status="ERROR">
+      <failure>Assertion is false: "Evenly" is visible</failure>
+    </testcase>
+    <testcase id="05_user_a_verify_all_persisted" name="05_user_a_verify_all_persisted" classname="05_user_a_verify_all_persisted" time="29.0" status="ERROR">
+      <failure>Assertion is false: "Evenly" is visible</failure>
+    </testcase>
+    <testcase id="05_user_a_verify_settlement" name="05_user_a_verify_settlement" classname="05_user_a_verify_settlement" time="20.0" status="ERROR">
+      <failure>Element not found: Id matching regex: header-avatar</failure>
+    </testcase>
+    <testcase id="06_full_e2e_with_friends" name="06_full_e2e_with_friends" classname="06_full_e2e_with_friends" time="28.0" status="ERROR">
+      <failure>Element not found: Text matching regex: Friends</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
