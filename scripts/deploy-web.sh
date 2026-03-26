@@ -2,7 +2,7 @@
 set -e
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
-ADSENSE_PUBLISHER_ID="ca-pub-REPLACE_WITH_YOUR_ID"   # ← paste your AdSense publisher ID here
+ADSENSE_PUBLISHER_ID="ca-pub-9004418283363709"
 GITHUB_REPO="https://github.com/ajayksingh/evenly.git"
 # ───────────────────────────────────────────────────────────────────────────────
 

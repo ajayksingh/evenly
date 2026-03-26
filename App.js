@@ -25,7 +25,8 @@ export default function App() {
       {/* Left ad slot */}
       <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center', paddingRight: 8 }}>
         <View style={{ width: 160, minHeight: 600, backgroundColor: '#0f0f18', borderRadius: 12, overflow: 'hidden' }}>
-          {/* AdSense left unit goes here */}
+          {/* AdSense left — replace data-ad-slot with your unit ID */}
+          {/* <ins className="adsbygoogle" style={{display:'block'}} data-ad-client="ca-pub-9004418283363709" data-ad-slot="XXXXXXXXXX" data-ad-format="auto" /> */}
         </View>
       </View>
 
@@ -37,7 +38,8 @@ export default function App() {
       {/* Right ad slot */}
       <View style={{ flex: 1, alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 8 }}>
         <View style={{ width: 160, minHeight: 600, backgroundColor: '#0f0f18', borderRadius: 12, overflow: 'hidden' }}>
-          {/* AdSense right unit goes here */}
+          {/* AdSense right — replace data-ad-slot with your unit ID */}
+          {/* <ins className="adsbygoogle" style={{display:'block'}} data-ad-client="ca-pub-9004418283363709" data-ad-slot="XXXXXXXXXX" data-ad-format="auto" /> */}
         </View>
       </View>
     </View>
