@@ -2,7 +2,7 @@ import React, { useCallback, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, StatusBar, Alert, ActivityIndicator,
-  Animated as RNAnimated,
+  Animated as RNAnimated, Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming, withDelay,
@@ -16,17 +16,19 @@ import Avatar from '../components/Avatar';
 import BackgroundOrbs from '../components/BackgroundOrbs';
 import { formatDate } from '../utils/splitCalculator';
 import { formatAmount } from '../services/currency';
+import { BannerAd, BannerAdSize, AD_UNIT_IDS } from '../services/ads';
 
 const HomeScreen = ({ navigation }) => {
   const { user, balances, activity, groups, totalBalance, currency, refresh, groupInvites, notifyWrite } = useApp();
   const [refreshing, setRefreshing] = useState(false);
   const [respondingInvite, setRespondingInvite] = useState(null);
 
-  // Balance card entrance animation
-  const cardOpacity = useSharedValue(0);
-  const cardTranslateY = useSharedValue(32);
-  const statsOpacity = useSharedValue(0);
-  const statsTranslateY = useSharedValue(20);
+  // Balance card entrance animation (disabled on web to prevent flicker)
+  const isWeb = Platform.OS === 'web';
+  const cardOpacity = useSharedValue(isWeb ? 1 : 0);
+  const cardTranslateY = useSharedValue(isWeb ? 0 : 32);
+  const statsOpacity = useSharedValue(isWeb ? 1 : 0);
+  const statsTranslateY = useSharedValue(isWeb ? 0 : 20);
 
   const cardAnimStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
@@ -39,15 +41,16 @@ const HomeScreen = ({ navigation }) => {
 
   useFocusEffect(useCallback(() => {
     refresh();
-    // Entrance animation on each focus
-    cardOpacity.value = 0;
-    cardTranslateY.value = 32;
-    statsOpacity.value = 0;
-    statsTranslateY.value = 20;
-    cardOpacity.value = withTiming(1, { duration: 380 });
-    cardTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
-    statsOpacity.value = withDelay(120, withTiming(1, { duration: 360 }));
-    statsTranslateY.value = withDelay(120, withSpring(0, { damping: 18, stiffness: 120 }));
+    if (!isWeb) {
+      cardOpacity.value = 0;
+      cardTranslateY.value = 32;
+      statsOpacity.value = 0;
+      statsTranslateY.value = 20;
+      cardOpacity.value = withTiming(1, { duration: 380 });
+      cardTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+      statsOpacity.value = withDelay(120, withTiming(1, { duration: 360 }));
+      statsTranslateY.value = withDelay(120, withSpring(0, { damping: 18, stiffness: 120 }));
+    }
   }, [refresh]));
 
   const onRefresh = async () => {
@@ -313,6 +316,17 @@ const HomeScreen = ({ navigation }) => {
 
         <View style={{ height: 30 }} />
       </RNAnimated.ScrollView>
+
+      {/* Banner ad — native only */}
+      {Platform.OS !== 'web' && BannerAd && (
+        <View style={{ alignItems: 'center', backgroundColor: COLORS.background }}>
+          <BannerAd
+            unitId={AD_UNIT_IDS.banner}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+          />
+        </View>
+      )}
     </View>
   );
 };

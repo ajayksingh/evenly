@@ -47,6 +47,15 @@
         "projectId": "ac20106b-0447-4a6f-8bcd-5d09f0a5b103"
       }
     },
-    "owner": "ajayksingh"
+    "owner": "ajayksingh",
+    "plugins": [
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-9004418283363709~4207939635",
+          "iosAppId": "ca-app-pub-9004418283363709~4207939635"
+        }
+      ]
+    ]
   }
 }

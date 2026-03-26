@@ -16,6 +16,7 @@ import { sendWhatsAppMessage, buildSettlementWhatsAppMessage } from '../services
 import { formatAmount, getCurrencySymbol } from '../services/currency';
 import { formatCurrency, getSimplifiedDebts } from '../utils/splitCalculator';
 import { confirmAlert } from '../utils/alert';
+import { showInterstitial } from '../services/ads';
 
 const PAYMENT_METHODS = [
   { key: 'upi',  label: 'UPI',           icon: 'wallet',   color: '#00d4aa' },
@@ -43,17 +44,20 @@ const SettleUpScreen = ({ route, navigation }) => {
   const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
   const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.08)'], extrapolate: 'clamp' });
 
-  const screenOpacity = useSharedValue(0);
-  const screenTranslateY = useSharedValue(32);
+  const isWeb = Platform.OS === 'web';
+  const screenOpacity = useSharedValue(isWeb ? 1 : 0);
+  const screenTranslateY = useSharedValue(isWeb ? 0 : 32);
   const screenAnimStyle = useAnimatedStyle(() => ({
     opacity: screenOpacity.value,
     transform: [{ translateY: screenTranslateY.value }],
   }));
   useFocusEffect(useCallback(() => {
-    screenOpacity.value = 0;
-    screenTranslateY.value = 32;
-    screenOpacity.value = withTiming(1, { duration: 380 });
-    screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+    if (!isWeb) {
+      screenOpacity.value = 0;
+      screenTranslateY.value = 32;
+      screenOpacity.value = withTiming(1, { duration: 380 });
+      screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+    }
   }, []));
 
   const availableMembers = members || (() => {
@@ -137,6 +141,7 @@ const SettleUpScreen = ({ route, navigation }) => {
 
       // Transition to processing → success → navigate
       setStep('processing');
+      showInterstitial();
       setTimeout(() => {
         setStep('success');
         if (friendWithPhone) {
