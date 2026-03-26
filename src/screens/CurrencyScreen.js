@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert,
@@ -7,9 +7,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
 import { SUPPORTED_CURRENCIES, fetchExchangeRates, formatAmount, detectDefaultCurrency } from '../services/currency';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 
 const CurrencyScreen = ({ navigation }) => {
   const { currency, setCurrency } = useApp();
+
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(32);
+  const screenAnimStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
+  useFocusEffect(useCallback(() => {
+    screenOpacity.value = 0;
+    screenTranslateY.value = 32;
+    screenOpacity.value = withTiming(1, { duration: 380 });
+    screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+  }, []));
+
   const [rates, setRates] = useState({});
   const [loading, setLoading] = useState(true);
   const [baseCurrency, setBaseCurrency] = useState(currency);
@@ -40,6 +56,7 @@ const CurrencyScreen = ({ navigation }) => {
   const deviceDefault = detectDefaultCurrency();
 
   return (
+    <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()}>
@@ -104,6 +121,7 @@ const CurrencyScreen = ({ navigation }) => {
         />
       )}
     </View>
+    </Animated.View>
   );
 };
 

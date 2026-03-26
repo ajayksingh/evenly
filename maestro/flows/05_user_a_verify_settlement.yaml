@@ -11,12 +11,13 @@ appId: com.ajayksingh.evenly
     id: "header-avatar"
 - waitForAnimationToEnd
 - scrollUntilVisible:
-    text: "Sign Out"
+    element:
+      text: "Sign Out"
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
 
 # --- Login as User A ---
-- assertVisible: "Evenly"
+- assertVisible: "Welcome back"
 - tapOn:
     text: "Sign In"
     optional: true

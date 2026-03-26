@@ -1,7 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, StatusBar, Alert, ActivityIndicator,
+  Animated as RNAnimated,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming, withDelay,
@@ -99,26 +100,46 @@ const HomeScreen = ({ navigation }) => {
 
   const isSettled = Math.abs(totalBalance) < 0.01;
 
+  const scrollY = useRef(new RNAnimated.Value(0)).current;
+  const headerBg = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'],
+    extrapolate: 'clamp',
+  });
+  const headerBorder = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View style={styles.container}>
       <BackgroundOrbs />
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
-      >
-        {/* App Header */}
-        <View style={styles.appHeader}>
-          <View style={styles.logoRow}>
-            <View style={styles.logoBox}>
-              <Text style={styles.logoText}>E</Text>
-            </View>
-            <Text style={styles.appName}>Evenly</Text>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      {/* Fixed animated header */}
+      <RNAnimated.View style={[styles.appHeader, {
+        backgroundColor: headerBg,
+        borderBottomColor: headerBorder.interpolate
+          ? headerBorder.interpolate({ inputRange: [0, 1], outputRange: ['rgba(255,255,255,0)', COLORS.border] })
+          : COLORS.border,
+      }]}>
+        <View style={styles.logoRow}>
+          <View style={styles.logoBox}>
+            <Text style={styles.logoText}>E</Text>
           </View>
-          <TouchableOpacity testID="header-avatar" activeOpacity={0.7} onPress={() => navigation.navigate('Profile')} style={styles.avatarBtn}>
-            <Avatar name={user?.name} avatar={user?.avatar} size={40} />
-          </TouchableOpacity>
+          <Text style={styles.appName}>Evenly</Text>
         </View>
+        <TouchableOpacity testID="header-avatar" activeOpacity={0.7} onPress={() => navigation.navigate('Profile')} style={styles.avatarBtn}>
+          <Avatar name={user?.name} avatar={user?.avatar} size={40} />
+        </TouchableOpacity>
+      </RNAnimated.View>
+      <RNAnimated.ScrollView
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+        contentContainerStyle={{ paddingTop: 116 }}
+      >
 
         {/* Pending Group Invites */}
         {groupInvites && groupInvites.length > 0 && (
@@ -259,7 +280,7 @@ const HomeScreen = ({ navigation }) => {
               {activity.slice(0, 5).map((item, idx) => {
                 const { icon, color } = getActivityIcon(item.type);
                 const handlePress = () => item.groupId
-                  ? navigation.navigate('GroupDetail', { groupId: item.groupId })
+                  ? navigation.navigate('Groups', { screen: 'GroupDetail', params: { groupId: item.groupId } })
                   : navigation.navigate('Activity');
                 return (
                   <TouchableOpacity key={item.id || idx} activeOpacity={0.7} onPress={handlePress} style={[styles.activityItem, idx < activity.slice(0, 5).length - 1 && styles.activityBorder]}>
@@ -291,7 +312,7 @@ const HomeScreen = ({ navigation }) => {
         )}
 
         <View style={{ height: 30 }} />
-      </ScrollView>
+      </RNAnimated.ScrollView>
     </View>
   );
 };
@@ -301,10 +322,10 @@ const styles = StyleSheet.create({
 
   // App Header
   appHeader: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: 'rgba(10,10,15,0.9)',
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    borderBottomWidth: 1,
   },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoBox: {

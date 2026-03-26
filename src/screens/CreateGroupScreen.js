@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useRef } from 'react';
+import React, { useState, useLayoutEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform,
 } from 'react-native';
@@ -8,9 +8,25 @@ import { COLORS, GROUP_TYPES } from '../constants/colors';
 import Avatar from '../components/Avatar';
 import { createGroup } from '../services/storage';
 import { hapticMedium, hapticSuccess, hapticError } from '../utils/haptics';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 
 const CreateGroupScreen = ({ navigation }) => {
   const { user, friends, currency, refresh } = useApp();
+
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(32);
+  const screenAnimStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
+  useFocusEffect(useCallback(() => {
+    screenOpacity.value = 0;
+    screenTranslateY.value = 32;
+    screenOpacity.value = withTiming(1, { duration: 380 });
+    screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+  }, []));
+
   const groupNameRef = useRef('');
   const [groupType, setGroupType] = useState('other');
   const [selectedMembers, setSelectedMembers] = useState([]);
@@ -66,6 +82,7 @@ const CreateGroupScreen = ({ navigation }) => {
   };
 
   return (
+    <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.fieldLabel}>Group Name</Text>
@@ -128,6 +145,7 @@ const CreateGroupScreen = ({ navigation }) => {
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
+    </Animated.View>
   );
 };
 

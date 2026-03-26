@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform,
@@ -14,10 +14,25 @@ import { SPLIT_TYPES, calculateEqualSplit, calculatePercentageSplit, calculateSh
 import { formatAmount, getCurrencySymbol } from '../services/currency';
 import { confirmAlert } from '../utils/alert';
 import { hapticMedium, hapticSuccess, hapticError } from '../utils/haptics';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 
 const AddExpenseScreen = ({ route, navigation }) => {
   const { user, groups, friends, currency, refresh, notifyWrite } = useApp();
   const { groupId: initGroupId, groupName: initGroupName, members: initMembers } = route.params || {};
+
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(32);
+  const screenAnimStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
+  useFocusEffect(useCallback(() => {
+    screenOpacity.value = 0;
+    screenTranslateY.value = 32;
+    screenOpacity.value = withTiming(1, { duration: 380 });
+    screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+  }, []));
 
   const descriptionRef = useRef('');
   const amountRef = useRef('');
@@ -160,6 +175,7 @@ if (!validate()) { hapticError(); return; }
   const splits = getSplits();
 
   return (
+    <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Header */}
@@ -456,6 +472,7 @@ if (!validate()) { hapticError(); return; }
         </Modal>
       </View>
     </KeyboardAvoidingView>
+    </Animated.View>
   );
 };
 

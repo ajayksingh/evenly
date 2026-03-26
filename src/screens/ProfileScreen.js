@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Alert, TextInput, Modal, Switch,
 } from 'react-native';
+import Animated, {
+  useSharedValue, useAnimatedStyle, withTiming, withSpring, withDelay,
+} from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
@@ -18,6 +22,20 @@ const ProfileScreen = ({ navigation }) => {
   const [editPhone, setEditPhone] = useState(user?.phone || '');
   const [saving, setSaving] = useState(false);
   const [notifications, setNotifications] = useState(true);
+
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(32);
+  const screenAnimStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
+
+  useFocusEffect(useCallback(() => {
+    screenOpacity.value = 0;
+    screenTranslateY.value = 32;
+    screenOpacity.value = withTiming(1, { duration: 380 });
+    screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+  }, []));
 
   const totalOwed = balances.filter(b => b.amount > 0).reduce((s, b) => s + b.amount, 0);
   const totalOwing = balances.filter(b => b.amount < 0).reduce((s, b) => s + Math.abs(b.amount), 0);
@@ -66,6 +84,7 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   return (
+    <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Hero Card */}
       <View style={styles.header}>
@@ -186,6 +205,7 @@ const ProfileScreen = ({ navigation }) => {
         </View>
       </Modal>
     </ScrollView>
+    </Animated.View>
   );
 };
 

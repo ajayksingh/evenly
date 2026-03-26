@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   Alert, Modal, TextInput, ActivityIndicator, SectionList, Platform, StatusBar,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,10 @@ import { confirmAlert } from '../utils/alert';
 
 const FriendsScreen = ({ navigation }) => {
   const { user, friends, balances, currency, refresh, friendRequests } = useApp();
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.08)'], extrapolate: 'clamp' });
   const [showAdd, setShowAdd] = useState(false);
   const [addMode, setAddMode] = useState('email'); // email | contacts
   const [email, setEmail] = useState('');
@@ -239,12 +244,12 @@ const FriendsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <BackgroundOrbs />
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
         <Text style={styles.title}>Friends</Text>
         <TouchableOpacity testID="friends-add-btn" activeOpacity={0.7} style={styles.addBtn} onPress={() => { setShowAdd(true); setAddMode('email'); }}>
           <Ionicons name="person-add" size={20} color={COLORS.primary} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* BUG-006: 3-column summary grid with counts */}
       {friends.length > 0 && (
@@ -304,6 +309,8 @@ const FriendsScreen = ({ navigation }) => {
           sections={sections}
           keyExtractor={item => item.id}
           renderItem={renderFriend}
+          scrollEventThrottle={16}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
           renderSectionHeader={({ section: { title } }) => {
             const dotColor =
               title === 'People who owe you' ? '#00d4aa'
@@ -464,7 +471,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    backgroundColor: 'rgba(10,10,15,0.95)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomWidth: 1,
   },
   title: { fontSize: 28, fontWeight: '800', color: COLORS.text },
   addBtn: {

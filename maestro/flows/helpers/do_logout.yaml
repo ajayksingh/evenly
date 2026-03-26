@@ -10,4 +10,4 @@ appId: com.ajayksingh.evenly
     direction: DOWN
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
-- assertVisible: "Evenly"
+- assertVisible: "Welcome back"

@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, StatusBar,
+  Animated as RNAnimated,
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
 
@@ -18,6 +19,10 @@ import { formatAmount } from '../services/currency';
 const GroupsScreen = ({ navigation }) => {
   const { groups, currency, refresh } = useApp();
   const [groupTotals, setGroupTotals] = useState({});
+
+  const scrollY = useRef(new RNAnimated.Value(0)).current;
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', COLORS.border], extrapolate: 'clamp' });
 
   const fabScale = useSharedValue(1);
   const fabAnimStyle = useAnimatedStyle(() => ({
@@ -98,12 +103,12 @@ const GroupsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <BackgroundOrbs />
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
-      <View style={styles.header}>
+      <RNAnimated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
         <Text style={styles.title}>Groups</Text>
         <TouchableOpacity testID="add-group-btn" accessibilityLabel="add" activeOpacity={0.7} style={styles.addBtn} onPress={() => navigation.navigate('CreateGroup')}>
           <Ionicons name="add" size={22} color={COLORS.primary} />
         </TouchableOpacity>
-      </View>
+      </RNAnimated.View>
 
       {groups.length === 0 ? (
         <View style={styles.empty}>
@@ -122,6 +127,8 @@ const GroupsScreen = ({ navigation }) => {
           renderItem={renderGroup}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
         />
       )}
 
@@ -151,8 +158,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    backgroundColor: 'rgba(10,10,15,0.95)',
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    borderBottomWidth: 1,
   },
   title: { fontSize: 28, fontWeight: '800', color: COLORS.text },
   addBtn: {

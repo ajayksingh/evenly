@@ -16,7 +16,7 @@ appId: com.ajayksingh.evenly
     optional: true
 - waitForAnimationToEnd
 
-- assertVisible: "Evenly"
+- assertVisible: "Welcome back"
 - tapOn:
     id: "auth-email-input"
 - inputText: "ajsworld@gmail.com"

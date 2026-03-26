@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   TextInput, Alert, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Animated,
+  ActivityIndicator, Animated as RNAnimated,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
@@ -36,7 +38,20 @@ const SettleUpScreen = ({ route, navigation }) => {
   const [settledAmount, setSettledAmount] = useState(0);
   const [settledWith, setSettledWith] = useState(null);
 
-  const spinAnim = useRef(new Animated.Value(0)).current;
+  const spinAnim = useRef(new RNAnimated.Value(0)).current;
+
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(32);
+  const screenAnimStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
+  useFocusEffect(useCallback(() => {
+    screenOpacity.value = 0;
+    screenTranslateY.value = 32;
+    screenOpacity.value = withTiming(1, { duration: 380 });
+    screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
+  }, []));
 
   const availableMembers = members || (() => {
     const fromBalances = globalBalances.map(b => ({ id: b.userId, name: b.name, avatar: b.avatar }));
@@ -70,8 +85,8 @@ const SettleUpScreen = ({ route, navigation }) => {
   // Spin animation for processing state
   useEffect(() => {
     if (step === 'processing') {
-      Animated.loop(
-        Animated.timing(spinAnim, {
+      RNAnimated.loop(
+        RNAnimated.timing(spinAnim, {
           toValue: 1,
           duration: 800,
           useNativeDriver: Platform.OS !== 'web',
@@ -144,7 +159,7 @@ const SettleUpScreen = ({ route, navigation }) => {
   if (step === 'processing') {
     return (
       <View style={styles.centeredScreen}>
-        <Animated.View style={[styles.spinnerRing, { transform: [{ rotate: spin }] }]} />
+        <RNAnimated.View style={[styles.spinnerRing, { transform: [{ rotate: spin }] }]} />
         <Text style={styles.processingText}>Processing payment...</Text>
       </View>
     );
@@ -175,6 +190,7 @@ const SettleUpScreen = ({ route, navigation }) => {
 
   // --- Form state ---
   return (
+    <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={{ flex: 1 }}>
       <View style={styles.container}>
         <View style={styles.header}>
@@ -375,6 +391,7 @@ const SettleUpScreen = ({ route, navigation }) => {
         </View>
       </View>
     </KeyboardAvoidingView>
+    </Animated.View>
   );
 };
 

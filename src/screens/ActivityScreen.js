@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, SectionList, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
+import React, { useCallback, useMemo, useState, useRef } from 'react';
+import { View, Text, SectionList, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Animated } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
@@ -10,6 +10,10 @@ import { formatCurrency, formatDate } from '../utils/splitCalculator';
 const ActivityScreen = ({ navigation }) => {
   const { activity, groups, refresh } = useApp();
   const [filterGroupId, setFilterGroupId] = useState('all');
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.08)'], extrapolate: 'clamp' });
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
@@ -73,9 +77,9 @@ const ActivityScreen = ({ navigation }) => {
     <View style={styles.container}>
       <BackgroundOrbs />
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
         <Text style={styles.headerTitle}>Activity</Text>
-      </View>
+      </Animated.View>
 
       {/* Group filter */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterRow}>
@@ -114,6 +118,8 @@ const ActivityScreen = ({ navigation }) => {
           sections={sections}
           keyExtractor={(item, idx) => item.id || String(idx)}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
           contentContainerStyle={{ paddingBottom: 100 }}
           renderSectionHeader={({ section }) => (
             <Text style={styles.monthHeader}>{section.title}</Text>
@@ -132,7 +138,7 @@ const ActivityScreen = ({ navigation }) => {
             const tappable = !!item.groupId;
             const handlePress = () => {
               if (item.groupId) {
-                navigation.navigate('GroupDetail', { groupId: item.groupId });
+                navigation.navigate('Groups', { screen: 'GroupDetail', params: { groupId: item.groupId } });
               }
             };
             return (
@@ -166,8 +172,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    backgroundColor: 'rgba(10,10,15,0.95)',
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 28, fontWeight: '800', color: COLORS.text },
 

@@ -12,7 +12,7 @@ appId: com.ajayksingh.evenly
     text: "OK"
     optional: true
 - extendedWaitUntil:
-    visible: "Evenly"
+    visible: "Welcome back"
     timeout: 30000
 - tapOn:
     id: "auth-email-input"

@@ -11,10 +11,11 @@ appId: com.ajayksingh.evenly
 # Ensure logged in as User A
 - runFlow:
     when:
-      visible: "Evenly"
+      visible: "Welcome back"
     commands:
-      - tapOn: "Sign In"
-        optional: true
+      - tapOn:
+          text: "Sign In"
+          optional: true
       - runFlow:
           file: ./helpers/do_login.yaml
           env:
@@ -39,8 +40,9 @@ appId: com.ajayksingh.evenly
           id: "add-friend-input"
           optional: true
       - inputText: "ajsworld@gmail.com"
-      - tapOn: "Add"
-        optional: true
+      - tapOn:
+          text: "Add"
+          optional: true
       - waitForAnimationToEnd
 
 # Verify friend appears
@@ -102,11 +104,11 @@ appId: com.ajayksingh.evenly
     text: "Home"
     optional: true
 - waitForAnimationToEnd
-- scroll:
+- swipe:
     direction: DOWN
-    duration: 200
-- scroll:
+    duration: 500
+- swipe:
     direction: UP
-    duration: 200
+    duration: 500
 - waitForAnimationToEnd
 - assertVisible: "Total balance"
