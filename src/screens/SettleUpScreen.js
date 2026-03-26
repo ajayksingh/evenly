@@ -22,7 +22,7 @@ const PAYMENT_METHODS = [
 ];
 
 const SettleUpScreen = ({ route, navigation }) => {
-  const { user, balances: globalBalances, friends, currency, refresh } = useApp();
+  const { user, balances: globalBalances, friends, currency, notifyWrite } = useApp();
   const { group, members } = route.params || {};
   const { preselectedPayer, preselectedReceiver } = route.params || {};
 
@@ -38,7 +38,11 @@ const SettleUpScreen = ({ route, navigation }) => {
 
   const spinAnim = useRef(new Animated.Value(0)).current;
 
-  const availableMembers = members || globalBalances.map(b => ({ id: b.userId, name: b.name, avatar: b.avatar }));
+  const availableMembers = members || (() => {
+    const fromBalances = globalBalances.map(b => ({ id: b.userId, name: b.name, avatar: b.avatar }));
+    const fromFriends = friends.filter(f => !fromBalances.some(b => b.id === f.id));
+    return [...fromBalances, ...fromFriends];
+  })();
   const allParties = [
     { id: user.id, name: user.name, avatar: user.avatar },
     ...availableMembers.filter(m => m.id !== user.id),
@@ -47,15 +51,18 @@ const SettleUpScreen = ({ route, navigation }) => {
   useEffect(() => {
     if (preselectedPayer) setPayer(allParties.find(p => p.id === preselectedPayer));
     if (preselectedReceiver) setReceiver(allParties.find(p => p.id === preselectedReceiver));
-    if (!preselectedPayer) setPayer(allParties[0]);
+    if (!preselectedPayer && allParties.length > 0) setPayer(allParties[0]);
   }, []);
 
   // Auto-suggest amount from balances
   useEffect(() => {
     if (payer && receiver) {
-      const bal = globalBalances.find(b => b.userId === (payer.id === user.id ? receiver.id : payer.id));
-      if (bal && Math.abs(bal.amount) > 0) {
-        setAmount(Math.abs(bal.amount).toFixed(2));
+      let balanceUserId = null;
+      if (payer.id === user.id) balanceUserId = receiver.id;
+      else if (receiver.id === user.id) balanceUserId = payer.id;
+      if (balanceUserId) {
+        const bal = globalBalances.find(b => b.userId === balanceUserId);
+        if (bal && Math.abs(bal.amount) > 0) setAmount(Math.abs(bal.amount).toFixed(2));
       }
     }
   }, [payer, receiver]);
@@ -67,7 +74,7 @@ const SettleUpScreen = ({ route, navigation }) => {
         Animated.timing(spinAnim, {
           toValue: 1,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         })
       ).start();
     } else {
@@ -96,7 +103,7 @@ const SettleUpScreen = ({ route, navigation }) => {
         note: note.trim(),
         groupId: group?.id || null,
       });
-      refresh();
+      notifyWrite('settlement');
 
       // Store for success screen
       const otherParty = payer.id === user.id ? receiver : payer;
@@ -106,30 +113,21 @@ const SettleUpScreen = ({ route, navigation }) => {
       // Check if we can notify via WhatsApp
       const friendWithPhone = friends.find(f => f.id === otherParty.id && f.phone);
 
-      // Transition to processing state
+      // Transition to processing → success → navigate
       setStep('processing');
-
       setTimeout(() => {
         setStep('success');
-
         if (friendWithPhone) {
-          // Show WhatsApp notification after success, but still auto-navigate
-          setTimeout(() => {
-            const msg = buildSettlementWhatsAppMessage({
-              payerName: payer.id === user.id ? user.name : payer.name,
-              receiverName: receiver.id === user.id ? user.name : receiver.name,
-              amount: amt,
-              currency,
-            });
-            sendWhatsAppMessage(friendWithPhone.phone, msg).catch(() => {});
-            navigation.navigate('Main');
-          }, 2000);
-        } else {
-          setTimeout(() => {
-            navigation.navigate('Main');
-          }, 2000);
+          const msg = buildSettlementWhatsAppMessage({
+            payerName: payer.id === user.id ? user.name : payer.name,
+            receiverName: receiver.id === user.id ? user.name : receiver.name,
+            amount: amt,
+            currency,
+          });
+          sendWhatsAppMessage(friendWithPhone.phone, msg).catch(() => {});
         }
-      }, 2000);
+        setTimeout(() => navigation.navigate('Main'), 1500);
+      }, 1000);
     } catch (e) {
       Alert.alert('Error', e.message);
       setSaving(false);

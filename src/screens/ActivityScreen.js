@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, SectionList, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, SectionList, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
@@ -22,6 +22,7 @@ const ActivityScreen = ({ navigation }) => {
       }
       case 'settlement': return { emoji: '💰', color: '#00d4aa' };
       case 'group_created': return { emoji: '👥', color: '#00d4aa' };
+      case 'member_joined': return { emoji: '🙋', color: '#00d4aa' };
       default: return { emoji: '📝', color: '#a1a1aa' };
     }
   };
@@ -31,6 +32,7 @@ const ActivityScreen = ({ navigation }) => {
       case 'expense_added': return item.description || 'Expense';
       case 'settlement': return 'Payment recorded';
       case 'group_created': return item.groupName ? `Group "${item.groupName}" created` : 'New group';
+      case 'member_joined': return item.groupName ? `Joined "${item.groupName}"` : 'Joined group';
       default: return 'Activity';
     }
   };
@@ -41,6 +43,8 @@ const ActivityScreen = ({ navigation }) => {
         return `${item.paidByName || 'Someone'} paid ${formatCurrency(item.amount)}${item.groupName ? ` · ${item.groupName}` : ''}`;
       case 'settlement':
         return formatCurrency(item.amount);
+      case 'member_joined':
+        return item.paidByName ? `${item.paidByName} accepted the invite` : '';
       default: return '';
     }
   };
@@ -74,7 +78,7 @@ const ActivityScreen = ({ navigation }) => {
       </View>
 
       {/* Group filter */}
-      <View style={styles.filterRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterRow}>
         <View style={styles.filterIcon}>
           <Ionicons name="filter" size={16} color={COLORS.primary} />
         </View>
@@ -97,7 +101,7 @@ const ActivityScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {sections.length === 0 ? (
         <View style={styles.empty}>
@@ -125,8 +129,18 @@ const ActivityScreen = ({ navigation }) => {
           renderItem={({ item, index, section }) => {
             const config = getActivityConfig(item);
             const isLast = index === section.data.length - 1;
+            const tappable = !!item.groupId;
+            const handlePress = () => {
+              if (item.groupId) {
+                navigation.navigate('GroupDetail', { groupId: item.groupId });
+              }
+            };
             return (
-              <View style={[styles.itemContainer, index === 0 && styles.itemFirst, isLast && styles.itemLast]}>
+              <TouchableOpacity
+                activeOpacity={tappable ? 0.7 : 1}
+                onPress={tappable ? handlePress : undefined}
+                style={[styles.itemContainer, index === 0 && styles.itemFirst, isLast && styles.itemLast]}
+              >
                 <View style={[styles.iconBox, { backgroundColor: config.color + '18' }]}>
                   <Text style={styles.iconEmoji}>{config.emoji}</Text>
                 </View>
@@ -134,9 +148,12 @@ const ActivityScreen = ({ navigation }) => {
                   <Text style={styles.itemTitle} numberOfLines={2}>{getTitle(item)}</Text>
                   {getSubtitle(item) ? <Text style={styles.itemSub}>{getSubtitle(item)}</Text> : null}
                 </View>
-                <Text style={styles.itemTime}>{formatDate(item.createdAt)}</Text>
+                <View style={styles.itemRight}>
+                  <Text style={styles.itemTime}>{formatDate(item.createdAt)}</Text>
+                  {tappable && <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} style={{ marginTop: 2 }} />}
+                </View>
                 {!isLast && <View style={styles.divider} />}
-              </View>
+              </TouchableOpacity>
             );
           }}
         />
@@ -154,9 +171,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 28, fontWeight: '800', color: COLORS.text },
 
+  filterScroll: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
   filterRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
-    paddingVertical: 12, gap: 8, flexWrap: 'nowrap',
+    paddingVertical: 12, gap: 8,
   },
   filterIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   filterChip: {
@@ -197,7 +215,8 @@ const styles = StyleSheet.create({
   itemSub: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
   itemAmountPositive: { fontSize: 14, fontWeight: '700', color: '#00d4aa', marginLeft: 8 },
   itemAmountNegative: { fontSize: 14, fontWeight: '700', color: '#ff6b6b', marginLeft: 8 },
-  itemTime: { fontSize: 11, color: COLORS.textMuted, marginLeft: 8 },
+  itemRight: { alignItems: 'flex-end', marginLeft: 8 },
+  itemTime: { fontSize: 11, color: COLORS.textMuted },
   divider: { position: 'absolute', bottom: 0, left: 74, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.07)' },
 
   empty: {

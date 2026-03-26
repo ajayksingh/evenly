@@ -4,6 +4,7 @@
  */
 import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
+import { getCurrencySymbol } from './currency';
 
 let Contacts = null;
 if (Platform.OS !== 'web') {
@@ -77,7 +78,6 @@ export const sendWhatsAppMessage = async (phone, message) => {
 };
 
 export const buildExpenseWhatsAppMessage = ({ expense, paidBy, splitAmount, groupName, currency = 'INR' }) => {
-  const { getCurrencySymbol } = require('./currency');
   const symbol = getCurrencySymbol(currency);
   return `💸 *Evenly Expense*\n\n` +
     `*${expense.description}*\n` +
@@ -89,7 +89,6 @@ export const buildExpenseWhatsAppMessage = ({ expense, paidBy, splitAmount, grou
 };
 
 export const buildSettlementWhatsAppMessage = ({ payerName, receiverName, amount, currency = 'INR' }) => {
-  const { getCurrencySymbol } = require('./currency');
   const symbol = getCurrencySymbol(currency);
   return `✅ *Evenly Payment*\n\n` +
     `${payerName} paid ${receiverName} ${symbol}${amount.toFixed(2)}\n\n` +

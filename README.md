@@ -53,6 +53,7 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | **Debt simplification** | Minimum transactions algorithm to reduce settlement complexity |
 | **WhatsApp sharing** | Pre-formatted messages for expense notifications and payment reminders |
 | **Demo mode** | Instant onboarding — no sign-up needed with demo accounts |
+| **Friend requests** | Send/accept friend requests with real-time notifications — friends must approve before sharing expenses |
 | **Cross-platform** | Native iOS, Android, and Progressive Web App from a single codebase |
 | **Analytics** | Built-in event tracking with zero external services |
 | **Deep linking** | `evenly://` URI scheme for native navigation |
@@ -241,7 +242,7 @@ AppContext.loadData() reconciles state
 
 ## Database Schema
 
-Supabase PostgreSQL with 7 tables. All IDs are client-generated UUIDs enabling offline-safe record creation. JSONB columns store nested objects without additional tables.
+Supabase PostgreSQL with 8 tables. All IDs are client-generated UUIDs enabling offline-safe record creation. JSONB columns store nested objects without additional tables.
 
 ```sql
 -- Auth-linked user profiles
@@ -259,6 +260,7 @@ CREATE TABLE users (
 CREATE TABLE groups (
   id           TEXT PRIMARY KEY,
   name         TEXT NOT NULL,
+  type         TEXT DEFAULT 'other',   -- 'home' | 'trip' | 'couple' | 'other'
   description  TEXT DEFAULT '',
   created_by   TEXT,
   members      JSONB DEFAULT '[]',  -- [{ id, name, email, avatar, phone }]
@@ -275,6 +277,8 @@ CREATE TABLE expenses (
   currency     TEXT DEFAULT 'INR',
   paid_by      JSONB NOT NULL,      -- { id, name }
   splits       JSONB DEFAULT '[]',  -- [{ userId, name, amount }]
+  category     TEXT DEFAULT 'general',
+  date         TIMESTAMPTZ DEFAULT now(),
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
@@ -287,6 +291,17 @@ CREATE TABLE settlements (
   currency     TEXT DEFAULT 'INR',
   group_id     TEXT,
   note         TEXT DEFAULT '',
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+
+-- Friend request approval flow
+CREATE TABLE friend_requests (
+  id           TEXT PRIMARY KEY,
+  sender_id    TEXT NOT NULL,
+  sender_name  TEXT NOT NULL,
+  sender_email TEXT NOT NULL,
+  receiver_id  TEXT NOT NULL,
+  status       TEXT DEFAULT 'pending',  -- 'pending' | 'accepted' | 'rejected'
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
@@ -383,6 +398,10 @@ Primary interface between UI and data stores. Automatically routes to AsyncStora
 | `settleUp(settlement)` | Record payment and create activity event |
 | `calculateBalances(userId)` | Compute net balances across all groups |
 | `getActivity(userId)` | Fetch filtered, sorted activity feed |
+| `sendFriendRequest(userId, email)` | Send a friend request (Supabase users); direct add for demo |
+| `getFriendRequests(userId)` | Fetch pending incoming friend requests |
+| `respondToFriendRequest(id, accept, userId)` | Accept or reject a friend request |
+| `getSentFriendRequests(userId)` | Fetch pending outgoing requests |
 
 ---
 
@@ -484,15 +503,16 @@ Evenly uses **React Context** (`AppContext`) as its single source of truth. No R
   user:         { id, name, email, avatar, phone, createdAt },
   loading:      boolean,
 
-  groups:       Group[],
-  friends:      User[],
-  balances:     { userId, name, amount }[],  // positive = owed to you
-  totalBalance: number,
-  activity:     ActivityItem[],
+  groups:         Group[],
+  friends:        User[],
+  balances:       { userId, name, amount }[],  // positive = owed to you
+  totalBalance:   number,
+  activity:       ActivityItem[],
+  friendRequests: FriendRequest[],
+  groupInvites:   GroupInvite[],
 
   isOnline:     boolean,
   syncStatus:   null | 'offline' | 'syncing' | 'synced' | 'error',
-  pendingCount: number,
 
   currency:     'INR' | 'USD' | 'EUR' | ...,
 
@@ -801,6 +821,8 @@ evenly/
 +-- metro.config.js               # Metro bundler config
 +-- babel.config.js               # Babel config
 +-- supabase_schema.sql           # Full PostgreSQL schema
++-- supabase_migration_003.sql    # Group invites flow
++-- supabase_migration_004.sql    # Friend requests + expense columns fix
 +-- package.json                  # Dependencies and scripts
 ```
 

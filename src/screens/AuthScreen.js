@@ -46,17 +46,17 @@ const AuthScreen = () => {
   useEffect(() => {
     // Staggered fade-in
     Animated.stagger(100, [
-      Animated.spring(logoAnim,  { toValue: 1, tension: 200, friction: 12, useNativeDriver: true }),
-      Animated.timing(titleAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.timing(formAnim,  { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.timing(demoAnim,  { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(logoAnim,  { toValue: 1, tension: 200, friction: 12, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(titleAnim, { toValue: 1, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(formAnim,  { toValue: 1, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(demoAnim,  { toValue: 1, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
 
     // Pulsing blobs
     const pulse = (anim, min, max, delay) =>
       Animated.loop(Animated.sequence([
-        Animated.timing(anim, { toValue: max, duration: 2000, delay, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: min, duration: 2000, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: max, duration: 2000, delay, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(anim, { toValue: min, duration: 2000, useNativeDriver: Platform.OS !== 'web' }),
       ])).start();
 
     pulse(blob1Anim, 0.15, 0.25, 0);
@@ -131,9 +131,15 @@ const AuthScreen = () => {
             <Animated.View style={[styles.logoWrap, {
               transform: [{ scale: logoAnim.interpolate({ inputRange: [0,1], outputRange: [0,1] }) }],
             }]}>
-              <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={styles.logoBox} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Text style={styles.logoLetter}>E</Text>
-              </LinearGradient>
+              {Platform.OS === 'web' ? (
+                <View style={[styles.logoBox, { backgroundColor: PRIMARY }]}>
+                  <Text style={styles.logoLetter}>E</Text>
+                </View>
+              ) : (
+                <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={styles.logoBox} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Text style={styles.logoLetter}>E</Text>
+                </LinearGradient>
+              )}
             </Animated.View>
             <Text style={styles.heading}>Welcome back</Text>
             <Text style={styles.subheading}>Sign in to manage your expenses</Text>
@@ -195,13 +201,23 @@ const AuthScreen = () => {
               disabled={loading}
               style={styles.submitWrap}
             >
-              <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={[styles.submitBtn, loading && { opacity: 0.5 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                {loading
-                  ? <ActivityIndicator size="small" color={BG} style={{ marginRight: 8 }} />
-                  : <Ionicons name="log-in-outline" size={20} color={BG} style={{ marginRight: 8 }} />
-                }
-                <Text style={styles.submitText}>{loading ? 'Signing in…' : 'Sign in'}</Text>
-              </LinearGradient>
+              {Platform.OS === 'web' ? (
+                <View style={[styles.submitBtn, { backgroundColor: PRIMARY }, loading && { opacity: 0.5 }]}>
+                  {loading
+                    ? <ActivityIndicator size="small" color={BG} style={{ marginRight: 8 }} />
+                    : <Ionicons name="log-in-outline" size={20} color={BG} style={{ marginRight: 8 }} />
+                  }
+                  <Text style={styles.submitText}>{loading ? 'Signing in…' : 'Sign in'}</Text>
+                </View>
+              ) : (
+                <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={[styles.submitBtn, loading && { opacity: 0.5 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  {loading
+                    ? <ActivityIndicator size="small" color={BG} style={{ marginRight: 8 }} />
+                    : <Ionicons name="log-in-outline" size={20} color={BG} style={{ marginRight: 8 }} />
+                  }
+                  <Text style={styles.submitText}>{loading ? 'Signing in…' : 'Sign in'}</Text>
+                </LinearGradient>
+              )}
             </TouchableOpacity>
 
             {mode === 'login' && (
@@ -240,9 +256,15 @@ const AuthScreen = () => {
                   style={styles.demoRow}
                   onPress={() => loginAsDemo(user.email)}
                 >
-                  <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={styles.demoAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <Text style={styles.demoAvatarText}>{user.name[0]}</Text>
-                  </LinearGradient>
+                  {Platform.OS === 'web' ? (
+                    <View style={[styles.demoAvatar, { backgroundColor: PRIMARY }]}>
+                      <Text style={styles.demoAvatarText}>{user.name[0]}</Text>
+                    </View>
+                  ) : (
+                    <LinearGradient colors={[PRIMARY, PRIMARY_ALT]} style={styles.demoAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                      <Text style={styles.demoAvatarText}>{user.name[0]}</Text>
+                    </LinearGradient>
+                  )}
                   <View style={{ flex: 1 }}>
                     <Text style={styles.demoName}>{user.name}</Text>
                     <Text style={styles.demoEmail}>{user.email}</Text>
@@ -251,7 +273,7 @@ const AuthScreen = () => {
                 </TouchableOpacity>
               ))}
 
-              <Text style={styles.demoHint}>Password: <Text style={{ fontVariant: ['tabular-nums'] }}>demo123</Text></Text>
+              <Text style={styles.demoHint}>Password: <Text style={{ ...(Platform.OS !== 'web' && { fontVariant: ['tabular-nums'] }) }}>demo123</Text></Text>
             </Animated.View>
           )}
         </ScrollView>

@@ -1,6 +1,6 @@
 import React, { useState, useLayoutEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
+  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
@@ -77,7 +77,7 @@ const CreateGroupScreen = ({ navigation }) => {
           onChangeText={v => { groupNameRef.current = v; }}
           autoCorrect={false}
           autoCapitalize="none"
-          keyboardType="email-address"
+          keyboardType="default"
         />
 
         <Text style={styles.fieldLabel}>Type</Text>
@@ -114,6 +114,16 @@ const CreateGroupScreen = ({ navigation }) => {
               </View>
             </TouchableOpacity>
           ))
+        )}
+        {Platform.OS === 'web' && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[styles.createBtn, creating && { opacity: 0.5 }]}
+            onPress={handleCreate}
+            disabled={creating}
+          >
+            <Text style={styles.createBtnText}>{creating ? 'Creating…' : 'Create Group'}</Text>
+          </TouchableOpacity>
         )}
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -165,6 +175,11 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkboxChecked: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  createBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 14,
+    padding: 16, alignItems: 'center', marginTop: 24,
+  },
+  createBtnText: { fontSize: 16, fontWeight: '700', color: '#0a0a0f' },
 });
 
 export default CreateGroupScreen;

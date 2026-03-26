@@ -8,7 +8,7 @@
  *   'error'    → "Sync failed — will retry"
  */
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 
@@ -42,24 +42,25 @@ const SyncBanner = ({ status }) => {
   useEffect(() => {
     if (!status) {
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: -40, duration: 300, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(translateY, { toValue: -40, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
       ]).start();
       return;
     }
 
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
+      Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: Platform.OS !== 'web', tension: 80, friction: 10 }),
     ]).start();
 
-    if (status === 'synced') {
+    if (status === 'synced' || status === 'error') {
+      const delay = status === 'error' ? 8000 : 3000;
       const t = setTimeout(() => {
         Animated.parallel([
-          Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-          Animated.timing(translateY, { toValue: -40, duration: 500, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(translateY, { toValue: -40, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
         ]).start();
-      }, 2500);
+      }, delay);
       return () => clearTimeout(t);
     }
   }, [status]);

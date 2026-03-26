@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
-// NetInfo crashes on web at import time (calls addListener on null native module)
-// Lazy-require only on native
-const NetInfo = Platform.OS !== 'web' ? require('@react-native-community/netinfo').default : null;
+let NetInfo;
+try { NetInfo = require('@react-native-community/netinfo').default; } catch (_) {}
 import {
   getCurrentUser, loginUser, registerUser, logoutUser, resetPasswordForEmail,
   getGroups, getFriends, calculateBalances,
-  getActivity, seedDemoData,
+  getActivity, getGroupInvites, seedDemoData,
+  getFriendRequests, respondToFriendRequest,
 } from '../services/storage';
 import { loadSelectedCurrency, saveSelectedCurrency, detectDefaultCurrency } from '../services/currency';
 import { Analytics, setAnalyticsUser } from '../services/analytics';
@@ -24,13 +24,14 @@ export const AppProvider = ({ children }) => {
   const [friends, setFriends] = useState([]);
   const [balances, setBalances] = useState([]);
   const [activity, setActivity] = useState([]);
+  const [groupInvites, setGroupInvites] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
   const [currency, setCurrencyState] = useState('INR');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Network & sync state
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState(null); // null | 'offline' | 'syncing' | 'synced' | 'error'
-  const [pendingCount, setPendingCount] = useState(0);
   const syncTimeoutRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const userRef = useRef(null);
@@ -67,6 +68,26 @@ export const AppProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const loadData = useCallback(async () => {
+    if (!userRef.current) return;
+    try {
+      const { id, email } = userRef.current;
+      // Fetch groups first so groupIds can be reused — avoids 2 extra getGroups calls
+      const g = await getGroups(id, email);
+      const groupIds = g.map(gr => gr.id);
+      const [f, b, a, inv, fr] = await Promise.all([
+        getFriends(id),
+        calculateBalances(id, email, groupIds),
+        getActivity(id, groupIds),
+        getGroupInvites(id),
+        getFriendRequests(id),
+      ]);
+      setGroups(g); setFriends(f); setBalances(b); setActivity(a); setGroupInvites(inv); setFriendRequests(fr);
+    } catch (e) {
+      console.error('Load data error:', e);
+    }
+  }, []);
+
   // Network listener — reload data when coming back online
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -79,28 +100,20 @@ export const AppProvider = ({ children }) => {
         window.removeEventListener('offline', handleOffline);
       };
     }
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const online = state.isConnected && state.isInternetReachable !== false;
-      setIsOnline(online);
-      if (online) loadData().catch(() => {});
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const loadData = useCallback(async () => {
-    if (!userRef.current) return;
+    if (!NetInfo) return;
+    let unsubscribe;
     try {
-      const [g, f, b, a] = await Promise.all([
-        getGroups(userRef.current.id, userRef.current.email),
-        getFriends(userRef.current.id),
-        calculateBalances(userRef.current.id),
-        getActivity(userRef.current.id),
-      ]);
-      setGroups(g); setFriends(f); setBalances(b); setActivity(a);
-    } catch (e) {
-      console.error('Load data error:', e);
+      unsubscribe = NetInfo.addEventListener((state) => {
+        const online = state.isConnected && state.isInternetReachable !== false;
+        setIsOnline(online);
+        if (online) loadData().catch(() => {});
+      });
+    } catch (_) {
+      // NetInfo unavailable (e.g. web fallback missing); silently ignore
+      return;
     }
-  }, []);
+    return () => unsubscribe();
+  }, [loadData]);
 
   const triggerSync = useCallback(async () => {
     await loadData();
@@ -132,9 +145,9 @@ export const AppProvider = ({ children }) => {
     if (user) {
       loadData();
     } else {
-      setGroups([]); setFriends([]); setBalances([]); setActivity([]);
+      setGroups([]); setFriends([]); setBalances([]); setActivity([]); setGroupInvites([]); setFriendRequests([]);
     }
-  }, [user, refreshTrigger]);
+  }, [user, refreshTrigger, loadData]);
 
   const refresh = useCallback(() => {
     setRefreshTrigger(t => t + 1);
@@ -156,7 +169,7 @@ export const AppProvider = ({ children }) => {
 
     const poll = async () => {
       if (!userRef.current) return;
-      try { await loadData(); } catch (e) {}
+      try { await loadData(); } catch (e) { console.error('[Sync] polling error:', e); }
     };
 
     // Start polling
@@ -180,6 +193,9 @@ export const AppProvider = ({ children }) => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { loadData().catch(() => {}); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements' }, () => { loadData().catch(() => {}); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, () => { loadData().catch(() => {}); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity' }, () => { loadData().catch(() => {}); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_invites' }, () => { loadData().catch(() => {}); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, () => { loadData().catch(() => {}); })
       .subscribe();
 
     return () => {
@@ -225,12 +241,13 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider value={{
       user, setUser, loading,
-      groups, friends, balances, activity,
+      groups, friends, balances, activity, groupInvites, friendRequests,
       totalBalance, currency, setCurrency,
       login, register, logout, resetPassword,
       refresh, loadData, syncData,
+      respondToFriendRequest,
       // Sync & network
-      isOnline, syncStatus, pendingCount,
+      isOnline, syncStatus,
       notifyWrite, triggerSync,
     }}>
       {children}

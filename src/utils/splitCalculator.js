@@ -1,6 +1,7 @@
 /**
  * Split Calculator Utilities
  */
+import { getCurrencySymbol } from '../services/currency';
 
 export const SPLIT_TYPES = {
   EQUAL: 'equal',
@@ -45,7 +46,6 @@ export const validateExactSplit = (amount, exactAmounts) => {
 };
 
 export const formatCurrency = (amount, currency = 'INR') => {
-  const { getCurrencySymbol } = require('../services/currency');
   const symbol = getCurrencySymbol(currency);
   const num = parseFloat(amount);
   const formatted = isNaN(num) ? '0.00' : Math.abs(num).toFixed(2);

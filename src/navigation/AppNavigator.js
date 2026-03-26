@@ -153,7 +153,7 @@ const AppNavigator = () => {
       <View style={isDesktop ? styles.desktopApp : { flex: 1 }}>
         <NavigationContainer linking={linking}>
           <View style={{ flex: 1 }}>
-            <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
+            <Stack.Navigator key={user ? 'main' : 'auth'} screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
               {!user ? (
                 <Stack.Screen name="Auth" component={AuthScreen} />
               ) : (

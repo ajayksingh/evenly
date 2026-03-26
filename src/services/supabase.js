@@ -5,6 +5,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 // ⚠️  Replace these with your actual Supabase project credentials
 // Get them from: https://supabase.com/dashboard → project → Settings → API
@@ -19,7 +20,7 @@ export const supabase = isConfigured
         storage: AsyncStorage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false,
+        detectSessionInUrl: Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash.includes('access_token'),
       },
     })
   : null;
@@ -60,7 +61,7 @@ export const logAnalyticsEvent = async (name, params = {}, userId = null) => {
   if (!supabase) return;
   try {
     await supabase.from('analytics').insert({
-      id: Date.now().toString() + Math.random().toString(36).slice(2),
+      id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2),
       event: name,
       user_id: userId,
       params,

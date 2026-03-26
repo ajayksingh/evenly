@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS, CATEGORIES } from '../constants/colors';
 import Avatar from '../components/Avatar';
-import { getGroup, getExpenses, calculateGroupBalances, addMemberToGroup, searchUsersByEmail, deleteExpense } from '../services/storage';
+import { getGroup, getExpenses, calculateGroupBalances, searchUsersByEmail, deleteExpense, sendGroupInvite } from '../services/storage';
 import { supabase } from '../services/supabase';
 import { formatCurrency, formatDate, getSimplifiedDebts } from '../utils/splitCalculator';
 import { confirmAlert } from '../utils/alert';
@@ -78,23 +78,16 @@ const GroupDetailScreen = ({ route, navigation }) => {
   };
 
   const handleAddMember = async () => {
-    console.log('[AddMember] foundUser:', foundUser ? foundUser.email : 'null');
     if (!foundUser) return;
     try {
-      await addMemberToGroup(groupId, foundUser);
-      console.log('[AddMember] success');
+      await sendGroupInvite(groupId, group.name, foundUser.id, user.id, user.name);
+      Alert.alert('Invite Sent', `${foundUser.name} will receive a request to join "${group.name}".`);
     } catch (e) {
-      console.log('[AddMember] error:', e.message);
-      if (e.message !== 'Already a member') {
-        Alert.alert('Error', e.message);
-      }
+      Alert.alert('Error', e.message);
     } finally {
       setShowAddMember(false);
       setSearchEmail('');
       setFoundUser(null);
-      notifyWrite('add_member');
-      globalRefresh();
-      loadData();
     }
   };
 

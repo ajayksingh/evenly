@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS, CATEGORIES } from '../constants/colors';
 import Avatar from '../components/Avatar';
-import { addExpense, getGroups, getUserById } from '../services/storage';
+import { addExpense, getGroups } from '../services/storage';
 import { sendWhatsAppMessage, buildExpenseWhatsAppMessage } from '../services/contacts';
 import { SPLIT_TYPES, calculateEqualSplit, calculatePercentageSplit, calculateSharesSplit, formatCurrency } from '../utils/splitCalculator';
 import { formatAmount, getCurrencySymbol } from '../services/currency';
@@ -45,7 +45,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
       setShares(allMembers.reduce((s, m) => ({ ...s, [m.id]: 1 }), {}));
       setPaidBy(allMembers.find(m => m.id === user.id) || allMembers[0] || null);
     }
-  }, [selectedGroup]);
+  }, [selectedGroup, user]);
 
   const getSplits = () => {
     const amt = parseFloat(amountRef.current);
@@ -84,6 +84,13 @@ const AddExpenseScreen = ({ route, navigation }) => {
         return false;
       }
     }
+    if (splitType === SPLIT_TYPES.SHARES) {
+      const total = Object.values(shares).reduce((s, v) => s + (v || 0), 0);
+      if (total === 0) {
+        Alert.alert('Error', 'Each person needs at least 1 share');
+        return false;
+      }
+    }
     return true;
   };
 
@@ -101,11 +108,10 @@ if (!validate()) { hapticError(); return; }
         groupId: selectedGroup.id,
         groupName: selectedGroup.name,
         paidBy: { id: paidBy.id, name: paidBy.name, avatar: paidBy.avatar },
-        splits,
+        splits: [...splits],
         date: new Date().toISOString(),
       });
       hapticSuccess();
-      refresh();
       notifyWrite('add_expense');
 
       // WhatsApp notifications: ask user if they want to notify others
@@ -240,13 +246,13 @@ if (!validate()) { hapticError(); return; }
                         style={styles.paidByBtn}
                       >
                         <Text style={styles.paidByTextActive}>
-                          {m.id === user.id ? 'You' : m.name.split(' ')[0]}
+                          {m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}
                         </Text>
                       </LinearGradient>
                     ) : (
                       <View style={styles.paidByBtnInactive}>
                         <Text style={styles.paidByText}>
-                          {m.id === user.id ? 'You' : m.name.split(' ')[0]}
+                          {m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}
                         </Text>
                       </View>
                     )}
@@ -285,7 +291,7 @@ if (!validate()) { hapticError(); return; }
               {splitType === SPLIT_TYPES.EXACT && participants.map(m => (
                 <View key={m.id} style={styles.splitInputRow}>
                   <Avatar name={m.name} size={36} />
-                  <Text style={styles.splitName}>{m.id === user.id ? 'You' : m.name.split(' ')[0]}</Text>
+                  <Text style={styles.splitName}>{m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}</Text>
                   <View style={styles.splitExactInput}>
                     <Text style={styles.splitCurrency}>{getCurrencySymbol(currency)}</Text>
                     <TextInput
@@ -303,7 +309,7 @@ if (!validate()) { hapticError(); return; }
               {splitType === SPLIT_TYPES.PERCENTAGE && participants.map(m => (
                 <View key={m.id} style={styles.splitInputRow}>
                   <Avatar name={m.name} size={36} />
-                  <Text style={styles.splitName}>{m.id === user.id ? 'You' : m.name.split(' ')[0]}</Text>
+                  <Text style={styles.splitName}>{m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}</Text>
                   <View style={styles.splitExactInput}>
                     <TextInput
                       style={styles.splitInput}
@@ -321,7 +327,7 @@ if (!validate()) { hapticError(); return; }
               {splitType === SPLIT_TYPES.SHARES && participants.map(m => (
                 <View key={m.id} style={styles.splitInputRow}>
                   <Avatar name={m.name} size={36} />
-                  <Text style={styles.splitName}>{m.id === user.id ? 'You' : m.name.split(' ')[0]}</Text>
+                  <Text style={styles.splitName}>{m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}</Text>
                   <View style={styles.sharesControl}>
                     <TouchableOpacity activeOpacity={0.7} onPress={() => setShares(prev => ({ ...prev, [m.id]: Math.max(0, (prev[m.id] || 1) - 1) }))}>
                       <Ionicons name="remove-circle" size={28} color={COLORS.primary} />
@@ -337,7 +343,7 @@ if (!validate()) { hapticError(); return; }
               {splitType === SPLIT_TYPES.EQUAL && splits.map(s => (
                 <View key={s.userId} style={styles.splitPreviewRow}>
                   <Avatar name={s.name} size={36} />
-                  <Text style={styles.splitPreviewName}>{s.userId === user.id ? 'You' : s.name.split(' ')[0]}</Text>
+                  <Text style={styles.splitPreviewName}>{s.userId === user.id ? 'You' : (s.name || '').split(' ')[0]}</Text>
                   <Text style={styles.splitPreviewAmount}>{formatCurrency(s.amount)}</Text>
                 </View>
               ))}

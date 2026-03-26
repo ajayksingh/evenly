@@ -18,6 +18,7 @@ create table if not exists users (
 create table if not exists groups (
   id text primary key,
   name text not null,
+  type text default 'other',
   description text default '',
   created_by text,
   members jsonb default '[]',
@@ -34,6 +35,8 @@ create table if not exists expenses (
   currency text default 'INR',
   paid_by jsonb not null,
   splits jsonb default '[]',
+  category text default 'general',
+  date timestamptz default now(),
   created_at timestamptz default now()
 );
 

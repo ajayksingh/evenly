@@ -38,10 +38,21 @@ const setData = async (key, data) => {
 
 const isDemo = (userId) => typeof userId === 'string' && userId.startsWith('demo-');
 
+// --- Auth rate limiting ---
+const authAttempts = { count: 0, resetAt: 0 };
+const checkAuthRateLimit = () => {
+  const now = Date.now();
+  if (now > authAttempts.resetAt) { authAttempts.count = 0; authAttempts.resetAt = now + 60000; }
+  authAttempts.count++;
+  if (authAttempts.count > 20) throw new Error('Too many attempts. Please wait a minute before trying again.');
+};
+
 // --- Auth ---
 const DEMO_EMAILS = ['alice@demo.com', 'bob@demo.com', 'carol@demo.com'];
 
 export const registerUser = async ({ name, email, password }) => {
+  name = (name || '').trim();
+  email = (email || '').trim();
   if (DEMO_EMAILS.includes(email)) {
     const users = await getData(KEYS.USERS);
     if (users.find(u => u.email === email)) throw new Error('Email already in use');
@@ -52,9 +63,10 @@ export const registerUser = async ({ name, email, password }) => {
     return safeUser;
   }
 
+  checkAuthRateLimit();
   if (!isSupabaseConfigured()) throw new Error('Registration requires a network connection');
 
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
   if (error) {
     if (error.message.includes('already registered') || error.message.includes('already exists')) {
       throw new Error('Email already in use. Please sign in instead.');
@@ -91,6 +103,7 @@ export const registerUser = async ({ name, email, password }) => {
 };
 
 export const loginUser = async ({ email, password }) => {
+  email = (email || '').trim();
   if (DEMO_EMAILS.includes(email)) {
     await seedDemoData();
     const users = await getData(KEYS.USERS);
@@ -101,6 +114,8 @@ export const loginUser = async ({ email, password }) => {
     return safeUser;
   }
 
+  const EVENLY_DEMO_EMAILS = ['demo@evenly.app', 'alex@evenly.app'];
+  if (!EVENLY_DEMO_EMAILS.includes(email)) checkAuthRateLimit();
   if (!isSupabaseConfigured()) throw new Error('No network connection. Please connect to the internet to sign in.');
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -160,15 +175,23 @@ export const getCurrentUser = async () => {
     if (!session) return null;
 
     const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).single();
-    if (!userData) return null;
-    const profile = {
-      id: userData.id,
-      name: userData.name,
-      email: userData.email,
-      avatar: userData.avatar || null,
-      phone: userData.phone || '',
-      createdAt: userData.created_at,
-    };
+    let profile;
+    if (userData) {
+      profile = {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        avatar: userData.avatar || null,
+        phone: userData.phone || '',
+        createdAt: userData.created_at,
+      };
+    } else {
+      // Auth session exists but users row was deleted — recreate it using metadata name if available
+      const email = session.user.email;
+      const name = session.user.user_metadata?.name || email.split('@')[0];
+      profile = { id: session.user.id, name, email, avatar: null, phone: '', createdAt: new Date().toISOString() };
+      await supabase.from('users').upsert({ id: profile.id, name: profile.name, email: profile.email, avatar: null, phone: '', provider: 'email', created_at: profile.createdAt });
+    }
     await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
     return profile;
   } catch { return null; }
@@ -198,6 +221,8 @@ export const updateUserProfile = async (userId, updates) => {
 
 // --- Friends ---
 export const addFriend = async (currentUserId, email) => {
+  if (!email || !email.trim()) throw new Error('Email is required');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error('Invalid email address');
   if (isDemo(currentUserId)) {
     const users = await getData(KEYS.USERS);
     const friend = users.find(u => u.email === email);
@@ -225,14 +250,28 @@ export const addFriend = async (currentUserId, email) => {
     .maybeSingle();
   if (existing) throw new Error('Already friends');
 
-  const { error } = await supabase.from('friends').insert({
+  // Check for existing pending request
+  const { data: existingReq } = await supabase.from('friend_requests')
+    .select('id,status')
+    .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${remoteUser.id}),and(sender_id.eq.${remoteUser.id},receiver_id.eq.${currentUserId})`)
+    .maybeSingle();
+  if (existingReq?.status === 'pending') throw new Error('Friend request already sent');
+  if (existingReq?.status === 'accepted') throw new Error('Already friends');
+
+  // Get current user info for the request record
+  const { data: senderUser } = await supabase.from('users').select('name,email').eq('id', currentUserId).maybeSingle();
+
+  const { error: reqError } = await supabase.from('friend_requests').insert({
     id: uuidv4(),
-    user_id: currentUserId,
-    friend_id: remoteUser.id,
+    sender_id: currentUserId,
+    sender_name: senderUser?.name || 'Unknown',
+    sender_email: senderUser?.email || '',
+    receiver_id: remoteUser.id,
+    status: 'pending',
     created_at: new Date().toISOString(),
   });
-  if (error) throw new Error('Failed to add friend');
-  return { id: remoteUser.id, name: remoteUser.name, email: remoteUser.email, avatar: remoteUser.avatar || null, phone: remoteUser.phone || '' };
+  if (reqError) throw new Error('Failed to send friend request');
+  return { requested: true, id: remoteUser.id, name: remoteUser.name, email: remoteUser.email };
 };
 
 export const getFriends = async (userId) => {
@@ -253,8 +292,74 @@ export const getFriends = async (userId) => {
   return (users || []).map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '' }));
 };
 
+export const getFriendRequests = async (userId) => {
+  if (isDemo(userId)) return []; // Demo users use direct-add, no requests
+  if (!isSupabaseConfigured()) return [];
+  const { data, error } = await supabase
+    .from('friend_requests')
+    .select('id,sender_id,sender_name,sender_email,status,created_at')
+    .eq('receiver_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  return (data || []).map(r => ({
+    id: r.id,
+    senderId: r.sender_id,
+    senderName: r.sender_name,
+    senderEmail: r.sender_email,
+    createdAt: r.created_at,
+  }));
+};
+
+export const respondToFriendRequest = async (requestId, accept, currentUserId) => {
+  if (!isSupabaseConfigured()) return;
+  // Get the request
+  const { data: req, error: fetchErr } = await supabase
+    .from('friend_requests').select('*').eq('id', requestId).maybeSingle();
+  if (!req) throw new Error('Request not found');
+  if (req.receiver_id !== currentUserId) throw new Error('Unauthorized');
+
+  // Update status
+  await supabase.from('friend_requests').update({ status: accept ? 'accepted' : 'rejected' }).eq('id', requestId);
+
+  if (accept) {
+    // Create bilateral friendship
+    const { data: receiverUser } = await supabase.from('users').select('name,email,avatar,phone').eq('id', currentUserId).maybeSingle();
+    await supabase.from('friends').insert([
+      { id: uuidv4(), user_id: req.sender_id, friend_id: currentUserId, created_at: new Date().toISOString() },
+      { id: uuidv4(), user_id: currentUserId, friend_id: req.sender_id, created_at: new Date().toISOString() },
+    ]);
+    await addActivity({ type: 'friend_added', userId: currentUserId, targetUserId: req.sender_id, createdAt: new Date().toISOString() });
+  }
+};
+
+export const getSentFriendRequests = async (userId) => {
+  if (isDemo(userId)) return [];
+  if (!isSupabaseConfigured()) return [];
+  const { data, error } = await supabase
+    .from('friend_requests')
+    .select('id,receiver_id,status,created_at')
+    .eq('sender_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  // Fetch receiver names
+  const ids = (data || []).map(r => r.receiver_id);
+  if (ids.length === 0) return [];
+  const { data: users } = await supabase.from('users').select('id,name,email').in('id', ids);
+  const userMap = Object.fromEntries((users || []).map(u => [u.id, u]));
+  return (data || []).map(r => ({
+    id: r.id,
+    receiverId: r.receiver_id,
+    receiverName: userMap[r.receiver_id]?.name || 'Unknown',
+    receiverEmail: userMap[r.receiver_id]?.email || '',
+    createdAt: r.created_at,
+  }));
+};
+
 // --- Groups ---
 export const createGroup = async (group) => {
+  group = { ...group, name: (group.name || '').trim() };
   if (isDemo(group.createdBy)) {
     const groups = await getData(KEYS.GROUPS);
     const newGroup = { id: uuidv4(), ...group, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
@@ -386,6 +491,7 @@ export const addMemberToGroup = async (groupId, user) => {
 
 // --- Expenses ---
 export const addExpense = async (expense) => {
+  expense = { ...expense, description: (expense.description || '').trim() };
   if (isDemo(expense.paidBy?.id)) {
     const expenses = await getData(KEYS.EXPENSES);
     const newExpense = { id: uuidv4(), ...expense, createdAt: new Date().toISOString() };
@@ -404,6 +510,8 @@ export const addExpense = async (expense) => {
     currency: expense.currency,
     paid_by: expense.paidBy,
     splits: expense.splits,
+    category: expenseCategory,
+    date: expenseDate,
     created_at: new Date().toISOString(),
   };
   const { error } = await supabase.from('expenses').insert(newExpense);
@@ -426,20 +534,6 @@ export const getExpenses = async (groupId) => {
   return (data || []).map(e => ({ id: e.id, groupId: e.group_id, description: e.description, amount: e.amount, currency: e.currency, category: e.category || 'general', paidBy: e.paid_by, splits: e.splits || [], date: e.date || e.created_at, createdAt: e.created_at }));
 };
 
-export const getAllExpenses = async (userId) => {
-  if (isDemo(userId)) {
-    const expenses = await getData(KEYS.EXPENSES);
-    return expenses.filter(e => e.paidBy.id === userId || e.splits.some(s => s.userId === userId)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }
-  // Fetch all expenses from user's groups
-  const userGroups = await getGroups(userId);
-  const groupIds = userGroups.map(g => g.id);
-  if (groupIds.length === 0) return [];
-  const { data } = await supabase.from('expenses').select('*').in('group_id', groupIds).order('created_at', { ascending: false }).limit(500);
-  return (data || [])
-    .filter(e => e.paid_by?.id === userId || (e.splits || []).some(s => s.userId === userId))
-    .map(e => ({ id: e.id, groupId: e.group_id, description: e.description, amount: e.amount, currency: e.currency, category: e.category || 'general', paidBy: e.paid_by, splits: e.splits || [], date: e.date || e.created_at, createdAt: e.created_at }));
-};
 
 export const deleteExpense = async (expenseId) => {
   const localExpenses = await getData(KEYS.EXPENSES);
@@ -453,7 +547,7 @@ export const deleteExpense = async (expenseId) => {
 };
 
 // --- Balances ---
-export const calculateBalances = async (userId) => {
+export const calculateBalances = async (userId, userEmail = null, cachedGroupIds = null) => {
   if (isDemo(userId)) {
     const expenses = await getData(KEYS.EXPENSES);
     const settlements = await getData(KEYS.SETTLEMENTS);
@@ -461,8 +555,12 @@ export const calculateBalances = async (userId) => {
     return _calculateBalancesFromData(userId, expenses, settlements, users);
   }
 
-  const userGroups = await getGroups(userId);
-  const groupIds = userGroups.map(g => g.id);
+  // Use pre-fetched groupIds if available, otherwise fetch groups
+  let groupIds = cachedGroupIds;
+  if (!groupIds) {
+    const userGroups = await getGroups(userId, userEmail);
+    groupIds = userGroups.map(g => g.id);
+  }
 
   let expenses = [];
   if (groupIds.length > 0) {
@@ -475,40 +573,39 @@ export const calculateBalances = async (userId) => {
   const settlements = (settlementsData || []).map(s => ({ paidBy: s.paid_by, paidTo: s.paid_to, amount: s.amount }));
 
   const balanceMap = {};
+  // Build user info inline from expense data — no separate users table lookup needed
+  const userInfoMap = {};
   expenses.forEach(expense => {
     const paidById = expense.paidBy?.id;
     if (!paidById) return;
+    // Collect name/avatar from paid_by and splits as we process
+    if (expense.paidBy?.name) userInfoMap[paidById] = { id: paidById, name: expense.paidBy.name, email: expense.paidBy.email || null, avatar: expense.paidBy.avatar || null };
     expense.splits.forEach(split => {
+      if (split.name) userInfoMap[split.userId] = { id: split.userId, name: split.name, email: null, avatar: null };
       if (split.userId === paidById) return;
-      const key = [paidById, split.userId].sort().join('_');
-      if (!balanceMap[key]) balanceMap[key] = { user1: paidById, user2: split.userId, amount: 0 };
+      const sorted = [paidById, split.userId].sort();
+      const key = sorted.join('_');
+      if (!balanceMap[key]) balanceMap[key] = { user1: sorted[0], user2: sorted[1], amount: 0 };
       if (paidById === balanceMap[key].user1) balanceMap[key].amount += split.amount;
       else balanceMap[key].amount -= split.amount;
     });
   });
 
   settlements.forEach(s => {
-    const key = [s.paidBy, s.paidTo].sort().join('_');
-    if (!balanceMap[key]) balanceMap[key] = { user1: s.paidBy, user2: s.paidTo, amount: 0 };
-    if (s.paidBy === balanceMap[key].user1) balanceMap[key].amount -= s.amount;
-    else balanceMap[key].amount += s.amount;
+    const sorted = [s.paidBy, s.paidTo].sort();
+    const key = sorted.join('_');
+    if (!balanceMap[key]) balanceMap[key] = { user1: sorted[0], user2: sorted[1], amount: 0 };
+    // paidBy is settling debt: reduces the credit of paidTo (the creditor)
+    if (s.paidBy === balanceMap[key].user1) balanceMap[key].amount += s.amount;
+    else balanceMap[key].amount -= s.amount;
   });
-
-  const otherUserIds = [...new Set(
-    Object.values(balanceMap).flatMap(b => [b.user1, b.user2]).filter(id => id !== userId)
-  )];
-  let otherUsers = [];
-  if (otherUserIds.length > 0) {
-    const { data } = await supabase.from('users').select('id,name,email,avatar').in('id', otherUserIds);
-    otherUsers = data || [];
-  }
 
   const result = [];
   Object.values(balanceMap).forEach(b => {
     if (Math.abs(b.amount) < 0.01) return;
     if (b.user1 === userId || b.user2 === userId) {
       const otherUserId = b.user1 === userId ? b.user2 : b.user1;
-      const otherUser = otherUsers.find(u => u.id === otherUserId);
+      const otherUser = userInfoMap[otherUserId];
       if (!otherUser) return;
       const amount = b.user1 === userId ? b.amount : -b.amount;
       result.push({ userId: otherUserId, name: otherUser.name, email: otherUser.email, avatar: otherUser.avatar, amount });
@@ -523,17 +620,19 @@ const _calculateBalancesFromData = (userId, expenses, settlements, users) => {
     const paidById = expense.paidBy?.id || expense.paidBy;
     expense.splits.forEach(split => {
       if (split.userId === paidById) return;
-      const key = [paidById, split.userId].sort().join('_');
-      if (!balanceMap[key]) balanceMap[key] = { user1: paidById, user2: split.userId, amount: 0 };
+      const sorted = [paidById, split.userId].sort();
+      const key = sorted.join('_');
+      if (!balanceMap[key]) balanceMap[key] = { user1: sorted[0], user2: sorted[1], amount: 0 };
       if (paidById === balanceMap[key].user1) balanceMap[key].amount += split.amount;
       else balanceMap[key].amount -= split.amount;
     });
   });
   settlements.forEach(s => {
-    const key = [s.paidBy, s.paidTo].sort().join('_');
-    if (!balanceMap[key]) balanceMap[key] = { user1: s.paidBy, user2: s.paidTo, amount: 0 };
-    if (s.paidBy === balanceMap[key].user1) balanceMap[key].amount -= s.amount;
-    else balanceMap[key].amount += s.amount;
+    const sorted = [s.paidBy, s.paidTo].sort();
+    const key = sorted.join('_');
+    if (!balanceMap[key]) balanceMap[key] = { user1: sorted[0], user2: sorted[1], amount: 0 };
+    if (s.paidBy === balanceMap[key].user1) balanceMap[key].amount += s.amount;
+    else balanceMap[key].amount -= s.amount;
   });
   const result = [];
   Object.values(balanceMap).forEach(b => {
@@ -558,12 +657,17 @@ export const calculateGroupBalances = async (groupId, members) => {
     return _calculateGroupBalancesFromData(groupId, members, groupExpenses, groupSettlements);
   }
 
+  const memberIds = members.map(m => m.id);
   const [{ data: expensesData }, { data: settlementsData }] = await Promise.all([
     supabase.from('expenses').select('paid_by,splits,amount').eq('group_id', groupId),
-    supabase.from('settlements').select('paid_by,paid_to,amount').eq('group_id', groupId),
+    supabase.from('settlements').select('paid_by,paid_to,amount,group_id')
+      .or(`group_id.eq.${groupId},group_id.is.null`),
   ]);
   const groupExpenses = (expensesData || []).map(e => ({ paidBy: e.paid_by, splits: e.splits || [], amount: e.amount }));
-  const groupSettlements = (settlementsData || []).map(s => ({ paidBy: s.paid_by, paidTo: s.paid_to, amount: s.amount }));
+  // Include group-specific settlements AND null-group settlements between group members
+  const groupSettlements = (settlementsData || [])
+    .filter(s => s.group_id === groupId || (memberIds.includes(s.paid_by) && memberIds.includes(s.paid_to)))
+    .map(s => ({ paidBy: s.paid_by, paidTo: s.paid_to, amount: s.amount }));
   return _calculateGroupBalancesFromData(groupId, members, groupExpenses, groupSettlements);
 };
 
@@ -628,7 +732,7 @@ export const addActivity = async (activity) => {
   }
 
   if (!isSupabaseConfigured()) return;
-  await supabase.from('activity').upsert({
+  await supabase.from('activity').insert({
     id: newActivity.id,
     type: newActivity.type,
     user_id: newActivity.userId,
@@ -642,7 +746,7 @@ export const addActivity = async (activity) => {
   }).then(() => {}, (e) => console.warn('Activity write failed:', e?.message));
 };
 
-export const getActivity = async (userId) => {
+export const getActivity = async (userId, cachedGroupIds = null) => {
   if (isDemo(userId)) {
     const activities = await getData(KEYS.ACTIVITY);
     const groups = await getData(KEYS.GROUPS);
@@ -657,15 +761,29 @@ export const getActivity = async (userId) => {
   }
 
   if (!isSupabaseConfigured()) return [];
-  const userGroups = await getGroups(userId);
-  const groupIds = userGroups.map(g => g.id);
-  const groupIdsStr = groupIds.join(',');
+  let groupIds = cachedGroupIds;
+  if (!groupIds) {
+    const userGroups = await getGroups(userId);
+    groupIds = userGroups.map(g => g.id);
+  }
 
-  const { data } = await supabase.from('activity').select('*')
-    .or(groupIds.length > 0 ? `user_id.eq.${userId},group_id.in.(${groupIdsStr})` : `user_id.eq.${userId}`)
-    .order('created_at', { ascending: false }).limit(100);
+  // Two separate queries — more reliable than .or() with in.() inside PostgREST
+  const [ownResult, groupResult] = await Promise.all([
+    supabase.from('activity').select('*').eq('user_id', userId)
+      .order('created_at', { ascending: false }).limit(100),
+    groupIds.length > 0
+      ? supabase.from('activity').select('*').in('group_id', groupIds)
+          .order('created_at', { ascending: false }).limit(200)
+      : Promise.resolve({ data: [] }),
+  ]);
 
-  return (data || []).map(a => ({
+  const seen = new Set();
+  const merged = [...(ownResult.data || []), ...(groupResult.data || [])]
+    .filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; })
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 200);
+
+  return merged.map(a => ({
     id: a.id, type: a.type, userId: a.user_id, groupId: a.group_id,
     expenseId: a.expense_id, description: a.description,
     amount: a.amount, groupName: a.group_name, paidByName: a.paid_by_name,
@@ -698,18 +816,132 @@ export const searchUsersByEmail = async (email) => {
   return (data || []).map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '' }));
 };
 
-// syncFromSupabase is no longer needed — reads go directly to Supabase.
-// Kept as a no-op for compatibility with any remaining call sites.
-export const syncFromSupabase = async (userId, userEmail) => {
-  return { groups: 0, expenses: 0 };
+// --- Group Invites ---
+export const sendGroupInvite = async (groupId, groupName, invitedUserId, invitedByUserId, invitedByName) => {
+  if (!isSupabaseConfigured()) throw new Error('No connection');
+
+  const { data: group } = await supabase.from('groups').select('members').eq('id', groupId).single();
+  if (group?.members?.find(m => m.id === invitedUserId)) throw new Error('Already a member');
+
+  const { data: existing } = await supabase.from('group_invites')
+    .select('id').eq('group_id', groupId).eq('invited_user_id', invitedUserId).eq('status', 'pending').maybeSingle();
+  if (existing) throw new Error('Invite already sent to this user');
+
+  const invite = {
+    id: uuidv4(),
+    group_id: groupId,
+    group_name: groupName,
+    invited_user_id: invitedUserId,
+    invited_by_user_id: invitedByUserId,
+    invited_by_name: invitedByName,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+  };
+  const { error } = await supabase.from('group_invites').insert(invite);
+  if (error) throw new Error('Failed to send invite: ' + error.message);
+  return invite;
 };
 
+export const getGroupInvites = async (userId) => {
+  if (isDemo(userId) || !isSupabaseConfigured()) return [];
+  const { data } = await supabase.from('group_invites').select('*')
+    .eq('invited_user_id', userId).eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  return (data || []).map(inv => ({
+    id: inv.id, groupId: inv.group_id, groupName: inv.group_name,
+    invitedUserId: inv.invited_user_id, invitedByUserId: inv.invited_by_user_id,
+    invitedByName: inv.invited_by_name, status: inv.status, createdAt: inv.created_at,
+  }));
+};
+
+export const respondToGroupInvite = async (inviteId, accept, userId) => {
+  if (!isSupabaseConfigured()) throw new Error('No connection');
+
+  const { data: invite, error: fetchErr } = await supabase.from('group_invites').select('*').eq('id', inviteId).single();
+  if (fetchErr || !invite) throw new Error('Invite not found');
+  if (invite.invited_user_id && invite.invited_user_id !== userId) {
+    throw new Error('This invite does not belong to you');
+  }
+
+  const { error: updateErr } = await supabase.from('group_invites')
+    .update({ status: accept ? 'accepted' : 'rejected' }).eq('id', inviteId);
+  if (updateErr) throw new Error('Failed to respond to invite');
+
+  if (accept) {
+    const [{ data: userProfile }, { data: group }] = await Promise.all([
+      supabase.from('users').select('id,name,email,avatar').eq('id', userId).single(),
+      supabase.from('groups').select('*').eq('id', invite.group_id).single(),
+    ]);
+    if (!userProfile) throw new Error('User profile not found');
+    if (!group) throw new Error('Group not found');
+
+    if (!group.members.find(m => m.id === userId)) {
+      const updatedMembers = [...group.members, {
+        id: userProfile.id, name: userProfile.name,
+        email: userProfile.email, avatar: userProfile.avatar || null,
+      }];
+      await supabase.from('groups').update({
+        members: updatedMembers,
+        updated_at: new Date().toISOString(),
+      }).eq('id', invite.group_id);
+    }
+
+    await addActivity({
+      type: 'member_joined', groupId: invite.group_id, groupName: invite.group_name,
+      userId, paidByName: userProfile.name, createdAt: new Date().toISOString(),
+    });
+  }
+};
+
+
 // Seed demo data (local only)
+// Bump SEED_VERSION to force a re-seed when demo data format changes
+const SEED_VERSION = '2';
 export const seedDemoData = async () => {
-  const users = await getData(KEYS.USERS);
-  if (users.length > 0) return;
-  const alice = { id: 'demo-alice', name: 'Alice Demo', email: 'alice@demo.com', password: 'demo123', avatar: null, phone: '', createdAt: new Date().toISOString() };
-  const bob = { id: 'demo-bob', name: 'Bob Demo', email: 'bob@demo.com', password: 'demo123', avatar: null, phone: '', createdAt: new Date().toISOString() };
-  const carol = { id: 'demo-carol', name: 'Carol Demo', email: 'carol@demo.com', password: 'demo123', avatar: null, phone: '', createdAt: new Date().toISOString() };
+  const seeded = await AsyncStorage.getItem('sw_demo_seed_v');
+  if (seeded === SEED_VERSION) return;
+
+  const now = new Date();
+  const daysAgo = (d) => new Date(now - d * 864e5).toISOString();
+
+  const alice = { id: 'demo-alice', name: 'Alice Demo', email: 'alice@demo.com', password: 'demo123', avatar: null, phone: '', createdAt: daysAgo(30) };
+  const bob   = { id: 'demo-bob',   name: 'Bob Demo',   email: 'bob@demo.com',   password: 'demo123', avatar: null, phone: '', createdAt: daysAgo(30) };
+  const carol = { id: 'demo-carol', name: 'Carol Demo', email: 'carol@demo.com', password: 'demo123', avatar: null, phone: '', createdAt: daysAgo(30) };
   await setData(KEYS.USERS, [alice, bob, carol]);
+
+  // Friends
+  await setData(KEYS.FRIENDS, [
+    { id: uuidv4(), userId: 'demo-alice', friendId: 'demo-bob',   createdAt: daysAgo(28) },
+    { id: uuidv4(), userId: 'demo-alice', friendId: 'demo-carol', createdAt: daysAgo(28) },
+    { id: uuidv4(), userId: 'demo-bob',   friendId: 'demo-alice', createdAt: daysAgo(28) },
+    { id: uuidv4(), userId: 'demo-bob',   friendId: 'demo-carol', createdAt: daysAgo(28) },
+    { id: uuidv4(), userId: 'demo-carol', friendId: 'demo-alice', createdAt: daysAgo(28) },
+    { id: uuidv4(), userId: 'demo-carol', friendId: 'demo-bob',   createdAt: daysAgo(28) },
+  ]);
+
+  // Groups
+  const tripGroup = { id: 'demo-group-trip', name: 'Goa Trip 🏖️', createdBy: 'demo-alice', members: [alice, bob, carol], createdAt: daysAgo(14), updatedAt: daysAgo(1) };
+  const flatGroup = { id: 'demo-group-flat', name: 'Flat Expenses 🏠', createdBy: 'demo-bob', members: [alice, bob], createdAt: daysAgo(20), updatedAt: daysAgo(2) };
+  await setData(KEYS.GROUPS, [tripGroup, flatGroup]);
+
+  // Expenses — splits must match what _calculateBalancesFromData expects: [{ userId, name, amount }]
+  const expenses = [
+    { id: 'demo-exp-1', description: 'Hotel booking', amount: 4500, category: 'accommodation', paidBy: { id: 'demo-alice', name: 'Alice Demo' }, splitType: 'equal', splits: [{ userId: 'demo-alice', name: 'Alice Demo', amount: 1500 }, { userId: 'demo-bob', name: 'Bob Demo', amount: 1500 }, { userId: 'demo-carol', name: 'Carol Demo', amount: 1500 }], groupId: 'demo-group-trip', groupName: "Goa Trip 🏖️", date: daysAgo(13), createdAt: daysAgo(13) },
+    { id: 'demo-exp-2', description: 'Beach dinner', amount: 1800, category: 'food', paidBy: { id: 'demo-bob', name: 'Bob Demo' }, splitType: 'equal', splits: [{ userId: 'demo-alice', name: 'Alice Demo', amount: 600 }, { userId: 'demo-bob', name: 'Bob Demo', amount: 600 }, { userId: 'demo-carol', name: 'Carol Demo', amount: 600 }], groupId: 'demo-group-trip', groupName: "Goa Trip 🏖️", date: daysAgo(12), createdAt: daysAgo(12) },
+    { id: 'demo-exp-3', description: 'Scuba diving', amount: 3000, category: 'entertainment', paidBy: { id: 'demo-carol', name: 'Carol Demo' }, splitType: 'equal', splits: [{ userId: 'demo-alice', name: 'Alice Demo', amount: 1000 }, { userId: 'demo-bob', name: 'Bob Demo', amount: 1000 }, { userId: 'demo-carol', name: 'Carol Demo', amount: 1000 }], groupId: 'demo-group-trip', groupName: "Goa Trip 🏖️", date: daysAgo(11), createdAt: daysAgo(11) },
+    { id: 'demo-exp-4', description: 'Cab to airport', amount: 600, category: 'transport', paidBy: { id: 'demo-alice', name: 'Alice Demo' }, splitType: 'equal', splits: [{ userId: 'demo-alice', name: 'Alice Demo', amount: 300 }, { userId: 'demo-bob', name: 'Bob Demo', amount: 300 }], groupId: 'demo-group-flat', groupName: "Flat Expenses 🏠", date: daysAgo(5), createdAt: daysAgo(5) },
+    { id: 'demo-exp-5', description: 'Groceries', amount: 1200, category: 'food', paidBy: { id: 'demo-bob', name: 'Bob Demo' }, splitType: 'equal', splits: [{ userId: 'demo-alice', name: 'Alice Demo', amount: 600 }, { userId: 'demo-bob', name: 'Bob Demo', amount: 600 }], groupId: 'demo-group-flat', groupName: "Flat Expenses 🏠", date: daysAgo(3), createdAt: daysAgo(3) },
+  ];
+  await setData(KEYS.EXPENSES, expenses);
+
+  // Activity
+  const activity = [
+    { id: uuidv4(), type: 'expense_added', userId: 'demo-alice', groupId: 'demo-group-trip', groupName: "Goa Trip 🏖️", description: 'Hotel booking', amount: 4500, paidByName: 'Alice Demo', createdAt: daysAgo(13) },
+    { id: uuidv4(), type: 'expense_added', userId: 'demo-bob',   groupId: 'demo-group-trip', groupName: "Goa Trip 🏖️", description: 'Beach dinner', amount: 1800, paidByName: 'Bob Demo', createdAt: daysAgo(12) },
+    { id: uuidv4(), type: 'expense_added', userId: 'demo-carol', groupId: 'demo-group-trip', groupName: "Goa Trip 🏖️", description: 'Scuba diving', amount: 3000, paidByName: 'Carol Demo', createdAt: daysAgo(11) },
+    { id: uuidv4(), type: 'expense_added', userId: 'demo-alice', groupId: 'demo-group-flat', groupName: "Flat Expenses 🏠", description: 'Cab to airport', amount: 600, paidByName: 'Alice Demo', createdAt: daysAgo(5) },
+    { id: uuidv4(), type: 'expense_added', userId: 'demo-bob',   groupId: 'demo-group-flat', groupName: "Flat Expenses 🏠", description: 'Groceries', amount: 1200, paidByName: 'Bob Demo', createdAt: daysAgo(3) },
+  ];
+  await setData(KEYS.ACTIVITY, activity);
+  await AsyncStorage.setItem('sw_demo_seed_v', SEED_VERSION);
 };

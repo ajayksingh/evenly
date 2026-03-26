@@ -9,13 +9,13 @@ import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
 import Avatar from '../components/Avatar';
 import BackgroundOrbs from '../components/BackgroundOrbs';
-import { addFriend, registerUser } from '../services/storage';
+import { addFriend, respondToFriendRequest } from '../services/storage';
 import { getContacts, requestContactsPermission, sendWhatsAppMessage } from '../services/contacts';
 import { formatAmount } from '../services/currency';
 import { confirmAlert } from '../utils/alert';
 
 const FriendsScreen = ({ navigation }) => {
-  const { user, friends, balances, currency, refresh } = useApp();
+  const { user, friends, balances, currency, refresh, friendRequests } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [addMode, setAddMode] = useState('email'); // email | contacts
   const [email, setEmail] = useState('');
@@ -23,6 +23,7 @@ const FriendsScreen = ({ navigation }) => {
   const [contacts, setContacts] = useState([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
+  const [respondingTo, setRespondingTo] = useState(null); // requestId being responded to
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
@@ -33,10 +34,23 @@ const FriendsScreen = ({ navigation }) => {
       await addFriend(user.id, email.trim().toLowerCase());
       setEmail(''); setShowAdd(false);
       refresh();
-      Alert.alert('Friend Added!', 'They can now be added to groups and expenses.');
+      Alert.alert('Request Sent!', 'They will be notified and can accept your friend request.');
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally { setAdding(false); }
+  };
+
+  const handleRespondToRequest = async (requestId, accept) => {
+    setRespondingTo(requestId);
+    try {
+      await respondToFriendRequest(requestId, accept, user.id);
+      refresh();
+      if (accept) Alert.alert('Friend Added!', 'You are now friends and can split expenses together.');
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setRespondingTo(null);
+    }
   };
 
   const loadContacts = async () => {
@@ -176,6 +190,35 @@ const FriendsScreen = ({ navigation }) => {
     );
   };
 
+  const renderFriendRequest = ({ item }) => (
+    <View style={styles.requestCard}>
+      <Avatar name={item.senderName} size={44} />
+      <View style={styles.requestInfo}>
+        <Text style={styles.requestName}>{item.senderName}</Text>
+        <Text style={styles.requestEmail}>{item.senderEmail}</Text>
+        <Text style={styles.requestMeta}>wants to be friends</Text>
+      </View>
+      <View style={styles.requestActions}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.acceptBtn}
+          disabled={respondingTo === item.id}
+          onPress={() => handleRespondToRequest(item.id, true)}
+        >
+          <Text style={styles.acceptBtnText}>Accept</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.declineBtn}
+          disabled={respondingTo === item.id}
+          onPress={() => handleRespondToRequest(item.id, false)}
+        >
+          <Text style={styles.declineBtnText}>Decline</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   // BUG-006: Summary grid — counts per Figma spec (not amounts)
   const oweYouCount = friends.filter(f => { const b = getFriendBalance(f.id); return b && b.amount > 0; }).length;
   const youOweCount = friends.filter(f => { const b = getFriendBalance(f.id); return b && b.amount < 0; }).length;
@@ -218,6 +261,20 @@ const FriendsScreen = ({ navigation }) => {
             <Text style={[styles.statCount, { color: '#71717a' }]}>{settledCount}</Text>
             <Text style={styles.statLabel}>settled</Text>
           </View>
+        </View>
+      )}
+
+      {friendRequests.length > 0 && (
+        <View style={styles.requestsSection}>
+          <Text style={styles.requestsSectionTitle}>
+            Friend Requests ({friendRequests.length})
+          </Text>
+          <FlatList
+            data={friendRequests}
+            keyExtractor={item => item.id}
+            renderItem={renderFriendRequest}
+            scrollEnabled={false}
+          />
         </View>
       )}
 
@@ -584,6 +641,36 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   noContacts: { textAlign: 'center', color: '#a1a1aa', paddingVertical: 40 },
+
+  requestsSection: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  requestsSectionTitle: {
+    fontSize: 12, fontWeight: '700', color: COLORS.textLight,
+    marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6,
+  },
+  requestCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.white, borderRadius: 14,
+    padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: COLORS.primary + '40',
+  },
+  requestInfo: { flex: 1, marginLeft: 12 },
+  requestName: { fontSize: 15, fontWeight: '600', color: COLORS.text },
+  requestEmail: { fontSize: 13, color: COLORS.textLight, marginTop: 1 },
+  requestMeta: { fontSize: 12, color: COLORS.primary, marginTop: 2 },
+  requestActions: { flexDirection: 'column', gap: 6 },
+  acceptBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 6, alignItems: 'center',
+  },
+  acceptBtnText: { fontSize: 13, fontWeight: '700', color: '#0a0a0f' },
+  declineBtn: {
+    borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6,
+    alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
+  },
+  declineBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.textMuted },
 });
 
 export default FriendsScreen;

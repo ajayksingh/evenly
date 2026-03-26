@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet } from 'react-native';
+import { View, Animated, StyleSheet, Platform } from 'react-native';
 
 const BackgroundOrbs = () => {
   const pulse1 = useRef(new Animated.Value(0.2)).current;
@@ -8,15 +8,15 @@ const BackgroundOrbs = () => {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse1, { toValue: 0.35, duration: 2800, useNativeDriver: true }),
-        Animated.timing(pulse1, { toValue: 0.2, duration: 2800, useNativeDriver: true }),
+        Animated.timing(pulse1, { toValue: 0.35, duration: 2800, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(pulse1, { toValue: 0.2, duration: 2800, useNativeDriver: Platform.OS !== 'web' }),
       ])
     ).start();
     setTimeout(() => {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulse2, { toValue: 0.18, duration: 2800, useNativeDriver: true }),
-          Animated.timing(pulse2, { toValue: 0.08, duration: 2800, useNativeDriver: true }),
+          Animated.timing(pulse2, { toValue: 0.18, duration: 2800, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(pulse2, { toValue: 0.08, duration: 2800, useNativeDriver: Platform.OS !== 'web' }),
         ])
       ).start();
     }, 1000);
