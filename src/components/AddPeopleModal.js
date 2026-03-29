@@ -14,7 +14,7 @@ import { useTheme } from '../context/ThemeContext';
 import Avatar from './Avatar';
 import ShakeView from './ShakeView';
 import {
-  addFriend, searchUsers, sendGroupInvite,
+  addFriend, searchUsers, sendGroupInvite, addMemberToGroup,
   getSuggestedFriendsFromGroups, getSuggestedMembersForGroup,
   savePendingInvite,
 } from '../services/storage';
@@ -177,12 +177,22 @@ const AddPeopleModal = ({
     });
   }, []);
 
+  // Add member to group — tries invite first, falls back to direct add for demo/offline
+  const addToGroup = useCallback(async (item) => {
+    try {
+      await sendGroupInvite(groupId, groupName, item.id, user.id, user.name);
+    } catch {
+      // Fallback: directly add member to group (works for demo + offline)
+      await addMemberToGroup(groupId, { id: item.id, name: item.name, email: item.email, avatar: item.avatar || null });
+    }
+  }, [groupId, groupName, user]);
+
   const handleAddSingle = useCallback(async (item) => {
     setAdding(true);
     try {
       if (isGroupMode) {
-        await sendGroupInvite(groupId, groupName, item.id, user.id, user.name);
-        Alert.alert('Invite Sent', `${item.name} will receive a request to join "${groupName}".`);
+        await addToGroup(item);
+        Alert.alert('Member Added', `${item.name} has been added to "${groupName}".`);
       } else {
         if (!item.email) {
           Alert.alert('No Email', `${item.name || 'This contact'} doesn't have an email address. Share your invite link instead.`);
@@ -252,14 +262,14 @@ const AddPeopleModal = ({
       try {
         if (isGroupMode) {
           if (item.id && !item.id.startsWith('contact-')) {
-            await sendGroupInvite(groupId, groupName, item.id, user.id, user.name);
+            await addToGroup(item);
             added++;
           } else if (item.email) {
             // Contact - try to find registered user
             const results = await searchUsers(item.email, user.id);
             const found = results.find(u => u.email.toLowerCase() === item.email.toLowerCase());
             if (found) {
-              await sendGroupInvite(groupId, groupName, found.id, user.id, user.name);
+              await addToGroup(found);
               added++;
             } else {
               invited++;
