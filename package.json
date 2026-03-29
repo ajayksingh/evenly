@@ -1,6 +1,6 @@
 {
   "name": "evenly",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -27,12 +27,15 @@
     "@supabase/supabase-js": "^2.99.3",
     "babel-preset-expo": "^55.0.12",
     "expo": "~55.0.8",
+    "expo-auth-session": "~55.0.10",
     "expo-contacts": "^55.0.9",
+    "expo-crypto": "~55.0.10",
     "expo-font": "^55.0.4",
     "expo-haptics": "~55.0.9",
     "expo-image-picker": "^55.0.13",
     "expo-linear-gradient": "^55.0.9",
     "expo-linking": "^55.0.8",
+    "expo-notifications": "~55.0.14",
     "expo-secure-store": "^55.0.9",
     "expo-status-bar": "~55.0.4",
     "expo-system-ui": "~55.0.10",

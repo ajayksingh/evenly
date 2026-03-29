@@ -1,0 +1,23 @@
+appId: com.ajayksingh.evenly
+---
+# Reusable: performs login via Bob Demo account tap.
+
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "Quick Demo Access"
+    timeout: 15000
+
+# Tap Bob Demo row to login
+- tapOn: "Bob Demo"
+- waitForAnimationToEnd
+
+# Wait until auth screen is gone
+- extendedWaitUntil:
+    notVisible:
+      text: "Continue with Google"
+    timeout: 30000

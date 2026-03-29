@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, StatusBar,
-  Animated as RNAnimated,
+  Animated as RNAnimated, Alert,
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
 
@@ -11,18 +11,26 @@ import { hapticMedium } from '../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS, GROUP_TYPES } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import Avatar from '../components/Avatar';
 import BackgroundOrbs from '../components/BackgroundOrbs';
-import { getExpenses } from '../services/storage';
+import { getExpenses, archiveGroup, pinGroup } from '../services/storage';
 import { formatAmount } from '../services/currency';
 
 const GroupsScreen = ({ navigation }) => {
-  const { groups, currency, refresh } = useApp();
+  const { theme, colorScheme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
+  const { groups, balances, currency, refresh } = useApp();
   const [groupTotals, setGroupTotals] = useState({});
+  const [viewTab, setViewTab] = useState('active'); // active | archived
+
+  // Derive pinned/archived from group objects (Supabase-backed)
+  const pinnedIds = useMemo(() => new Set(groups.filter(g => g.pinned).map(g => g.id)), [groups]);
+  const archivedIds = useMemo(() => new Set(groups.filter(g => g.archived).map(g => g.id)), [groups]);
 
   const scrollY = useRef(new RNAnimated.Value(0)).current;
-  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
-  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', COLORS.border], extrapolate: 'clamp' });
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: [theme.headerBgTransparent, theme.headerBg], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['transparent', theme.border], extrapolate: 'clamp' });
 
   const fabScale = useSharedValue(1);
   const fabAnimStyle = useAnimatedStyle(() => ({
@@ -39,6 +47,72 @@ const GroupsScreen = ({ navigation }) => {
   };
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+
+  const togglePin = async (groupId) => {
+    const isPinned = pinnedIds.has(groupId);
+    try {
+      await pinGroup(groupId, !isPinned);
+      refresh();
+    } catch (e) {
+      console.error('Pin error:', e);
+    }
+  };
+
+  const toggleArchive = async (groupId) => {
+    const isArchived = archivedIds.has(groupId);
+    try {
+      await archiveGroup(groupId, !isArchived);
+      refresh();
+    } catch (e) {
+      console.error('Archive error:', e);
+    }
+  };
+
+  const hasUnsettledBalances = (groupId) => {
+    return balances.some(b => b.groupId === groupId && Math.abs(b.amount) > 0.01);
+  };
+
+  const showGroupMenu = (item) => {
+    hapticMedium();
+    const isPinned = pinnedIds.has(item.id);
+    const isArchived = archivedIds.has(item.id);
+
+    const doArchive = () => toggleArchive(item.id);
+
+    const archiveAction = () => {
+      if (!isArchived && hasUnsettledBalances(item.id)) {
+        Alert.alert(
+          'Unsettled Balances',
+          'This group has unsettled balances. Archive anyway?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Archive', style: 'destructive', onPress: doArchive },
+          ],
+        );
+      } else {
+        doArchive();
+      }
+    };
+
+    Alert.alert(
+      item.name,
+      'Choose an action',
+      [
+        { text: isPinned ? 'Unpin' : 'Pin to Top', onPress: () => togglePin(item.id) },
+        { text: isArchived ? 'Unarchive' : 'Archive', onPress: archiveAction },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
+  // Filter and sort groups
+  const filteredGroups = groups
+    .filter(g => viewTab === 'archived' ? archivedIds.has(g.id) : !archivedIds.has(g.id))
+    .sort((a, b) => {
+      const aPinned = pinnedIds.has(a.id) ? 0 : 1;
+      const bPinned = pinnedIds.has(b.id) ? 0 : 1;
+      return aPinned - bPinned;
+    });
 
   // Load total expenses per group
   useEffect(() => {
@@ -59,28 +133,45 @@ const GroupsScreen = ({ navigation }) => {
   const renderGroup = ({ item }) => {
     const typeInfo = GROUP_TYPES.find(t => t.id === item.type) || GROUP_TYPES[3];
     const total = groupTotals[item.id] || 0;
+    const isPinned = pinnedIds.has(item.id);
     return (
       <TouchableOpacity
+        accessibilityLabel={`Group: ${item.name}, ${item.members.length} members`}
         activeOpacity={0.7}
         style={styles.groupCard}
         onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
+        onLongPress={() => showGroupMenu(item)}
+        testID={`group-card-${item.id}`}
       >
-        <View style={[styles.groupIconBox, { backgroundColor: (typeInfo.color || '#00d4aa') + '26' }]}>
-          <Text style={styles.groupEmoji}>{typeInfo.emoji}</Text>
+        <View style={[styles.groupIconBox, { backgroundColor: (typeInfo.color || theme.primary) + '26' }]}>
+          <Text style={styles.groupEmoji}>{item.emoji || typeInfo.emoji}</Text>
         </View>
         <View style={styles.groupInfo}>
-          <Text style={styles.groupName}>{item.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            {isPinned && <Text style={{ fontSize: 12 }}>📌</Text>}
+            <Text numberOfLines={1} style={styles.groupName}>{item.name}</Text>
+          </View>
           <View style={styles.groupMetaRow}>
-            <Text style={styles.groupMeta}>{item.members.length} member{item.members.length !== 1 ? 's' : ''}</Text>
+            <Text numberOfLines={1} style={styles.groupMeta}>{item.members.length} member{item.members.length !== 1 ? 's' : ''}</Text>
             {total > 0 && (
               <>
                 <Text style={styles.groupMetaDot}>·</Text>
-                <Text style={styles.groupMetaTotal}>{formatAmount(total, currency)} total</Text>
+                <Text numberOfLines={1} style={styles.groupMetaTotal}>{formatAmount(total, currency)} total</Text>
               </>
             )}
           </View>
         </View>
         <View style={styles.groupRight}>
+          <TouchableOpacity
+            testID="group-menu-btn"
+            accessibilityLabel={`Group options for ${item.name}`}
+            activeOpacity={0.6}
+            style={styles.groupMenuBtn}
+            onPress={(e) => { e.stopPropagation && e.stopPropagation(); showGroupMenu(item); }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color={theme.textMuted} />
+          </TouchableOpacity>
           <View style={styles.memberAvatarRow}>
             {item.members.slice(0, 3).map((m, idx) => (
               <View key={m.id} style={[styles.memberAvatarWrap, { marginLeft: idx > 0 ? -10 : 0, zIndex: 3 - idx }]}>
@@ -93,48 +184,79 @@ const GroupsScreen = ({ navigation }) => {
               </View>
             )}
           </View>
-          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={{ marginTop: 6 }} />
+          <Ionicons name="chevron-forward" size={16} color={theme.textMuted} style={{ marginTop: 6 }} />
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <BackgroundOrbs />
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme.background} />
       <RNAnimated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
         <Text style={styles.title}>Groups</Text>
-        <TouchableOpacity testID="add-group-btn" accessibilityLabel="add" activeOpacity={0.7} style={styles.addBtn} onPress={() => navigation.navigate('CreateGroup')}>
-          <Ionicons name="add" size={22} color={COLORS.primary} />
+        <TouchableOpacity testID="add-group-btn" accessibilityLabel="Create new group" activeOpacity={0.7} style={styles.addBtn} onPress={() => navigation.navigate('CreateGroup')}>
+          <Ionicons name="add" size={22} color={theme.primary} />
         </TouchableOpacity>
       </RNAnimated.View>
+
+      {/* Active / Archived toggle */}
+      {groups.length > 0 && (
+        <View style={styles.viewTabs}>
+          <TouchableOpacity
+            testID="tab-active-groups"
+            accessibilityLabel="Show active groups"
+            activeOpacity={0.7}
+            style={[styles.viewTab, viewTab === 'active' && styles.viewTabActive]}
+            onPress={() => setViewTab('active')}
+          >
+            <Text style={[styles.viewTabText, viewTab === 'active' && styles.viewTabTextActive]}>Active</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="tab-archived-groups"
+            accessibilityLabel="Show archived groups"
+            activeOpacity={0.7}
+            style={[styles.viewTab, viewTab === 'archived' && styles.viewTabActive]}
+            onPress={() => setViewTab('archived')}
+          >
+            <Text style={[styles.viewTabText, viewTab === 'archived' && styles.viewTabTextActive]}>Archived</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {groups.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyEmoji}>👥</Text>
           <Text style={styles.emptyTitle}>No groups yet</Text>
-          <Text style={styles.emptyText}>Create a group to start splitting expenses with friends</Text>
-          <TouchableOpacity activeOpacity={0.7} style={styles.createBtn} onPress={() => navigation.navigate('CreateGroup')}>
+          <Text style={styles.emptyText}>Create one to start splitting expenses with friends</Text>
+          <TouchableOpacity accessibilityLabel="Create new group" activeOpacity={0.7} style={styles.createBtn} onPress={() => navigation.navigate('CreateGroup')}>
             <Ionicons name="add" size={20} color="#0a0a0f" />
             <Text style={styles.createBtnText}>New Group</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={groups}
+          data={filteredGroups}
           keyExtractor={item => item.id}
           renderItem={renderGroup}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+          ListEmptyComponent={viewTab === 'archived' ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>No archived groups</Text>
+              <Text style={styles.emptyText}>Tap the ⋯ menu on a group to archive it</Text>
+            </View>
+          ) : null}
         />
       )}
 
       {/* FAB for creating groups */}
       <AnimatedTouchable
         testID="fab-add-group"
+        accessibilityLabel="Create new group"
         activeOpacity={0.85}
         style={[styles.fab, fabAnimStyle]}
         onPress={handleFabPress}
@@ -145,14 +267,14 @@ const GroupsScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+const getStyles = (theme) => StyleSheet.create({
+  container: { flex: 1 },
   fab: {
     position: 'absolute', bottom: 100, right: 24,
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: COLORS.primary,
+    backgroundColor: theme.primary,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowColor: theme.primary, shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45, shadowRadius: 20, elevation: 10,
   },
   header: {
@@ -160,20 +282,29 @@ const styles = StyleSheet.create({
     paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
     borderBottomWidth: 1,
   },
-  title: { fontSize: 28, fontWeight: '800', color: COLORS.text },
+  title: { fontSize: 28, fontWeight: '700', color: theme.text, letterSpacing: -0.5 },
   addBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(0,212,170,0.12)',
+    backgroundColor: theme.primaryLight,
     alignItems: 'center', justifyContent: 'center',
   },
+
+  viewTabs: {
+    flexDirection: 'row', marginHorizontal: 16, marginTop: 8,
+    backgroundColor: theme.card, borderRadius: 12, padding: 3,
+  },
+  viewTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
+  viewTabActive: { backgroundColor: theme.primaryLight },
+  viewTabText: { fontSize: 13, color: theme.textMuted, fontWeight: '600' },
+  viewTabTextActive: { color: theme.primary, fontWeight: '700' },
 
   listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
   groupCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a24', borderRadius: 24,
+    backgroundColor: theme.card, borderRadius: 24,
     padding: 20, marginBottom: 12,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    borderWidth: 1, borderColor: theme.border,
+    shadowColor: theme.primary, shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08, shadowRadius: 20, elevation: 4,
   },
   groupIconBox: {
@@ -183,32 +314,38 @@ const styles = StyleSheet.create({
   },
   groupEmoji: { fontSize: 26 },
   groupInfo: { flex: 1 },
-  groupName: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 4 },
+  groupName: { fontSize: 16, fontWeight: '700', color: theme.text, marginBottom: 4, flex: 1, minWidth: 0 },
   groupMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  groupMeta: { fontSize: 12, color: '#a1a1aa' },
-  groupMetaDot: { fontSize: 12, color: '#a1a1aa' },
-  groupMetaTotal: { fontSize: 12, color: '#00d4aa', fontWeight: '600' },
+  groupMeta: { fontSize: 12, color: theme.textLight, flexShrink: 1 },
+  groupMetaDot: { fontSize: 12, color: theme.textLight },
+  groupMetaTotal: { fontSize: 12, color: theme.primary, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
   groupRight: { alignItems: 'flex-end' },
+  groupMenuBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.border,
+    marginBottom: 4,
+  },
   memberAvatarRow: { flexDirection: 'row', alignItems: 'center' },
-  memberAvatarWrap: { borderWidth: 2, borderColor: '#1a1a24', borderRadius: 16 },
+  memberAvatarWrap: { borderWidth: 2, borderColor: theme.card, borderRadius: 16 },
   memberMore: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.border, alignItems: 'center', justifyContent: 'center',
   },
-  memberMoreText: { fontSize: 10, color: '#a1a1aa', fontWeight: '700' },
+  memberMoreText: { fontSize: 10, color: theme.textLight, fontWeight: '700' },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyEmoji: { fontSize: 64, marginBottom: 20 },
-  emptyTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#a1a1aa', textAlign: 'center', lineHeight: 20, marginBottom: 28 },
+  emptyTitle: { fontSize: 22, fontWeight: '800', color: theme.text, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: theme.textLight, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
   createBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#00d4aa', borderRadius: 16,
+    backgroundColor: theme.primary, borderRadius: 16,
     paddingHorizontal: 28, paddingVertical: 14,
-    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowColor: theme.primary, shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35, shadowRadius: 16, elevation: 6,
   },
-  createBtnText: { color: '#0a0a0f', fontWeight: '800', marginLeft: 8, fontSize: 15 },
+  createBtnText: { color: theme.background, fontWeight: '800', marginLeft: 8, fontSize: 15 },
 
 });
 

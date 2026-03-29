@@ -1,0 +1,267 @@
+---
+# Flow: New features validation — Home quick actions, Friends QR/invite,
+# Activity toggle, Groups pin/archive/emoji, GroupDetail operations, AddExpense modes
+appId: com.ajayksingh.evenly
+---
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
+- waitForAnimationToEnd
+
+# Login
+- extendedWaitUntil:
+    visible: "Continue with Google"
+    timeout: 30000
+- runFlow:
+    file: ./helpers/do_login.yaml
+
+- extendedWaitUntil:
+    visible: "Total balance"
+    timeout: 15000
+
+# ============================================================
+# Section 1: Home — Greeting + Quick Actions
+# ============================================================
+# Greeting should show Alice's name — may be partially visible on small screens
+- extendedWaitUntil:
+    visible: "Alice"
+    timeout: 5000
+    optional: true
+
+# Quick action buttons
+- assertVisible:
+    id: "quick-add-expense"
+- assertVisible:
+    id: "quick-settle-up"
+
+
+# Tap Add Expense → navigates to Groups
+- tapOn:
+    id: "quick-add-expense"
+- waitForAnimationToEnd
+# Should land on Groups tab
+- assertVisible:
+    id: "fab-add-group"
+    optional: true
+
+# Go back to Home
+- tapOn:
+    text: "Home"
+    retryTapIfNoChange: true
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# ============================================================
+# Section 2: Activity — Timeline/Person Toggle
+# ============================================================
+# Navigate via tab bar using accessibility label
+- tapOn:
+    text: "Activity"
+    index: 0
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Toggle buttons — check only if we navigated successfully
+- assertVisible:
+    id: "view-timeline"
+    optional: true
+- assertVisible:
+    id: "view-person"
+    optional: true
+
+# Switch to person view if visible
+- tapOn:
+    id: "view-person"
+    optional: true
+- waitForAnimationToEnd
+
+# Switch back to timeline
+- tapOn:
+    id: "view-timeline"
+    optional: true
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 3: Friends — QR Code + Invite
+# ============================================================
+- tapOn:
+    text: "Friends"
+    index: 0
+    optional: true
+- waitForAnimationToEnd
+
+# Share invite button visible (only if on Friends screen)
+- assertVisible:
+    id: "share-invite-btn"
+    optional: true
+
+# QR code button visible
+- assertVisible:
+    id: "qr-code-btn"
+    optional: true
+
+# Open QR modal (only if button found)
+- tapOn:
+    id: "qr-code-btn"
+    optional: true
+- waitForAnimationToEnd
+
+# QR modal should show
+- assertVisible:
+    text: "My QR Code"
+    optional: true
+
+# Close QR modal
+- tapOn:
+    id: "qr-close-btn"
+    optional: true
+- pressKey: Back
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 4: Groups — Create with Emoji + Template
+# ============================================================
+# Re-launch app to ensure clean state (tab navigation unreliable on emulator)
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Total balance"
+    timeout: 15000
+# Tap Groups tab
+- tapOn:
+    text: "Groups"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      id: "fab-add-group"
+    timeout: 5000
+    optional: true
+- tapOn:
+    id: "fab-add-group"
+- waitForAnimationToEnd
+
+# Templates should be visible
+- assertVisible:
+    id: "template-0"
+    optional: true
+
+# Tap a template
+- tapOn:
+    id: "template-0"
+    optional: true
+- waitForAnimationToEnd
+
+# Emoji picker visible
+- tapOn:
+    id: "emoji-1"
+    optional: true
+- waitForAnimationToEnd
+
+# Fill group name
+- tapOn:
+    id: "group-name-input"
+- eraseText: 50
+- inputText: "Feature Test"
+
+# Create
+- tapOn: "Create"
+- waitForAnimationToEnd
+
+# Verify created
+- extendedWaitUntil:
+    visible: "Feature Test"
+    timeout: 10000
+
+# ============================================================
+# Section 5: GroupDetail — Share, Tabs, Activity Tab
+# ============================================================
+- tapOn: "Feature Test"
+- waitForAnimationToEnd
+
+# Share summary button
+- assertVisible:
+    id: "share-summary-btn"
+    optional: true
+
+# Add an expense
+- tapOn: "Add"
+- waitForAnimationToEnd
+
+# Quick mode button
+- assertVisible:
+    id: "quick-mode-btn"
+    optional: true
+
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "750"
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Feature test dinner"
+- hideKeyboard
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+# Expense should be in list
+- extendedWaitUntil:
+    visible: "Feature test dinner"
+    timeout: 10000
+
+# Check balances tab
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+- assertVisible: "Group Balances"
+
+# Settle all button
+- assertVisible:
+    id: "settle-all-btn"
+    optional: true
+
+# Check members tab
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+- assertVisible: "members"
+
+# Check activity tab (4th tab)
+- tapOn:
+    id: "tab-activity"
+    optional: true
+- waitForAnimationToEnd
+
+# Go back
+- back
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 6: Verify app didn't crash after all operations
+# ============================================================
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Total balance"
+    timeout: 15000

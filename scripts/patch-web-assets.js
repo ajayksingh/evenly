@@ -47,12 +47,21 @@ if (fs.existsSync(indexHtml)) {
   let html = fs.readFileSync(indexHtml, 'utf8');
   // Replace absolute script src with relative
   html = html.replace(/src="\/_expo\//g, 'src="_expo/');
-  // Inject iOS Safari scroll fix
+  // Fix viewport: disable pinch-to-zoom (app is a native-like SPA)
+  html = html.replace(
+    'content="width=device-width, initial-scale=1, shrink-to-fit=no"',
+    'content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover"'
+  );
+  console.log('Patched index.html: disabled pinch-to-zoom');
+
+  // Inject iOS Safari scroll fix + touch-action to prevent zoom gestures
   const iosFix = `<style>
-    /* iOS Safari scroll fix */
-    html { height: 100%; }
-    body { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
-    #root { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
+    /* iOS Safari scroll fix + prevent zoom */
+    html { height: 100%; touch-action: pan-x pan-y; }
+    body { height: 100%; overflow: hidden; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+    #root { height: 100%; overflow: hidden; -webkit-overflow-scrolling: touch; }
+    /* Prevent double-tap zoom on all interactive elements */
+    input, textarea, select, button, a { touch-action: manipulation; }
   </style>`;
   if (!html.includes('iOS Safari scroll fix')) {
     html = html.replace('</head>', iosFix + '\n</head>');

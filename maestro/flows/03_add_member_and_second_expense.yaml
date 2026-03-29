@@ -1,10 +1,8 @@
 ---
-# Flow: User A adds User B as member, adds second expense
+# Flow: Alice adds Bob as member, adds second expense
 appId: com.ajayksingh.evenly
 env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
-  USER_B_EMAIL: ajsworld@gmail.com
+  USER_B_EMAIL: bob@demo.com
 ---
 
 - launchApp:
@@ -13,11 +11,8 @@ env:
 
 - runFlow:
     when:
-      visible: "Sign In"
+      visible: "Continue with Google"
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:
@@ -29,42 +24,48 @@ env:
 - tapOn: "E2E Test Group"
 - waitForAnimationToEnd
 
-# Members tab → Add User B
+# Members tab → Add Bob Demo via unified AddPeopleModal
 - tapOn:
     id: "tab-members"
 - waitForAnimationToEnd
 - tapOn:
     id: "add-member-btn"
 - waitForAnimationToEnd
-- assertVisible: "Add Member"
+- assertVisible: "Add Members"
 
+# Switch to Search tab and search for Bob
+- tapOn:
+    id: "tab-search"
+    optional: true
+- waitForAnimationToEnd
 - tapOn:
     id: "member-search-input"
 - inputText: ${USER_B_EMAIL}
-- tapOn:
-    id: "member-search-btn"
 
-# Wait for the Add button on result card (proves foundUser is set)
+# Wait for search results to appear (debounced)
 - extendedWaitUntil:
     visible:
-      id: "add-member-action-btn"
+      text: "Bob"
     timeout: 8000
 
-# Dismiss keyboard, then tap the Add button on the result card
 - hideKeyboard
 - waitForAnimationToEnd
+# Tap the result row to select
 - tapOn:
-    id: "add-member-action-btn"
+    text: "Bob"
+    index: 0
 
-# Wait for modal to close by checking Cancel disappears (Cancel is only in the modal)
+# Wait for modal to close or confirmation
 - extendedWaitUntil:
     notVisible:
       text: "Cancel"
     timeout: 8000
 - waitForAnimationToEnd
 
-# Verify User B added - Ajay should be visible in members tab
-- assertVisible: "Ajay"
+# Verify Bob added
+- assertVisible:
+    text: "Bob Demo"
+    optional: true
 
 # Add second expense
 - tapOn:

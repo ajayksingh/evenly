@@ -12,7 +12,7 @@ async function navigateToCurrency(page) {
   const avatarBtn = page.locator('[data-testid="header-avatar"]');
   await avatarBtn.waitFor({ state: 'visible', timeout: 10000 });
   await avatarBtn.click();
-  await page.waitForSelector('text=My Account', { timeout: 15000 });
+  await page.waitForSelector('text=Profile', { timeout: 15000 });
 
   // Scroll down — "Default Currency" row is below the fold
   await page.mouse.wheel(0, 300);
@@ -90,7 +90,7 @@ test.describe('Currency Settings screen', () => {
     // Give time for the dialog to appear and be accepted, then navigation to happen
     await page.waitForTimeout(5000);
 
-    const backOnProfile = await page.getByText('My Account').isVisible({ timeout: 5000 }).catch(() => false);
+    const backOnProfile = await page.getByText('Profile').isVisible({ timeout: 5000 }).catch(() => false);
     const backOnHome    = await page.getByText('Total balance').isVisible({ timeout: 5000 }).catch(() => false);
     // Also accept still being on Currency Settings (in case dialog auto-closed without navigating)
     const stillOnCurrency = await page.getByText('Currency Settings').isVisible().catch(() => false);
@@ -127,7 +127,7 @@ test.describe('Currency Settings screen', () => {
     }
 
     await page.waitForTimeout(2000);
-    const onProfile = await page.getByText('My Account').isVisible().catch(() => false);
+    const onProfile = await page.getByText('Profile').isVisible().catch(() => false);
     const onHome    = await page.getByText('Total balance').isVisible().catch(() => false);
     // Also accept being on Currency Settings if back didn't navigate (heading still visible)
     const stillOnCurrency = await page.getByText('Currency Settings').isVisible().catch(() => false);

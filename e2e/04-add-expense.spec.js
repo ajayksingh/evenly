@@ -7,11 +7,8 @@ import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers/auth.js';
 import { goGroups } from './helpers/tabs.js';
 
-const EMAIL    = 'deepsags@gmail.com';
-const PASSWORD = 'abc123';
-
 async function navigateToAddExpense(page) {
-  await loginAs(page, EMAIL, PASSWORD);
+  await loginAs(page);
   await goGroups(page);
 
   const isEmpty = await page.getByText('No groups yet').isVisible({ timeout: 2000 }).catch(() => false);

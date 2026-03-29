@@ -1,9 +1,6 @@
 ---
-# Flow: User A (deepsags) logs in, creates group, adds expense
+# Flow: Alice Demo logs in, creates group, adds expense
 appId: com.ajayksingh.evenly
-env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
 ---
 
 - launchApp:
@@ -15,18 +12,15 @@ env:
     text: "OK"
     optional: true
 - extendedWaitUntil:
-    visible: "Welcome back"
+    visible: "Continue with Google"
     timeout: 30000
-# Wait for entrance animation (formAnim 400ms) to finish before interacting
+# Wait for entrance animation to finish before interacting
 - waitForAnimationToEnd:
     timeout: 3000
 - runFlow:
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
-# Wait for Supabase to load home screen (allow up to 30s)
+# Wait for home screen
 - extendedWaitUntil:
     visible:
       text: "Total balance"
@@ -76,7 +70,7 @@ env:
     id: "expense-save-btn"
 - waitForAnimationToEnd
 
-# Verify expense persisted from Supabase
+# Verify expense persisted
 - extendedWaitUntil:
     visible:
       text: "Dinner at restaurant"

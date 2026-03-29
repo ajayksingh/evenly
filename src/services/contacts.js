@@ -45,6 +45,32 @@ export const getContacts = async () => {
     .slice(0, 200); // Limit to 200 for performance
 };
 
+// Silent version - fetches contacts only if permission was already granted (no prompt)
+export const getContactsIfPermitted = async () => {
+  if (Platform.OS === 'web' || !Contacts) return [];
+  const hasPermission = await checkContactsPermissionSilently();
+  if (!hasPermission) return [];
+  const { data } = await Contacts.getContactsAsync({
+    fields: [
+      Contacts.Fields.Name,
+      Contacts.Fields.Emails,
+      Contacts.Fields.PhoneNumbers,
+      Contacts.Fields.Image,
+    ],
+    sort: Contacts.SortTypes.FirstName,
+  });
+  return data
+    .filter(c => c.name && (c.phoneNumbers?.length > 0 || c.emails?.length > 0))
+    .map(c => ({
+      id: c.id,
+      name: c.name,
+      email: c.emails?.[0]?.email || null,
+      phone: c.phoneNumbers?.[0]?.number || null,
+      avatar: c.image?.uri || null,
+    }))
+    .slice(0, 200);
+};
+
 export const searchContacts = async (query) => {
   const contacts = await getContacts();
   const q = query.toLowerCase().trim();
@@ -86,6 +112,29 @@ export const buildExpenseWhatsAppMessage = ({ expense, paidBy, splitAmount, grou
     `Total: ${symbol}${expense.amount.toFixed(2)}\n` +
     `Your share: ${symbol}${splitAmount.toFixed(2)}\n\n` +
     `_Sent via Evenly App_`;
+};
+
+export const buildInviteMessage = (userName, inviteLink) => {
+  return `Hey! Join me on Evenly — the easiest way to split expenses. Tap the link and we'll be automatically connected:\n\n${inviteLink}\n\n- ${userName || 'Your friend'}`;
+};
+
+export const buildWhatsAppInviteMessage = (userName, inviteLink) => {
+  const link = inviteLink || 'https://ajayksingh.github.io/evenly/';
+  return `Hey! Join me on *Evenly* to split expenses together \u{1F4B8}\n\nTap to connect instantly:\n${link}\n\n_- ${userName || 'Your friend'}_`;
+};
+
+export const buildGroupWhatsAppInviteMessage = (userName, groupName, joinLink) => {
+  return `Hey! Join *${groupName}* on *Evenly* to split expenses together \u{1F4B8}\n\nTap to join the group:\n${joinLink}\n\n_- ${userName || 'Your friend'}_`;
+};
+
+export const checkContactsPermissionSilently = async () => {
+  if (Platform.OS === 'web' || !Contacts) return false;
+  try {
+    const { status } = await Contacts.getPermissionsAsync();
+    return status === 'granted';
+  } catch {
+    return false;
+  }
 };
 
 export const buildSettlementWhatsAppMessage = ({ payerName, receiverName, amount, currency = 'INR' }) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, Animated as RNAnimated, Platform,
@@ -6,11 +6,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import { SUPPORTED_CURRENCIES, fetchExchangeRates, formatAmount, detectDefaultCurrency } from '../services/currency';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 
 const CurrencyScreen = ({ navigation }) => {
+  const { theme, colorScheme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { currency, setCurrency } = useApp();
 
   const isWeb = Platform.OS === 'web';
@@ -30,8 +33,8 @@ const CurrencyScreen = ({ navigation }) => {
   }, []));
 
   const scrollY = useRef(new RNAnimated.Value(0)).current;
-  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'], extrapolate: 'clamp' });
-  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.08)'], extrapolate: 'clamp' });
+  const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: [theme.headerBgTransparent, theme.headerBg], extrapolate: 'clamp' });
+  const headerBorder = scrollY.interpolate({ inputRange: [0, 80], outputRange: ['transparent', theme.border], extrapolate: 'clamp' });
 
   const [rates, setRates] = useState({});
   const [loading, setLoading] = useState(true);
@@ -64,17 +67,17 @@ const CurrencyScreen = ({ navigation }) => {
 
   return (
     <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <RNAnimated.View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.text} />
+        <TouchableOpacity accessibilityLabel="Go back" activeOpacity={0.7} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Currency Settings</Text>
         <View style={{ width: 24 }} />
       </RNAnimated.View>
 
       <View style={styles.infoCard}>
-        <Ionicons name="location" size={18} color={COLORS.primary} />
+        <Ionicons name="location" size={18} color={theme.primary} />
         <Text style={styles.infoText}>
           Detected location default: <Text style={styles.infoBold}>{deviceDefault}</Text>
         </Text>
@@ -87,7 +90,7 @@ const CurrencyScreen = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Fetching live rates...</Text>
         </View>
       ) : (
@@ -101,13 +104,14 @@ const CurrencyScreen = ({ navigation }) => {
             const isSelected = item.code === currency;
             return (
               <TouchableOpacity
+                accessibilityLabel={`Select currency: ${item.code} ${item.name}`}
                 activeOpacity={0.7}
                 style={[styles.currencyRow, isSelected && styles.currencyRowSelected]}
                 onPress={() => handleSelect(item.code)}
               >
                 <Text style={styles.flag}>{item.flag}</Text>
                 <View style={styles.currencyInfo}>
-                  <Text style={[styles.currencyCode, isSelected && { color: COLORS.primary }]}>{item.code}</Text>
+                  <Text style={[styles.currencyCode, isSelected && { color: theme.primary }]}>{item.code}</Text>
                   <Text style={styles.currencyName}>{item.name}</Text>
                 </View>
                 <View style={styles.currencyRight}>
@@ -134,42 +138,42 @@ const CurrencyScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+const getStyles = (theme) => StyleSheet.create({
+  container: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingTop: 56, paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    backgroundColor: theme.white, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: theme.text },
   infoCard: {
     flexDirection: 'row', alignItems: 'center', margin: 16,
-    backgroundColor: COLORS.primaryLight, borderRadius: 12, padding: 14,
+    backgroundColor: theme.primaryLight, borderRadius: 12, padding: 14,
   },
-  infoText: { flex: 1, marginLeft: 8, fontSize: 14, color: COLORS.text },
-  infoBold: { fontWeight: '700', color: COLORS.primary },
+  infoText: { flex: 1, marginLeft: 8, fontSize: 14, color: theme.text },
+  infoBold: { fontWeight: '700', color: theme.primary },
   ratesHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, marginBottom: 8,
   },
-  ratesTitle: { fontSize: 14, fontWeight: '600', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.5 },
-  ratesBase: { fontSize: 13, color: COLORS.textLight },
+  ratesTitle: { fontSize: 14, fontWeight: '600', color: theme.textLight, textTransform: 'uppercase', letterSpacing: 0.5 },
+  ratesBase: { fontSize: 13, color: theme.textLight },
   loading: { alignItems: 'center', paddingVertical: 60 },
-  loadingText: { marginTop: 12, color: COLORS.textLight },
+  loadingText: { marginTop: 12, color: theme.textLight },
   currencyRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.white,
     marginHorizontal: 16, marginBottom: 8, borderRadius: 12, padding: 14,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 2,
   },
-  currencyRowSelected: { borderWidth: 2, borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+  currencyRowSelected: { borderWidth: 2, borderColor: theme.primary, backgroundColor: theme.primaryLight },
   flag: { fontSize: 28, marginRight: 14 },
   currencyInfo: { flex: 1 },
-  currencyCode: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-  currencyName: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
+  currencyCode: { fontSize: 16, fontWeight: '700', color: theme.text },
+  currencyName: { fontSize: 13, color: theme.textLight, marginTop: 2 },
   currencyRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rateText: { fontSize: 15, fontWeight: '600', color: COLORS.text },
+  rateText: { fontSize: 15, fontWeight: '600', color: theme.text },
   selectedBadge: {
-    width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.primary,
+    width: 24, height: 24, borderRadius: 12, backgroundColor: theme.primary,
     alignItems: 'center', justifyContent: 'center',
   },
 });

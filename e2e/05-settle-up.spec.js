@@ -7,11 +7,8 @@ import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers/auth.js';
 import { goFriends, goGroups } from './helpers/tabs.js';
 
-const EMAIL    = 'deepsags@gmail.com';
-const PASSWORD = 'abc123';
-
 async function navigateToSettleUp(page) {
-  await loginAs(page, EMAIL, PASSWORD);
+  await loginAs(page);
 
   // Try Friends tab
   await goFriends(page);
@@ -46,7 +43,7 @@ test.describe('Settle Up screen', () => {
   test('navigate to Settle Up from Friends or Groups', async ({ page }) => {
     const reached = await navigateToSettleUp(page);
     if (!reached) {
-      test.skip(true, 'No Settle Up route — deepsags has no outstanding balances');
+      test.skip(true, 'No Settle Up route — demo user has no outstanding balances');
       return;
     }
     await expect(page.getByText('UPI').or(page.getByText('Settle Up')).first()).toBeVisible({ timeout: 10000 });
@@ -117,7 +114,7 @@ test.describe('Settle Up screen', () => {
     page.once('dialog', async (dialog) => { await dialog.accept(); });
 
     // Try known submit button texts
-    for (const text of [/record payment/i, /settle now/i, /confirm/i, /done/i]) {
+    for (const text of [/settle up/i, /settle now/i, /confirm/i, /done/i]) {
       const btn = page.getByText(text).first();
       if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
         await btn.click();
@@ -126,7 +123,7 @@ test.describe('Settle Up screen', () => {
     }
 
     await page.waitForTimeout(5000);
-    const success  = await page.getByText(/payment.*successful|settled/i).isVisible().catch(() => false);
+    const success  = await page.getByText(/all settled|settled/i).isVisible().catch(() => false);
     const onFriend = await page.getByRole('tab', { name: /Friends/ }).isVisible().catch(() => false);
     const onHome   = await page.getByText('Total balance').isVisible().catch(() => false);
     expect(success || onFriend || onHome).toBe(true);

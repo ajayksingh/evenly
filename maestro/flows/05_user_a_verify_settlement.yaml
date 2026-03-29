@@ -1,12 +1,9 @@
 ---
-# Flow: User A logs back in and verifies settlement was received
+# Flow: Alice logs back in and verifies settlement was received
 appId: com.ajayksingh.evenly
-env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
 ---
 
-# --- Logout User B ---
+# --- Logout Bob ---
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
@@ -22,18 +19,12 @@ env:
 - tapOn: "SIGN OUT"
 - waitForAnimationToEnd
 
-# --- Login as User A ---
+# --- Login as Alice ---
 - extendedWaitUntil:
-    visible: "Welcome back"
+    visible: "Continue with Google"
     timeout: 15000
-- tapOn:
-    text: "Sign In"
-    optional: true
 - runFlow:
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: "deepsags@gmail.com"
-      PASS: "abc123"
 
 # --- Check home screen shows reduced/zero balance ---
 - waitForAnimationToEnd

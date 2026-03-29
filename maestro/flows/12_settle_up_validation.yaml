@@ -2,9 +2,6 @@
 # Flow: SettleUp form validation — empty submit, auto-suggest balance,
 # clear amount error, all payment methods, and successful payment.
 appId: com.ajayksingh.evenly
-env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
 ---
 
 - launchApp:
@@ -14,11 +11,8 @@ env:
 # === Login as User A (or reuse session) ===
 - runFlow:
     when:
-      visible: "Welcome back"
+      visible: "Continue with Google"
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:
@@ -42,14 +36,14 @@ env:
 - assertVisible: "Settle Up"
 
 # ============================================================
-# Section 1: Tap Record Payment without selecting payer/receiver
+# Section 1: Tap Settle Up without selecting payer/receiver
 # Should not submit / should stay on form
 # ============================================================
 - tapOn:
     id: "settle-record-btn"
     optional: true
 - tapOn:
-    text: "Record Payment"
+    text: "Settle Up"
     optional: true
 - waitForAnimationToEnd
 
@@ -67,21 +61,21 @@ env:
 # ============================================================
 # Section 2: Select payer (User A) and receiver (User B)
 # ============================================================
-# Payer dropdown — select User A (deepsags)
+# Payer dropdown — select User A (Alice)
 - tapOn:
     id: "settle-payer-selector"
     optional: true
 - waitForAnimationToEnd
 
 - tapOn:
-    text: "deepsags"
+    text: "Alice"
     optional: true
 - tapOn:
     text: "Deep"
     optional: true
 - waitForAnimationToEnd
 
-# Receiver dropdown — select User B (ajsworld / Ajay)
+# Receiver dropdown — select User B (Bob / Ajay)
 - tapOn:
     id: "settle-receiver-selector"
     optional: true
@@ -94,7 +88,7 @@ env:
     text: "Ajay"
     optional: true
 - tapOn:
-    text: "ajsworld"
+    text: "Bob"
     optional: true
 - waitForAnimationToEnd
 
@@ -113,7 +107,7 @@ env:
 - waitForAnimationToEnd
 
 # ============================================================
-# Section 4: Clear amount, tap Record Payment → validation error
+# Section 4: Clear amount, tap Settle Up → validation error
 # ============================================================
 - tapOn:
     id: "settle-amount-input"
@@ -126,7 +120,7 @@ env:
     id: "settle-record-btn"
     optional: true
 - tapOn:
-    text: "Record Payment"
+    text: "Settle Up"
     optional: true
 - waitForAnimationToEnd
 
@@ -213,19 +207,19 @@ env:
 - waitForAnimationToEnd
 
 # ============================================================
-# Section 7: Submit → verify "Payment Successful!" screen
+# Section 7: Submit → verify "All settled!" screen
 # ============================================================
 - tapOn:
     id: "settle-record-btn"
     optional: true
 - tapOn:
-    text: "Record Payment"
+    text: "Settle Up"
     optional: true
 - waitForAnimationToEnd
 
 - extendedWaitUntil:
     visible:
-      text: "Payment Successful!"
+      text: "All settled!"
     timeout: 15000
 
 # ============================================================

@@ -1,17 +1,14 @@
 ---
-# Flow: Login as User A (deepsags@gmail.com)
+# Flow: Login as Alice Demo
 appId: com.ajayksingh.evenly
-env:
-  EMAIL: ${USER_A_EMAIL}
-  PASS: ${USER_A_PASS}
 ---
 - launchApp:
     clearState: false
 - assertVisible:
     text: "Evenly"
     optional: true
-# If already logged in, logout first
+# If on auth screen, login via demo
 - runFlow:
     when:
-      visible: "Sign In"
+      visible: "Continue with Google"
     file: ./helpers/do_login.yaml

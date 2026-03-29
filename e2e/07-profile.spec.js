@@ -1,6 +1,6 @@
 /**
  * 07-profile.spec.js
- * Profile / My Account screen tests.
+ * Profile / Profile screen tests.
  */
 
 import { test, expect } from '@playwright/test';
@@ -14,13 +14,14 @@ test.describe('Profile screen', () => {
     const avatarBtn = page.locator('[data-testid="header-avatar"]');
     await avatarBtn.waitFor({ state: 'visible', timeout: 10000 });
     await avatarBtn.click();
-    await page.waitForSelector('text=My Account', { timeout: 15000 });
+    // Wait for the profile screen — Alice Demo name confirms we're on profile, not just seeing "Profile" text
+    await page.waitForSelector('text=Alice Demo', { timeout: 15000 });
   });
 
   // ─── Basic rendering ──────────────────────────────────────────────────────
 
   test('Profile screen loads via avatar tap', async ({ page }) => {
-    await expect(page.getByText('My Account')).toBeVisible();
+    await expect(page.getByText('Profile')).toBeVisible();
   });
 
   test('user name (Alice Demo) is displayed', async ({ page }) => {
@@ -81,7 +82,7 @@ test.describe('Profile screen', () => {
     if (await cancelBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await cancelBtn.click();
       await page.waitForTimeout(800);
-      await expect(page.getByText('My Account')).toBeVisible();
+      await expect(page.getByText('Profile')).toBeVisible();
     }
   });
 
@@ -132,8 +133,8 @@ test.describe('Profile screen', () => {
       }
     }
 
-    const onProfile = await page.getByText('My Account').isVisible().catch(() => false);
-    const onAuth    = await page.getByText('Welcome back').isVisible().catch(() => false);
+    const onProfile = await page.getByText('Profile').isVisible().catch(() => false);
+    const onAuth    = await page.getByText('Continue with Google').isVisible().catch(() => false);
     expect(onProfile || onAuth).toBe(true);
   });
 
@@ -161,7 +162,7 @@ test.describe('Profile screen', () => {
       }
     }
 
-    await expect(page.getByText('Welcome back')).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText('Continue with Google')).toBeVisible({ timeout: 20000 });
   });
 
   // ─── Back navigation ─────────────────────────────────────────────────────
@@ -170,12 +171,12 @@ test.describe('Profile screen', () => {
     // The profile screen "<" back chevron has no aria-label.
     // It renders as a TouchableOpacity at the very start of the header.
     // Strategy: find the back button by locating the first touchable element in the header.
-    // The profile header has: [back_btn] [My Account title] (no right element)
-    // The back chevron renders before the "My Account" text node.
-    await page.locator('text=My Account').waitFor({ state: 'visible', timeout: 5000 });
+    // The profile header has: [back_btn] [Profile title] (no right element)
+    // The back chevron renders before the "Profile" text node.
+    await page.locator('text=Profile').waitFor({ state: 'visible', timeout: 5000 });
 
     // Try clicking the leftmost element in the header area
-    const header = page.getByText('My Account');
+    const header = page.getByText('Profile');
     const box = await header.boundingBox();
     if (box) {
       // The back button is at the far left of the viewport in the header row
@@ -187,7 +188,7 @@ test.describe('Profile screen', () => {
 
     // Accept either outcome: navigated back to Home, or still on profile (button didn't register)
     const onHome    = await page.getByText('Total balance').isVisible({ timeout: 5000 }).catch(() => false);
-    const onProfile = await page.getByText('My Account').isVisible().catch(() => false);
+    const onProfile = await page.getByText('Profile').isVisible().catch(() => false);
 
     // Either state is acceptable — the important thing is no crash
     expect(onHome || onProfile).toBe(true);

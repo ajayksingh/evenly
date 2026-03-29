@@ -3,7 +3,7 @@
     "name": "Evenly",
     "slug": "evenly",
     "scheme": "evenly",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -49,6 +49,7 @@
     },
     "owner": "ajayksingh",
     "plugins": [
+      "expo-notifications",
       [
         "react-native-google-mobile-ads",
         {

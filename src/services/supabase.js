@@ -6,6 +6,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
+import { makeRedirectUri } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+
+// Complete any pending auth sessions (required for native OAuth)
+if (Platform.OS !== 'web') {
+  WebBrowser.maybeCompleteAuthSession();
+}
 
 // ⚠️  Replace these with your actual Supabase project credentials
 // Get them from: https://supabase.com/dashboard → project → Settings → API
@@ -14,13 +21,19 @@ export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 const isConfigured = !SUPABASE_URL.includes('YOUR_PROJECT_ID');
 
+// Build the redirect URI for OAuth callbacks
+export const oauthRedirectUri = makeRedirectUri({
+  scheme: 'evenly',
+  path: 'auth/callback',
+});
+
 export const supabase = isConfigured
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         storage: AsyncStorage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash.includes('access_token'),
+        detectSessionInUrl: Platform.OS === 'web',
       },
     })
   : null;

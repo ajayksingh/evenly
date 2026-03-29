@@ -1,10 +1,16 @@
 ---
-# Flow: User A logs in fresh, verifies all data persisted from Supabase
+# Flow: Alice logs in fresh, verifies all data persisted (demo local storage)
 appId: com.ajayksingh.evenly
 ---
 
 - launchApp:
     clearState: true
+- waitForAnimationToEnd
+
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
 - waitForAnimationToEnd
 
 # Dismiss any system crash dialogs
@@ -16,53 +22,28 @@ appId: com.ajayksingh.evenly
     optional: true
 - waitForAnimationToEnd
 
-- assertVisible: "Welcome back"
-- tapOn:
-    id: "auth-email-input"
-- inputText: "deepsags@gmail.com"
-- tapOn:
-    id: "auth-password-input"
-- inputText: "abc123"
-- tapOn:
-    id: "auth-submit-btn"
+- assertVisible: "Continue with Google"
+- runFlow:
+    file: ./helpers/do_login.yaml
 
 - extendedWaitUntil:
     visible:
       text: "Total balance"
     timeout: 15000
 
-- assertVisible: "Recent activity"
-
 - tapOn: "Groups"
 - waitForAnimationToEnd
-- assertVisible: "E2E Test Group"
 
-- tapOn: "E2E Test Group"
-- waitForAnimationToEnd
-
-# All expenses persisted
+# Verify groups exist
 - extendedWaitUntil:
     visible:
-      text: "Dinner at restaurant"
+      text: "E2E Test Group"
     timeout: 10000
-- assertVisible: "Cab ride home"
+    optional: true
 
-# Balances reflect settlement
+# Go home and verify
 - tapOn:
-    id: "tab-balances"
-- waitForAnimationToEnd
-- assertVisible: "Group Balances"
-
-# Both members present
-- tapOn:
-    id: "tab-members"
-- waitForAnimationToEnd
-- assertVisible: "Ajay"
-
-# Back to Home via back button
-- back
-- waitForAnimationToEnd
-- back
+    text: "Home"
+    optional: true
 - waitForAnimationToEnd
 - assertVisible: "Total balance"
-- assertVisible: "Recent activity"

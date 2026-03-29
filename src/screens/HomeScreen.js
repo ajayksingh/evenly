@@ -1,8 +1,8 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useMemo } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Image,
   RefreshControl, StatusBar, Alert, ActivityIndicator,
-  Animated as RNAnimated, Platform,
+  Animated as RNAnimated, Platform, FlatList,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming, withDelay,
@@ -12,14 +12,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { respondToGroupInvite } from '../services/storage';
 import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import Avatar from '../components/Avatar';
 import BackgroundOrbs from '../components/BackgroundOrbs';
+import PressableScale from '../components/PressableScale';
+import FadeInView from '../components/FadeInView';
+import Skeleton from '../components/Skeleton';
 import { formatDate } from '../utils/splitCalculator';
 import { formatAmount } from '../services/currency';
+import { isNarrow, rPadding, rFontSize, rWidth } from '../utils/responsive';
 import { BannerAd, BannerAdSize, AD_UNIT_IDS } from '../services/ads';
 
 const HomeScreen = ({ navigation }) => {
   const { user, balances, activity, groups, totalBalance, currency, refresh, groupInvites, notifyWrite } = useApp();
+  const { theme, colorScheme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const [refreshing, setRefreshing] = useState(false);
   const [respondingInvite, setRespondingInvite] = useState(null);
 
@@ -71,6 +78,23 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  // Number counter animation for hero balance
+  const prevBalance = useRef(totalBalance);
+  const displayBalance = useRef(new RNAnimated.Value(totalBalance)).current;
+  const [animatedBalance, setAnimatedBalance] = useState(totalBalance);
+  React.useEffect(() => {
+    if (prevBalance.current !== totalBalance) {
+      RNAnimated.timing(displayBalance, {
+        toValue: totalBalance,
+        duration: 500,
+        useNativeDriver: false,
+      }).start();
+      prevBalance.current = totalBalance;
+    }
+    const id = displayBalance.addListener(({ value }) => setAnimatedBalance(value));
+    return () => displayBalance.removeListener(id);
+  }, [totalBalance]);
+
   const oweMe = balances.filter(b => b.amount > 0);
   const iOwe = balances.filter(b => b.amount < 0);
   const totalOwedToMe = oweMe.reduce((s, b) => s + b.amount, 0);
@@ -79,10 +103,10 @@ const HomeScreen = ({ navigation }) => {
   const getActivityIcon = (type) => {
     switch (type) {
       case 'expense_added': return { icon: 'receipt', color: '#4fc3f7' };
-      case 'settlement': return { icon: 'checkmark-circle', color: COLORS.success };
-      case 'group_created': return { icon: 'people', color: COLORS.primary };
-      case 'member_joined': return { icon: 'person-add', color: '#00d4aa' };
-      default: return { icon: 'ellipse', color: COLORS.textLight };
+      case 'settlement': return { icon: 'checkmark-circle', color: theme.success };
+      case 'group_created': return { icon: 'people', color: theme.primary };
+      case 'member_joined': return { icon: 'person-add', color: theme.primary };
+      default: return { icon: 'ellipse', color: theme.textLight };
     }
   };
 
@@ -101,12 +125,69 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  // Feature 1: Time-of-day greeting
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    const firstName = user?.name ? user.name.split(' ')[0] : '';
+    if (hour >= 5 && hour < 12) return `Good morning, ${firstName}`;
+    if (hour >= 12 && hour < 17) return `Good afternoon, ${firstName}`;
+    if (hour >= 17 && hour < 21) return `Good evening, ${firstName}`;
+    return `Hey, ${firstName}`;
+  }, [user?.name]);
+
+  // Feature 3: Outstanding debt summary
+  const oweMeCount = oweMe.length;
+  const iOweCount = iOwe.length;
+
+  // Feature 4: Top pending settlement
+  const topPending = useMemo(() => {
+    if (balances.length === 0) return null;
+    const sorted = [...balances].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+    const top = sorted[0];
+    if (!top || Math.abs(top.amount) < 0.01) return null;
+    return top;
+  }, [balances]);
+
+  // Feature 5: Monthly spending insight
+  const monthlyInsight = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const monthlyExpenses = activity.filter(item => {
+      if (item.type !== 'expense_added') return false;
+      const d = new Date(item.createdAt);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+    const totalSpent = monthlyExpenses.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const groupIds = new Set(monthlyExpenses.map(item => item.groupId).filter(Boolean));
+    return { totalSpent, groupCount: groupIds.size, expenseCount: monthlyExpenses.length };
+  }, [activity]);
+
+  // Feature 6: Top 3 most active groups
+  const topGroups = useMemo(() => {
+    if (groups.length === 0) return [];
+    const groupActivityMap = {};
+    activity.forEach(item => {
+      if (item.groupId) {
+        if (!groupActivityMap[item.groupId] || new Date(item.createdAt) > new Date(groupActivityMap[item.groupId].createdAt)) {
+          groupActivityMap[item.groupId] = item;
+        }
+      }
+    });
+    return groups
+      .filter(g => !g.archived)
+      .map(g => ({ ...g, lastActivity: groupActivityMap[g.id] }))
+      .filter(g => g.lastActivity)
+      .sort((a, b) => new Date(b.lastActivity.createdAt) - new Date(a.lastActivity.createdAt))
+      .slice(0, 3);
+  }, [groups, activity]);
+
   const isSettled = Math.abs(totalBalance) < 0.01;
 
   const scrollY = useRef(new RNAnimated.Value(0)).current;
   const headerBg = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: ['rgba(10,10,15,0)', 'rgba(10,10,15,0.97)'],
+    outputRange: [theme.headerBgTransparent, theme.headerBg],
     extrapolate: 'clamp',
   });
   const headerBorder = scrollY.interpolate({
@@ -116,23 +197,24 @@ const HomeScreen = ({ navigation }) => {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <BackgroundOrbs />
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       {/* Fixed animated header */}
       <RNAnimated.View style={[styles.appHeader, {
         backgroundColor: headerBg,
         borderBottomColor: headerBorder.interpolate
-          ? headerBorder.interpolate({ inputRange: [0, 1], outputRange: ['rgba(255,255,255,0)', COLORS.border] })
-          : COLORS.border,
+          ? headerBorder.interpolate({ inputRange: [0, 1], outputRange: ['transparent', theme.border] })
+          : theme.border,
       }]}>
         <View style={styles.logoRow}>
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>E</Text>
+          <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
+          <View>
+            <Text style={styles.greetingText}>{greeting}</Text>
+            <Text style={styles.appNameSubtitle}>Evenly</Text>
           </View>
-          <Text style={styles.appName}>Evenly</Text>
         </View>
-        <TouchableOpacity testID="header-avatar" activeOpacity={0.7} onPress={() => navigation.navigate('Profile')} style={styles.avatarBtn}>
+        <TouchableOpacity testID="header-avatar" accessibilityLabel="Navigate to Profile" activeOpacity={0.7} onPress={() => navigation.navigate('Profile')} style={styles.avatarBtn}>
           <Avatar name={user?.name} avatar={user?.avatar} size={40} />
         </TouchableOpacity>
       </RNAnimated.View>
@@ -140,9 +222,25 @@ const HomeScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
         contentContainerStyle={{ paddingTop: 116 }}
       >
+
+        {/* Skeleton loading state */}
+        {user && groups.length === 0 && activity.length === 0 && !refreshing && (
+          <View style={{ padding: 16 }}>
+            <Skeleton width="100%" height={120} borderRadius={20} style={{ marginBottom: 12 }} />
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+              <Skeleton width={80} height={80} borderRadius={16} />
+              <Skeleton width={80} height={80} borderRadius={16} />
+            </View>
+            <Skeleton width="100%" height={60} borderRadius={16} style={{ marginBottom: 10 }} />
+            <Skeleton width="100%" height={60} borderRadius={16} style={{ marginBottom: 10 }} />
+            <Skeleton width="100%" height={50} borderRadius={12} style={{ marginBottom: 8 }} />
+            <Skeleton width="100%" height={50} borderRadius={12} style={{ marginBottom: 8 }} />
+            <Skeleton width="100%" height={50} borderRadius={12} style={{ marginBottom: 8 }} />
+          </View>
+        )}
 
         {/* Pending Group Invites */}
         {groupInvites && groupInvites.length > 0 && (
@@ -154,7 +252,7 @@ const HomeScreen = ({ navigation }) => {
                   <Ionicons name="people" size={20} color="#00d4aa" />
                 </View>
                 <View style={styles.inviteInfo}>
-                  <Text style={styles.inviteGroupName}>{invite.groupName}</Text>
+                  <Text style={styles.inviteGroupName} numberOfLines={1}>{invite.groupName}</Text>
                   <Text style={styles.inviteSubtext}>{invite.invitedByName} invited you</Text>
                 </View>
                 <View style={styles.inviteActions}>
@@ -163,6 +261,7 @@ const HomeScreen = ({ navigation }) => {
                   ) : (
                     <>
                       <TouchableOpacity
+                        accessibilityLabel={`Accept invite to ${invite.groupName}`}
                         activeOpacity={0.7}
                         style={styles.inviteAcceptBtn}
                         onPress={() => handleInviteResponse(invite, true)}
@@ -170,6 +269,7 @@ const HomeScreen = ({ navigation }) => {
                         <Text style={styles.inviteAcceptText}>Accept</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
+                        accessibilityLabel={`Decline invite to ${invite.groupName}`}
                         activeOpacity={0.7}
                         style={styles.inviteRejectBtn}
                         onPress={() => handleInviteResponse(invite, false)}
@@ -189,75 +289,192 @@ const HomeScreen = ({ navigation }) => {
           {/* Glow effect */}
           <View style={styles.heroGlow} />
           <Text style={styles.heroLabel}>Total balance</Text>
-          <Text style={styles.heroAmount}>
-            {formatAmount(isSettled ? 0 : Math.abs(totalBalance), currency)}
+          <Text style={styles.heroAmount} numberOfLines={1} adjustsFontSizeToFit={true}>
+            {formatAmount(isSettled ? 0 : Math.abs(animatedBalance), currency)}
           </Text>
-          <View style={[styles.heroBadge, { backgroundColor: isSettled ? COLORS.primaryLight : totalBalance > 0 ? COLORS.primaryLight : 'rgba(255,107,107,0.12)' }]}>
-            <View style={[styles.heroDot, { backgroundColor: isSettled ? COLORS.primary : totalBalance > 0 ? COLORS.primary : COLORS.negative }]} />
-            <Text style={[styles.heroBadgeText, { color: isSettled ? COLORS.primary : totalBalance > 0 ? COLORS.primary : COLORS.negative }]}>
-              {isSettled ? 'All settled up!' : totalBalance > 0 ? 'You are owed' : 'You owe'}
+          <View style={[styles.heroBadge, { backgroundColor: isSettled ? theme.primaryLight : totalBalance > 0 ? theme.primaryLight : 'rgba(255,107,107,0.12)' }]}>
+            <View style={[styles.heroDot, { backgroundColor: isSettled ? theme.primary : totalBalance > 0 ? theme.primary : theme.negative }]} />
+            <Text style={[styles.heroBadgeText, { color: isSettled ? theme.primary : totalBalance > 0 ? theme.primary : theme.negative }]} numberOfLines={1}>
+              {isSettled
+              ? (groups.length === 0 && balances.length === 0 ? 'Ready to split' : 'All square! \u{1F91D}')
+              : totalBalance > 0 ? 'Friends owe you' : 'You owe friends'}
             </Text>
           </View>
         </Animated.View>
 
-        {/* Stats Grid */}
+        {/* Feature 2: Quick Action Buttons Row */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsRow}>
+          <PressableScale
+            testID="quick-add-expense"
+            accessibilityLabel="Add expense"
+            style={styles.quickActionBtn}
+            onPress={() => navigation.navigate('Groups')}
+          >
+            <View style={styles.quickActionIcon}>
+              <Ionicons name="add-circle" size={26} color={theme.primary} />
+            </View>
+            <Text style={styles.quickActionLabel}>Add Expense</Text>
+          </PressableScale>
+          <PressableScale
+            testID="quick-settle-up"
+            accessibilityLabel="Settle up"
+            style={styles.quickActionBtn}
+            onPress={() => navigation.navigate('Friends')}
+          >
+            <View style={styles.quickActionIcon}>
+              <Ionicons name="checkmark-circle" size={26} color={theme.primary} />
+            </View>
+            <Text style={styles.quickActionLabel}>Settle Up</Text>
+          </PressableScale>
+        </ScrollView>
+
+        {/* Feature 3: Outstanding Debts Summary */}
         <Animated.View style={[styles.statsGrid, statsAnimStyle]}>
-          <TouchableOpacity
-            activeOpacity={totalOwedToMe > 0 ? 0.7 : 1}
-            style={[styles.statCard, styles.statCardPositive]}
-            onPress={() => totalOwedToMe > 0 && navigation.navigate('Friends')}
-          >
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(0,212,170,0.1)' }]}>
-              <Ionicons name="trending-up" size={20} color={COLORS.primary} />
+          {totalOwedToMe < 0.01 && totalIOwe < 0.01 ? (
+            <View style={[styles.debtCard, styles.debtCardSettled]}>
+              <Text style={styles.debtSettledText}>All square! 🤝</Text>
             </View>
-            <Text style={styles.statAmount}>{formatAmount(totalOwedToMe, currency)}</Text>
-            <Text style={styles.statLabel}>you're owed</Text>
-            {totalOwedToMe > 0 && <Text style={styles.statTapHint}>tap to see who →</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={totalIOwe > 0 ? 0.7 : 1}
-            style={[styles.statCard, styles.statCardNegative]}
-            onPress={() => totalIOwe > 0 && navigation.navigate('Friends')}
-          >
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(255,107,107,0.1)' }]}>
-              <Ionicons name="trending-down" size={20} color={COLORS.negative} />
-            </View>
-            <Text style={[styles.statAmount, { color: COLORS.negative }]}>{formatAmount(totalIOwe, currency)}</Text>
-            <Text style={styles.statLabel}>you owe</Text>
-            {totalIOwe > 0 && <Text style={[styles.statTapHint, { color: '#ff6b6b' }]}>tap to see who →</Text>}
-          </TouchableOpacity>
+          ) : (
+            <>
+              {totalOwedToMe > 0 && (
+                <TouchableOpacity
+                  testID="debt-owed-to-me"
+                  accessibilityLabel={`Friends owe you ${formatAmount(totalOwedToMe, currency)}`}
+                  activeOpacity={0.7}
+                  style={[styles.debtCard, styles.debtCardPositive]}
+                  onPress={() => navigation.navigate('Friends')}
+                >
+                  <View style={[styles.statIcon, { backgroundColor: theme.primaryLight }]}>
+                    <Ionicons name="trending-up" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={styles.debtCardTitle} numberOfLines={2}>{oweMeCount} friend{oweMeCount !== 1 ? 's' : ''} owe{oweMeCount === 1 ? 's' : ''} you {formatAmount(totalOwedToMe, currency)}</Text>
+                  <View style={styles.debtActionBtn}>
+                    <Text style={styles.debtActionBtnText}>Remind all</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              {totalIOwe > 0 && (
+                <TouchableOpacity
+                  testID="debt-i-owe"
+                  accessibilityLabel={`You owe friends ${formatAmount(totalIOwe, currency)}`}
+                  activeOpacity={0.7}
+                  style={[styles.debtCard, styles.debtCardNegative]}
+                  onPress={() => navigation.navigate('Friends')}
+                >
+                  <View style={[styles.statIcon, { backgroundColor: 'rgba(255,107,107,0.1)' }]}>
+                    <Ionicons name="trending-down" size={20} color={theme.negative} />
+                  </View>
+                  <Text style={[styles.debtCardTitle, { color: theme.text }]} numberOfLines={2}>You owe {iOweCount} friend{iOweCount !== 1 ? 's' : ''} {formatAmount(totalIOwe, currency)}</Text>
+                  <View style={[styles.debtActionBtn, { backgroundColor: 'rgba(255,107,107,0.15)' }]}>
+                    <Text style={[styles.debtActionBtnText, { color: theme.negative }]}>Settle all</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </Animated.View>
+
+        {/* Feature 4: Top Pending Settlement Card */}
+        {topPending && (
+          <TouchableOpacity
+            testID="top-pending-settlement"
+            accessibilityLabel={`Top pending settlement with ${topPending.name}`}
+            activeOpacity={0.7}
+            style={styles.topPendingCard}
+            onPress={() => navigation.navigate('Friends')}
+          >
+            <View style={styles.topPendingLeft}>
+              <Avatar name={topPending.name} avatar={topPending.avatar} size={40} />
+              <View style={styles.topPendingInfo}>
+                <Text style={styles.topPendingText} numberOfLines={1}>
+                  {topPending.amount > 0
+                    ? `${topPending.name} owes you`
+                    : `You owe ${topPending.name}`}
+                </Text>
+                <Text style={[styles.topPendingAmount, { color: topPending.amount > 0 ? theme.primary : theme.negative }]}>
+                  {formatAmount(Math.abs(topPending.amount), currency)}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.topPendingBtn, { backgroundColor: topPending.amount > 0 ? theme.primaryLight : 'rgba(255,107,107,0.12)' }]}>
+              <Text style={[styles.topPendingBtnText, { color: topPending.amount > 0 ? theme.primary : theme.negative }]}>
+                {topPending.amount > 0 ? 'Remind' : 'Settle'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Feature 5: Monthly Spending Insight */}
+        {monthlyInsight.expenseCount > 0 && (
+          <View style={styles.insightCard}>
+            <View style={styles.insightIconBox}>
+              <Ionicons name="bar-chart" size={20} color={theme.primary} />
+            </View>
+            <Text style={styles.insightText}>
+              You spent <Text style={styles.insightHighlight}>{formatAmount(monthlyInsight.totalSpent, currency)}</Text> this month{monthlyInsight.groupCount > 0 ? ` across ${monthlyInsight.groupCount} group${monthlyInsight.groupCount !== 1 ? 's' : ''}` : ''}
+            </Text>
+          </View>
+        )}
+
+        {/* Feature 6: Group Quick-Access Row */}
+        {topGroups.length > 0 && (
+          <View style={styles.groupQuickSection}>
+            <Text style={styles.groupQuickTitle}>ACTIVE GROUPS</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupQuickRow}>
+              {topGroups.map(g => (
+                <TouchableOpacity
+                  testID={`group-quick-${g.id}`}
+                  accessibilityLabel={`Navigate to group ${g.name}`}
+                  key={g.id}
+                  activeOpacity={0.7}
+                  style={styles.groupQuickPill}
+                  onPress={() => navigation.navigate('Groups', { screen: 'GroupDetail', params: { groupId: g.id } })}
+                >
+                  <Text style={styles.groupQuickEmoji}>{g.emoji || '👥'}</Text>
+                  <View style={styles.groupQuickInfo}>
+                    <Text style={styles.groupQuickName} numberOfLines={1}>{g.name}</Text>
+                    {g.lastActivity && g.lastActivity.amount > 0 && (
+                      <Text style={styles.groupQuickAmount} numberOfLines={1}>{formatAmount(g.lastActivity.amount, currency)}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Balances Section */}
         {balances.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Balances</Text>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Friends')}>
+              <TouchableOpacity accessibilityLabel="See all balances" activeOpacity={0.7} onPress={() => navigation.navigate('Friends')}>
                 <View style={styles.seeAllRow}>
                   <Text style={styles.seeAll}>See all</Text>
-                  <Ionicons name="arrow-forward" size={14} color={COLORS.primary} />
+                  <Ionicons name="arrow-forward" size={14} color={theme.primary} />
                 </View>
               </TouchableOpacity>
             </View>
-            {balances.slice(0, 4).map(b => (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                key={b.userId}
-                style={styles.balanceRow}
-                onPress={() => navigation.navigate('Friends')}
-              >
-                <Avatar name={b.name} avatar={b.avatar} size={44} />
-                <View style={styles.balanceInfo}>
-                  <Text style={styles.balanceName}>{b.name}</Text>
-                  <Text style={[styles.balanceSub, { color: b.amount > 0 ? COLORS.primary : COLORS.negative }]}>
-                    {b.amount > 0 ? 'owes you' : 'you owe'}
+            {balances.slice(0, 4).map((b, idx) => (
+              <FadeInView key={b.userId} index={idx}>
+                <TouchableOpacity
+                  accessibilityLabel={`Balance with ${b.name}: ${b.amount > 0 ? 'owes you' : 'you owe'} ${formatAmount(Math.abs(b.amount), currency)}`}
+                  activeOpacity={0.7}
+                  style={styles.balanceRow}
+                  onPress={() => navigation.navigate('Friends')}
+                >
+                  <Avatar name={b.name} avatar={b.avatar} size={44} />
+                  <View style={styles.balanceInfo}>
+                    <Text style={styles.balanceName} numberOfLines={1}>{b.name}</Text>
+                    <Text style={[styles.balanceSub, { color: b.amount > 0 ? theme.primary : theme.negative }]}>
+                      {b.amount > 0 ? 'owes you' : 'you owe'}
+                    </Text>
+                  </View>
+                  <Text style={[styles.balanceValue, { color: b.amount > 0 ? theme.primary : theme.negative }]}>
+                    {b.amount > 0 ? '+' : '-'}{formatAmount(Math.abs(b.amount), currency)}
                   </Text>
-                </View>
-                <Text style={[styles.balanceValue, { color: b.amount > 0 ? COLORS.primary : COLORS.negative }]}>
-                  {b.amount > 0 ? '+' : '-'}{formatAmount(Math.abs(b.amount), currency)}
-                </Text>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </FadeInView>
             ))}
           </View>
         )}
@@ -265,11 +482,11 @@ const HomeScreen = ({ navigation }) => {
         {/* Recent Activity */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent activity</Text>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Activity')}>
+            <Text style={styles.sectionTitle}>Recent transactions</Text>
+            <TouchableOpacity accessibilityLabel="See all activity" activeOpacity={0.7} onPress={() => navigation.navigate('Activity')}>
               <View style={styles.seeAllRow}>
                 <Text style={styles.seeAll}>See all</Text>
-                <Ionicons name="arrow-forward" size={14} color={COLORS.primary} />
+                <Ionicons name="arrow-forward" size={14} color={theme.primary} />
               </View>
             </TouchableOpacity>
           </View>
@@ -286,16 +503,18 @@ const HomeScreen = ({ navigation }) => {
                   ? navigation.navigate('Groups', { screen: 'GroupDetail', params: { groupId: item.groupId } })
                   : navigation.navigate('Activity');
                 return (
-                  <TouchableOpacity key={item.id || idx} activeOpacity={0.7} onPress={handlePress} style={[styles.activityItem, idx < activity.slice(0, 5).length - 1 && styles.activityBorder]}>
-                    <View style={[styles.activityIcon, { backgroundColor: color + '18' }]}>
-                      <Ionicons name={icon} size={18} color={color} />
-                    </View>
-                    <View style={styles.activityContent}>
-                      <Text style={styles.activityText} numberOfLines={2}>{getActivityText(item)}</Text>
-                      <Text style={styles.activityTime}>{formatDate(item.createdAt)}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.2)" />
-                  </TouchableOpacity>
+                  <FadeInView key={item.id || idx} index={idx}>
+                    <TouchableOpacity accessibilityLabel={`Activity: ${getActivityText(item)}`} activeOpacity={0.7} onPress={handlePress} style={[styles.activityItem, idx < activity.slice(0, 5).length - 1 && styles.activityBorder]}>
+                      <View style={[styles.activityIcon, { backgroundColor: color + '18' }]}>
+                        <Ionicons name={icon} size={18} color={color} />
+                      </View>
+                      <View style={styles.activityContent}>
+                        <Text style={styles.activityText} numberOfLines={2}>{getActivityText(item)}</Text>
+                        <Text style={styles.activityTime}>{formatDate(item.createdAt)}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={14} color={theme.textMuted} />
+                    </TouchableOpacity>
+                  </FadeInView>
                 );
               })}
             </View>
@@ -308,9 +527,9 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.emptyStateEmoji}>💸</Text>
             <Text style={styles.emptyStateTitle}>Welcome to Evenly!</Text>
             <Text style={styles.emptyStateText}>Create a group and start splitting expenses with friends.</Text>
-            <TouchableOpacity activeOpacity={0.7} style={styles.emptyStateBtn} onPress={() => navigation.navigate('Groups')}>
+            <PressableScale accessibilityLabel="Create a group" style={styles.emptyStateBtn} onPress={() => navigation.navigate('Groups')}>
               <Text style={styles.emptyStateBtnText}>Create a Group</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         )}
 
@@ -319,7 +538,7 @@ const HomeScreen = ({ navigation }) => {
 
       {/* Banner ad — native only */}
       {Platform.OS !== 'web' && BannerAd && (
-        <View style={{ alignItems: 'center', backgroundColor: COLORS.background }}>
+        <View style={{ alignItems: 'center', backgroundColor: theme.background }}>
           <BannerAd
             unitId={AD_UNIT_IDS.banner}
             size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
@@ -331,8 +550,8 @@ const HomeScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+const getStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
 
   // App Header
   appHeader: {
@@ -342,33 +561,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoBox: {
-    width: 44, height: 44, borderRadius: 14,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8,
+  logoImg: {
+    width: 44, height: 44,
+    shadowColor: theme.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8,
   },
-  logoText: { color: '#0a0a0f', fontSize: 20, fontWeight: '800' },
-  appName: { fontSize: 22, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
+  greetingText: { fontSize: 16, fontWeight: '700', color: theme.text, letterSpacing: -0.5 },
+  appNameSubtitle: { fontSize: 11, fontWeight: '600', color: theme.textLight, marginTop: 1 },
   avatarBtn: {},
 
   // Hero Card
   heroCard: {
-    margin: 16, borderRadius: 24, padding: 28,
-    backgroundColor: '#1a1a24',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    borderTopWidth: 2, borderTopColor: '#00d4aa',
+    margin: 16, borderRadius: 24, padding: rPadding(28, 20, 16),
+    backgroundColor: theme.card,
+    borderWidth: 1, borderColor: theme.border,
+    borderTopWidth: 2, borderTopColor: theme.primary,
     overflow: 'hidden', position: 'relative',
-    shadowColor: '#00d4aa', shadowOffset: { width: 0, height: 8 },
+    shadowColor: theme.primary, shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25, shadowRadius: 20, elevation: 12,
   },
   heroGlow: {
     position: 'absolute', top: -30, right: -30,
     width: 120, height: 120, borderRadius: 60,
-    backgroundColor: COLORS.primary, opacity: 0.15,
+    backgroundColor: theme.primary, opacity: 0.15,
   },
-  heroLabel: { fontSize: 13, color: COLORS.textLight, fontWeight: '600', marginBottom: 8 },
-  heroAmount: { fontSize: 52, fontWeight: '800', color: COLORS.text, letterSpacing: -1, marginBottom: 12 },
+  heroLabel: { fontSize: 13, color: theme.textLight, fontWeight: '600', marginBottom: 8 },
+  heroAmount: { fontSize: rFontSize(52), fontWeight: '700', color: theme.text, letterSpacing: -0.5, marginBottom: 12, fontVariant: ['tabular-nums'] },
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 7,
@@ -377,28 +594,94 @@ const styles = StyleSheet.create({
   heroDot: { width: 8, height: 8, borderRadius: 4 },
   heroBadgeText: { fontSize: 13, fontWeight: '700' },
 
-  // Stats Grid
-  statsGrid: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 8 },
-  statCard: {
-    flex: 1, backgroundColor: COLORS.white, borderRadius: 20, padding: 18,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  // Quick Actions (Feature 2)
+  quickActionsRow: { paddingHorizontal: 16, gap: 10, marginBottom: 12 },
+  quickActionBtn: {
+    minWidth: rWidth(80, 64), flex: 1, alignItems: 'center', backgroundColor: theme.white,
+    borderRadius: 16, paddingVertical: 14, paddingHorizontal: 6,
+    borderWidth: 1, borderColor: theme.border,
   },
-  statCardPositive: { borderLeftWidth: 3, borderLeftColor: '#00d4aa' },
-  statCardNegative: { borderLeftWidth: 3, borderLeftColor: '#ff6b6b' },
+  quickActionIcon: { marginBottom: 8 },
+  quickActionLabel: { fontSize: 11, fontWeight: '600', color: theme.textLight, textAlign: 'center' },
+
+  // Debt Summary (Feature 3)
+  statsGrid: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 12 },
+  debtCard: {
+    flex: 1, backgroundColor: theme.white, borderRadius: 20, padding: 16,
+    borderWidth: 1, borderColor: theme.border,
+  },
+  debtCardPositive: { borderLeftWidth: 3, borderLeftColor: theme.primary },
+  debtCardNegative: { borderLeftWidth: 3, borderLeftColor: theme.negative },
+  debtCardSettled: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24,
+    borderLeftWidth: 3, borderLeftColor: theme.primary,
+  },
+  debtSettledText: { fontSize: 18, fontWeight: '800', color: theme.primary },
+  debtCardTitle: { fontSize: 14, fontWeight: '700', color: theme.text, marginBottom: 12 },
+  debtActionBtn: {
+    alignSelf: 'flex-start', backgroundColor: theme.primaryLight,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  debtActionBtnText: { fontSize: 12, fontWeight: '700', color: theme.primary },
   statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  statAmount: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginBottom: 4 },
-  statLabel: { fontSize: 12, color: COLORS.textLight, fontWeight: '600' },
-  statTapHint: { fontSize: 10, color: '#00d4aa', marginTop: 6, fontWeight: '600' },
+
+  // Top Pending Settlement (Feature 4)
+  topPendingCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginHorizontal: 16, marginBottom: 12, padding: 16,
+    backgroundColor: theme.white, borderRadius: 20,
+    borderWidth: 1.5, borderColor: 'rgba(0,212,170,0.25)',
+  },
+  topPendingLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  topPendingInfo: { marginLeft: 12, flex: 1, minWidth: 0 },
+  topPendingText: { fontSize: 14, fontWeight: '600', color: theme.textLight },
+  topPendingAmount: { fontSize: 20, fontWeight: '800', marginTop: 2, fontVariant: ['tabular-nums'] },
+  topPendingBtn: {
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, marginLeft: 'auto',
+    flexShrink: 0,
+  },
+  topPendingBtnText: { fontSize: 13, fontWeight: '700' },
+
+  // Monthly Insight (Feature 5)
+  insightCard: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 16, marginBottom: 12, padding: 14,
+    backgroundColor: theme.white, borderRadius: 16,
+    borderWidth: 1, borderColor: theme.border,
+  },
+  insightIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: theme.primaryLight,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  insightText: { fontSize: 13, color: theme.textLight, fontWeight: '500', flex: 1, lineHeight: 18 },
+  insightHighlight: { color: theme.text, fontWeight: '700' },
+
+  // Group Quick-Access (Feature 6)
+  groupQuickSection: { marginHorizontal: 16, marginBottom: 12 },
+  groupQuickTitle: { fontSize: 13, fontWeight: '700', color: theme.textLight, letterSpacing: 1, marginBottom: 8 },
+  groupQuickRow: { gap: 10 },
+  groupQuickPill: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.white, borderRadius: 16,
+    paddingVertical: 12, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: theme.border,
+    minWidth: rWidth(140, 110),
+  },
+  groupQuickEmoji: { fontSize: 22, marginRight: 10 },
+  groupQuickInfo: {},
+  groupQuickName: { fontSize: 13, fontWeight: '700', color: theme.text, flex: 1 },
+  groupQuickAmount: { fontSize: 11, fontWeight: '600', color: theme.textLight, marginTop: 2 },
 
   // Sections
   section: {
-    backgroundColor: COLORS.white, marginHorizontal: 16, marginBottom: 12,
-    borderRadius: 24, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: theme.white, marginHorizontal: 16, marginBottom: 12,
+    borderRadius: 24, padding: rPadding(16, 14, 12), borderWidth: 1, borderColor: theme.border,
   },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#a1a1aa', letterSpacing: 1, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: theme.textLight, letterSpacing: 1, textTransform: 'uppercase' },
   seeAllRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  seeAll: { fontSize: 13, color: COLORS.primary, fontWeight: '700' },
+  seeAll: { fontSize: 13, color: theme.primary, fontWeight: '700' },
 
   // Balances
   balanceRow: {
@@ -406,49 +689,49 @@ const styles = StyleSheet.create({
     borderRadius: 16, paddingHorizontal: 4,
   },
   balanceInfo: { flex: 1, marginLeft: 12 },
-  balanceName: { fontSize: 15, fontWeight: '600', color: COLORS.text },
+  balanceName: { fontSize: 15, fontWeight: '600', color: theme.text, flex: 1, minWidth: 0 },
   balanceSub: { fontSize: 12, marginTop: 1, fontWeight: '500' },
-  balanceValue: { fontSize: 16, fontWeight: '800' },
+  balanceValue: { fontSize: 16, fontWeight: '800', fontVariant: ['tabular-nums'] },
 
   // Activity
   activityList: {},
   activityItem: {
     flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10,
-    backgroundColor: COLORS.white, borderRadius: 16,
+    backgroundColor: theme.white, borderRadius: 16,
     paddingHorizontal: 4,
   },
-  activityBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  activityBorder: { borderBottomWidth: 1, borderBottomColor: theme.border },
   activityIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
   activityContent: { flex: 1 },
-  activityText: { fontSize: 13, color: COLORS.text, lineHeight: 19 },
-  activityTime: { fontSize: 11, color: COLORS.textMuted, marginTop: 3 },
+  activityText: { fontSize: 13, color: theme.text, lineHeight: 19 },
+  activityTime: { fontSize: 11, color: theme.textMuted, marginTop: 3 },
   emptyActivity: {
     alignItems: 'center', paddingVertical: 28,
-    backgroundColor: '#1a1a24', borderRadius: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: theme.card, borderRadius: 16,
+    borderWidth: 1, borderColor: theme.border,
   },
   emptyEmoji: { fontSize: 40, marginBottom: 10 },
-  emptyText: { fontSize: 14, color: COLORS.textLight, fontWeight: '600' },
+  emptyText: { fontSize: 14, color: theme.textLight, fontWeight: '600' },
 
   // Empty State
   emptyState: {
     alignItems: 'center', margin: 16, padding: 28,
-    backgroundColor: '#1a1a24', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: theme.card, borderRadius: 24, borderWidth: 1, borderColor: theme.border,
   },
   emptyStateEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyStateTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text, marginBottom: 8 },
-  emptyStateText: { fontSize: 14, color: COLORS.textLight, textAlign: 'center', lineHeight: 20 },
+  emptyStateTitle: { fontSize: 20, fontWeight: '800', color: theme.text, marginBottom: 8 },
+  emptyStateText: { fontSize: 14, color: theme.textLight, textAlign: 'center', lineHeight: 20 },
   emptyStateBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12, marginTop: 16,
+    backgroundColor: theme.primary, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12, marginTop: 16,
   },
-  emptyStateBtnText: { color: '#0a0a0f', fontWeight: '800', fontSize: 15 },
+  emptyStateBtnText: { color: theme.background, fontWeight: '800', fontSize: 15 },
 
   // FAB
   fab: {
     position: 'absolute', right: 20, bottom: 90,
     width: 56, height: 56, borderRadius: 18,
-    backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center',
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 6 },
+    backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center',
+    shadowColor: theme.primary, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5, shadowRadius: 12, elevation: 10,
   },
 
@@ -457,34 +740,34 @@ const styles = StyleSheet.create({
     marginHorizontal: 16, marginBottom: 12,
   },
   inviteSectionTitle: {
-    fontSize: 13, fontWeight: '700', color: '#a1a1aa',
+    fontSize: 13, fontWeight: '700', color: theme.textLight,
     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
   },
   inviteCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a24', borderRadius: 20, padding: 14,
+    backgroundColor: theme.card, borderRadius: 20, padding: 14,
     borderWidth: 1, borderColor: 'rgba(0,212,170,0.25)',
     marginBottom: 8,
   },
   inviteIconBox: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(0,212,170,0.1)',
+    backgroundColor: theme.primaryLight,
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
   inviteInfo: { flex: 1 },
-  inviteGroupName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
-  inviteSubtext: { fontSize: 12, color: '#a1a1aa', marginTop: 2 },
+  inviteGroupName: { fontSize: 15, fontWeight: '700', color: theme.text },
+  inviteSubtext: { fontSize: 12, color: theme.textLight, marginTop: 2 },
   inviteActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   inviteAcceptBtn: {
-    backgroundColor: '#00d4aa', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 7,
+    backgroundColor: theme.primary, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 7, flexShrink: 1,
   },
-  inviteAcceptText: { color: '#0a0a0f', fontWeight: '700', fontSize: 13 },
+  inviteAcceptText: { color: theme.background, fontWeight: '700', fontSize: 13 },
   inviteRejectBtn: {
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: theme.border, flexShrink: 1,
   },
-  inviteRejectText: { color: '#a1a1aa', fontWeight: '600', fontSize: 13 },
+  inviteRejectText: { color: theme.textLight, fontWeight: '600', fontSize: 13 },
 });
 
 export default HomeScreen;

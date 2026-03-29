@@ -8,7 +8,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { APP_URL } from './helpers/auth.js';
+import { APP_URL, loginAsDemo } from './helpers/auth.js';
 
 const VIEWPORTS = {
   mobile:  { width: 390,  height: 844  },
@@ -17,12 +17,7 @@ const VIEWPORTS = {
 };
 
 async function quickLogin(page) {
-  await page.goto(APP_URL);
-  await page.waitForSelector('text=Welcome back', { timeout: 30000 });
-  await page.locator('[data-testid="auth-email-input"]').fill('alice@demo.com');
-  await page.locator('[data-testid="auth-password-input"]').fill('demo123');
-  await page.locator('[data-testid="auth-submit-btn"]').click();
-  await page.waitForSelector('text=Total balance', { timeout: 30000 });
+  await loginAsDemo(page);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,10 +35,9 @@ test.describe('Mobile viewport (390×844)', () => {
 
   test('auth screen renders at mobile size', async ({ page }) => {
     await page.goto(APP_URL);
-    await page.waitForSelector('text=Welcome back', { timeout: 30000 });
-    await expect(page.getByText('Welcome back')).toBeVisible();
-    await expect(page.locator('[data-testid="auth-email-input"]')).toBeVisible();
-    await expect(page.locator('[data-testid="auth-submit-btn"]')).toBeVisible();
+    await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
+    await expect(page.getByText('Continue with Google')).toBeVisible();
+    await expect(page.locator('[data-testid="auth-google-btn"]')).toBeVisible();
   });
 
   test('all four bottom tabs have role="tab" at mobile size', async ({ page }) => {
@@ -87,8 +81,8 @@ test.describe('Tablet viewport (768×1024)', () => {
 
   test('auth screen renders at tablet size', async ({ page }) => {
     await page.goto(APP_URL);
-    await page.waitForSelector('text=Welcome back', { timeout: 30000 });
-    await expect(page.getByText('Welcome back')).toBeVisible();
+    await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
+    await expect(page.getByText('Continue with Google')).toBeVisible();
   });
 
   test('all four tabs present at tablet size (role="tab")', async ({ page }) => {
@@ -132,10 +126,10 @@ test.describe('Desktop viewport (1440×900)', () => {
 
   test('auth screen is centred at desktop size', async ({ page }) => {
     await page.goto(APP_URL);
-    await page.waitForSelector('text=Welcome back', { timeout: 30000 });
-    await expect(page.getByText('Welcome back')).toBeVisible();
-    const heading = page.getByText('Welcome back');
-    const box = await heading.boundingBox();
+    await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
+    await expect(page.getByText('Continue with Google')).toBeVisible();
+    const heading = page.getByText('Evenly');
+    const box = await heading.first().boundingBox();
     expect(box).not.toBeNull();
     expect(box.x).toBeGreaterThan(300); // not flush-left
   });

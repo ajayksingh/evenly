@@ -2,42 +2,43 @@
  * SyncBanner — shows offline/syncing/synced status at the top of the screen
  * Status values:
  *   null       → hidden
- *   'offline'  → "Saving offline — will sync when connected"
+ *   'offline'  → "Saved locally — will sync when online"
  *   'syncing'  → "Pushing data to server..."
- *   'synced'   → "All data synced ✓"  (auto-hides after 2.5s)
- *   'error'    → "Sync failed — will retry"
+ *   'synced'   → "All synced ✓"  (auto-hides after 2.5s)
+ *   'error'    → "Sync issue — retrying..."
  */
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/colors';
-
-const CONFIGS = {
-  offline: {
-    bg: '#E67E22',
-    icon: 'cloud-offline-outline',
-    text: 'Saving offline — will sync when connected',
-  },
-  syncing: {
-    bg: COLORS.info,
-    icon: 'sync-outline',
-    text: 'Pushing data to server...',
-  },
-  synced: {
-    bg: COLORS.success,
-    icon: 'checkmark-circle-outline',
-    text: 'All data synced ✓',
-  },
-  error: {
-    bg: COLORS.danger,
-    icon: 'warning-outline',
-    text: 'Sync failed — will retry automatically',
-  },
-};
+import { useTheme } from '../context/ThemeContext';
 
 const SyncBanner = ({ status }) => {
+  const { theme } = useTheme();
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(-40)).current;
+
+  const CONFIGS = {
+    offline: {
+      bg: '#E67E22',
+      icon: 'cloud-offline-outline',
+      text: 'Saved locally — will sync when online',
+    },
+    syncing: {
+      bg: theme.info,
+      icon: 'sync-outline',
+      text: 'Pushing data to server...',
+    },
+    synced: {
+      bg: theme.success,
+      icon: 'checkmark-circle-outline',
+      text: 'All synced \u2713',
+    },
+    error: {
+      bg: theme.danger,
+      icon: 'warning-outline',
+      text: 'Sync issue — retrying...',
+    },
+  };
 
   useEffect(() => {
     if (!status) {

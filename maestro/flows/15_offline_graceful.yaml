@@ -4,13 +4,16 @@
 # cannot toggle programmatically. This flow asserts graceful UI behaviour
 # while online — confirming no sync banners, error overlays, or crash states.
 appId: com.ajayksingh.evenly
-env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
 ---
 
 - launchApp:
     clearState: true
+- waitForAnimationToEnd
+
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
 - waitForAnimationToEnd
 
 # Dismiss any system crash dialogs
@@ -26,16 +29,13 @@ env:
 # Section 1: Login as User A
 # ============================================================
 - extendedWaitUntil:
-    visible: "Welcome back"
+    visible: "Continue with Google"
     timeout: 30000
 - waitForAnimationToEnd:
     timeout: 3000
 
 - runFlow:
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:
@@ -48,7 +48,7 @@ env:
 # Home screen should show balance info without errors
 - assertVisible: "Total balance"
 - assertVisible:
-    text: "Recent activity"
+    text: "Recent transactions"
     optional: true
 
 # No error banner should be present on a healthy connection

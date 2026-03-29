@@ -50,104 +50,50 @@ const checkAuthRateLimit = () => {
 // --- Auth ---
 const DEMO_EMAILS = ['alice@demo.com', 'bob@demo.com', 'carol@demo.com'];
 
-export const registerUser = async ({ name, email, password }) => {
-  name = (name || '').trim();
-  email = (email || '').trim();
-  if (DEMO_EMAILS.includes(email)) {
-    const users = await getData(KEYS.USERS);
-    if (users.find(u => u.email === email)) throw new Error('Email already in use');
-    const user = { id: uuidv4(), name, email, password, avatar: null, phone: '', createdAt: new Date().toISOString() };
-    await setData(KEYS.USERS, [...users, user]);
-    const { password: _, ...safeUser } = user;
-    await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(safeUser));
-    return safeUser;
-  }
-
-  checkAuthRateLimit();
-  if (!isSupabaseConfigured()) throw new Error('Registration requires a network connection');
-
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
-  if (error) {
-    if (error.message.includes('already registered') || error.message.includes('already exists')) {
-      throw new Error('Email already in use. Please sign in instead.');
-    }
-    throw new Error(error.message);
-  }
-
-  const profile = {
-    id: data.user.id,
-    name,
-    email,
-    avatar: null,
-    phone: '',
-    createdAt: new Date().toISOString(),
-  };
-
-  // Always save profile to users table (data.user is available even before email confirmation)
-  await supabase.from('users').upsert({
-    id: profile.id,
-    name: profile.name,
-    email: profile.email,
-    avatar: null,
-    phone: '',
-    provider: 'email',
-    created_at: profile.createdAt,
-  });
-
-  if (!data.session) {
-    throw new Error('Account created! Please check your email to confirm your account, then sign in.');
-  }
-
-  await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
-  return profile;
-};
-
 export const loginUser = async ({ email, password }) => {
   email = (email || '').trim();
   if (DEMO_EMAILS.includes(email)) {
     await seedDemoData();
     const users = await getData(KEYS.USERS);
     const user = users.find(u => u.email === email && u.password === password);
-    if (!user) throw new Error('Invalid email or password');
+    if (!user) throw new Error('Invalid demo credentials');
     const { password: _, ...safeUser } = user;
     await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(safeUser));
     return safeUser;
   }
+  throw new Error('Please use Google Sign-In');
+};
 
-  const EVENLY_DEMO_EMAILS = ['demo@evenly.app', 'alex@evenly.app'];
-  if (!EVENLY_DEMO_EMAILS.includes(email)) checkAuthRateLimit();
-  if (!isSupabaseConfigured()) throw new Error('No network connection. Please connect to the internet to sign in.');
+/**
+ * Handle the OAuth session after Supabase auth state changes to SIGNED_IN.
+ * Upserts the user profile into the users table and caches it locally.
+ */
+export const handleOAuthSession = async (session) => {
+  if (!session?.user) throw new Error('No session');
+  const { user } = session;
+  const email = user.email;
+  const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0];
+  const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
+  const provider = user.app_metadata?.provider || 'oauth';
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    if (error.message.includes('not confirmed') || error.message.includes('Email not confirmed')) {
-      throw new Error('Please confirm your email address first. Check your inbox for the confirmation link.');
-    }
-    const { data: existingUser } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
-    if (existingUser) {
-      throw new Error('Your account was created before our login system was updated. Please tap "Sign Up" to set a password for your account.');
-    }
-    throw new Error('No account found with this email. Please sign up first, or check for typos.');
-  }
+  const profile = {
+    id: user.id,
+    name,
+    email,
+    avatar,
+    phone: '',
+    createdAt: new Date().toISOString(),
+  };
 
-  // Fetch profile from Supabase
-  const { data: userData } = await supabase.from('users').select('*').eq('id', data.user.id).single();
-  let profile;
-  if (userData) {
-    profile = { id: userData.id, name: userData.name, email: userData.email, avatar: userData.avatar || null, phone: userData.phone || '', createdAt: userData.created_at };
-  } else {
-    // Profile missing from users table — create it now so friend lookups work
-    profile = { id: data.user.id, name: email.split('@')[0], email, avatar: null, phone: '', createdAt: new Date().toISOString() };
-    await supabase.from('users').upsert({
-      id: profile.id,
-      name: profile.name,
-      email: profile.email,
-      avatar: null,
-      phone: '',
-      provider: 'email',
-      created_at: profile.createdAt,
-    });
-  }
+  await supabase.from('users').upsert({
+    id: profile.id,
+    name: profile.name,
+    email: profile.email,
+    avatar: profile.avatar,
+    phone: '',
+    provider,
+    created_at: profile.createdAt,
+  }, { onConflict: 'id', ignoreDuplicates: false });
 
   await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
   return profile;
@@ -156,13 +102,6 @@ export const loginUser = async ({ email, password }) => {
 export const logoutUser = async () => {
   if (supabase) await supabase.auth.signOut().catch(() => {});
   await AsyncStorage.removeItem(KEYS.CURRENT_USER);
-};
-
-export const resetPasswordForEmail = async (email) => {
-  if (DEMO_EMAILS.includes(email)) throw new Error('Demo accounts cannot reset passwords.');
-  if (!isSupabaseConfigured()) throw new Error('No network connection.');
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
-  if (error) throw new Error(error.message);
 };
 
 export const getCurrentUser = async () => {
@@ -186,11 +125,13 @@ export const getCurrentUser = async () => {
         createdAt: userData.created_at,
       };
     } else {
-      // Auth session exists but users row was deleted — recreate it using metadata name if available
+      // Auth session exists but users row was deleted — recreate it using metadata
       const email = session.user.email;
-      const name = session.user.user_metadata?.name || email.split('@')[0];
-      profile = { id: session.user.id, name, email, avatar: null, phone: '', createdAt: new Date().toISOString() };
-      await supabase.from('users').upsert({ id: profile.id, name: profile.name, email: profile.email, avatar: null, phone: '', provider: 'email', created_at: profile.createdAt });
+      const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+      const avatar = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
+      const provider = session.user.app_metadata?.provider || 'oauth';
+      profile = { id: session.user.id, name, email, avatar, phone: '', createdAt: new Date().toISOString() };
+      await supabase.from('users').upsert({ id: profile.id, name: profile.name, email: profile.email, avatar: profile.avatar, phone: '', provider, created_at: profile.createdAt });
     }
     await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
     return profile;
@@ -362,7 +303,7 @@ export const createGroup = async (group) => {
   group = { ...group, name: (group.name || '').trim() };
   if (isDemo(group.createdBy)) {
     const groups = await getData(KEYS.GROUPS);
-    const newGroup = { id: uuidv4(), ...group, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const newGroup = { id: uuidv4(), ...group, emoji: group.emoji || null, currency: group.currency || null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     await setData(KEYS.GROUPS, [...groups, newGroup]);
     await addActivity({ type: 'group_created', groupId: newGroup.id, groupName: newGroup.name, userId: group.createdBy, createdAt: new Date().toISOString() });
     return newGroup;
@@ -374,6 +315,9 @@ export const createGroup = async (group) => {
     name: group.name,
     type: groupType,
     description: group.description || '',
+    emoji: group.emoji || '',
+    currency: group.currency || 'INR',
+    end_date: group.endDate || null,
     created_by: group.createdBy,
     members: group.members,
     created_at: new Date().toISOString(),
@@ -384,7 +328,8 @@ export const createGroup = async (group) => {
 
   const local = {
     id: newGroup.id, name: newGroup.name, type: newGroup.type,
-    description: newGroup.description,
+    description: newGroup.description, emoji: newGroup.emoji || '',
+    currency: newGroup.currency || 'INR', endDate: newGroup.end_date || null,
     createdBy: newGroup.created_by, members: newGroup.members,
     createdAt: newGroup.created_at, updatedAt: newGroup.updated_at,
   };
@@ -405,7 +350,9 @@ export const getGroups = async (userId, userEmail = null) => {
   if (!rpcError && rpcData) {
     return rpcData.map(g => ({
       id: g.id, name: g.name, type: g.type || 'other', description: g.description || '',
+      emoji: g.emoji || '', currency: g.currency || 'INR', endDate: g.end_date || null,
       createdBy: g.created_by, members: g.members || [],
+      archived: g.archived || false, pinned: g.pinned || false,
       createdAt: g.created_at, updatedAt: g.updated_at,
     }));
   }
@@ -428,7 +375,9 @@ export const getGroups = async (userId, userEmail = null) => {
   return deduped
     .map(g => ({
       id: g.id, name: g.name, type: g.type || 'other', description: g.description || '',
+      emoji: g.emoji || '', currency: g.currency || 'INR', endDate: g.end_date || null,
       createdBy: g.created_by, members: g.members || [],
+      archived: g.archived || false, pinned: g.pinned || false,
       createdAt: g.created_at, updatedAt: g.updated_at,
     }));
 };
@@ -441,7 +390,7 @@ export const getGroup = async (groupId) => {
   if (!isSupabaseConfigured()) return null;
   const { data } = await supabase.from('groups').select('*').eq('id', groupId).single();
   if (!data) return null;
-  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
+  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', emoji: data.emoji || '', currency: data.currency || 'INR', endDate: data.end_date || null, createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
 };
 
 export const updateGroup = async (groupId, updates) => {
@@ -460,7 +409,43 @@ export const updateGroup = async (groupId, updates) => {
     updated_at: new Date().toISOString(),
   }).eq('id', groupId).select().single();
   if (error) throw new Error('Failed to update group');
-  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
+  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', emoji: data.emoji || '', currency: data.currency || 'INR', endDate: data.end_date || null, createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
+};
+
+export const archiveGroup = async (groupId, archived) => {
+  // Demo users: persist in AsyncStorage
+  const localGroups = await getData(KEYS.GROUPS);
+  const idx = localGroups.findIndex(g => g.id === groupId);
+  if (idx !== -1) {
+    localGroups[idx] = { ...localGroups[idx], archived, updatedAt: new Date().toISOString() };
+    await setData(KEYS.GROUPS, localGroups);
+    return localGroups[idx];
+  }
+  if (!isSupabaseConfigured()) throw new Error('Group not found');
+  const { data, error } = await supabase.from('groups').update({
+    archived,
+    updated_at: new Date().toISOString(),
+  }).eq('id', groupId).select().single();
+  if (error) throw new Error('Failed to archive group');
+  return data;
+};
+
+export const pinGroup = async (groupId, pinned) => {
+  // Demo users: persist in AsyncStorage
+  const localGroups = await getData(KEYS.GROUPS);
+  const idx = localGroups.findIndex(g => g.id === groupId);
+  if (idx !== -1) {
+    localGroups[idx] = { ...localGroups[idx], pinned, updatedAt: new Date().toISOString() };
+    await setData(KEYS.GROUPS, localGroups);
+    return localGroups[idx];
+  }
+  if (!isSupabaseConfigured()) throw new Error('Group not found');
+  const { data, error } = await supabase.from('groups').update({
+    pinned,
+    updated_at: new Date().toISOString(),
+  }).eq('id', groupId).select().single();
+  if (error) throw new Error('Failed to pin group');
+  return data;
 };
 
 export const addMemberToGroup = async (groupId, user) => {
@@ -486,7 +471,29 @@ export const addMemberToGroup = async (groupId, user) => {
     updated_at: new Date().toISOString(),
   }).eq('id', groupId).select().single();
   if (error) throw new Error('Failed to add member');
-  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
+  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', emoji: data.emoji || '', currency: data.currency || 'INR', endDate: data.end_date || null, createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
+};
+
+// --- Remove Member from Group (Feature #14) ---
+export const removeMemberFromGroup = async (groupId, memberId) => {
+  const localGroups = await getData(KEYS.GROUPS);
+  const idx = localGroups.findIndex(g => g.id === groupId);
+  if (idx !== -1) {
+    localGroups[idx].members = localGroups[idx].members.filter(m => m.id !== memberId);
+    localGroups[idx].updatedAt = new Date().toISOString();
+    await setData(KEYS.GROUPS, localGroups);
+    return localGroups[idx];
+  }
+  if (!isSupabaseConfigured()) throw new Error('Group not found');
+  const { data: group, error: fetchErr } = await supabase.from('groups').select('*').eq('id', groupId).single();
+  if (fetchErr || !group) throw new Error('Group not found');
+  const updatedMembers = (group.members || []).filter(m => m.id !== memberId);
+  const { data, error } = await supabase.from('groups').update({
+    members: updatedMembers,
+    updated_at: new Date().toISOString(),
+  }).eq('id', groupId).select().single();
+  if (error) throw new Error('Failed to remove member');
+  return { id: data.id, name: data.name, type: data.type || 'other', description: data.description || '', emoji: data.emoji || '', currency: data.currency || 'INR', endDate: data.end_date || null, createdBy: data.created_by, members: data.members || [], createdAt: data.created_at, updatedAt: data.updated_at };
 };
 
 // --- Expenses ---
@@ -512,13 +519,17 @@ export const addExpense = async (expense) => {
     splits: expense.splits,
     category: expenseCategory,
     date: expenseDate,
+    notes: expense.notes || '',
+    expense_date: expense.expenseDate || null,
+    comments: expense.comments || [],
+    paid_by_split: expense.paidBySplit || null,
     created_at: new Date().toISOString(),
   };
   const { error } = await supabase.from('expenses').insert(newExpense);
   if (error) throw new Error('Failed to add expense: ' + error.message);
 
-  const local = { id: newExpense.id, groupId: newExpense.group_id, description: newExpense.description, amount: newExpense.amount, currency: newExpense.currency, category: expenseCategory, paidBy: newExpense.paid_by, splits: newExpense.splits, date: expenseDate, createdAt: newExpense.created_at };
-  await addActivity({ type: 'expense_added', expenseId: local.id, description: local.description, amount: local.amount, groupId: local.groupId, groupName: expense.groupName, userId: local.paidBy.id, paidByName: local.paidBy.name, createdAt: new Date().toISOString() });
+  const local = { id: newExpense.id, groupId: newExpense.group_id, description: newExpense.description, amount: newExpense.amount, currency: newExpense.currency, category: expenseCategory, paidBy: newExpense.paid_by, splits: newExpense.splits, date: expenseDate, notes: newExpense.notes, expenseDate: newExpense.expense_date, receiptUri: newExpense.receipt_uri, comments: newExpense.comments, paidBySplit: newExpense.paid_by_split, createdAt: newExpense.created_at };
+  await addActivity({ type: 'expense_added', expenseId: local.id, description: local.description, amount: local.amount, groupId: local.groupId, groupName: expense.groupName, userId: local.paidBy?.id || local.paidBy, paidByName: local.paidBy?.name || local.paidBy, category: expenseCategory, paid_by_id: expense.paidBy?.id || expense.paidBy, createdAt: new Date().toISOString() });
   return local;
 };
 
@@ -531,7 +542,7 @@ export const getExpenses = async (groupId) => {
   }
   if (!isSupabaseConfigured()) return [];
   const { data } = await supabase.from('expenses').select('*').eq('group_id', groupId).order('created_at', { ascending: false });
-  return (data || []).map(e => ({ id: e.id, groupId: e.group_id, description: e.description, amount: e.amount, currency: e.currency, category: e.category || 'general', paidBy: e.paid_by, splits: e.splits || [], date: e.date || e.created_at, createdAt: e.created_at }));
+  return (data || []).map(e => ({ id: e.id, groupId: e.group_id, description: e.description, amount: e.amount, currency: e.currency, category: e.category || 'general', paidBy: e.paid_by, splits: e.splits || [], date: e.date || e.created_at, notes: e.notes || '', expenseDate: e.expense_date || null, receiptUri: e.receipt_uri || null, comments: e.comments || [], paidBySplit: e.paid_by_split || null, createdAt: e.created_at }));
 };
 
 
@@ -740,6 +751,8 @@ export const addActivity = async (activity) => {
     amount: newActivity.amount || null,
     group_name: newActivity.groupName || null,
     paid_by_name: newActivity.paidByName || null,
+    category: newActivity.category || null,
+    paid_by_id: newActivity.paid_by_id || null,
     created_at: newActivity.createdAt,
   }).then(() => {}, (e) => console.warn('Activity write failed:', e?.message));
 };
@@ -942,4 +955,271 @@ export const seedDemoData = async () => {
   ];
   await setData(KEYS.ACTIVITY, activity);
   await AsyncStorage.setItem('sw_demo_seed_v', SEED_VERSION);
+};
+
+
+// --- Expense Comments ---
+export const addExpenseComment = async (expenseId, comment) => {
+  // comment: { author, text, date }
+  const localExpenses = await getData(KEYS.EXPENSES);
+  const localIdx = localExpenses.findIndex(e => e.id === expenseId);
+  if (localIdx !== -1) {
+    if (!localExpenses[localIdx].comments) localExpenses[localIdx].comments = [];
+    localExpenses[localIdx].comments.push(comment);
+    await setData(KEYS.EXPENSES, localExpenses);
+    return localExpenses[localIdx];
+  }
+  if (!isSupabaseConfigured()) throw new Error('Expense not found');
+  // For Supabase, fetch then update
+  const { data: exp, error: fetchErr } = await supabase.from('expenses').select('*').eq('id', expenseId).single();
+  if (fetchErr || !exp) throw new Error('Expense not found');
+  const comments = Array.isArray(exp.comments) ? exp.comments : [];
+  comments.push(comment);
+  const { error } = await supabase.from('expenses').update({ comments }).eq('id', expenseId);
+  if (error) throw new Error('Failed to add comment');
+  return { ...exp, comments };
+};
+
+// --- Update Expense (for receipt, recurring, etc.) ---
+export const updateExpense = async (expenseId, updates) => {
+  const localExpenses = await getData(KEYS.EXPENSES);
+  const localIdx = localExpenses.findIndex(e => e.id === expenseId);
+  if (localIdx !== -1) {
+    localExpenses[localIdx] = { ...localExpenses[localIdx], ...updates };
+    await setData(KEYS.EXPENSES, localExpenses);
+    return localExpenses[localIdx];
+  }
+  if (!isSupabaseConfigured()) throw new Error('Expense not found');
+  // Map camelCase fields to snake_case for Supabase
+  const supabaseUpdates = {};
+  if ('description' in updates) supabaseUpdates.description = updates.description;
+  if ('amount' in updates) supabaseUpdates.amount = updates.amount;
+  if ('category' in updates) supabaseUpdates.category = updates.category;
+  if ('splits' in updates) supabaseUpdates.splits = updates.splits;
+  if ('notes' in updates) supabaseUpdates.notes = updates.notes || '';
+
+  if ('expenseDate' in updates) supabaseUpdates.expense_date = updates.expenseDate || null;
+  if ('paidBySplit' in updates) supabaseUpdates.paid_by_split = updates.paidBySplit || null;
+  if ('comments' in updates) supabaseUpdates.comments = updates.comments;
+  // Pass through any snake_case keys directly (for callers already using snake_case)
+  Object.keys(updates).forEach(k => { if (k.includes('_')) supabaseUpdates[k] = updates[k]; });
+  const { data, error } = await supabase.from('expenses').update(supabaseUpdates).eq('id', expenseId).select().single();
+  if (error) throw new Error('Failed to update expense');
+  return data;
+};
+
+// --- Search users by name or email (Feature #5) ---
+export const searchUsers = async (query, currentUserId) => {
+  if (!query || query.trim().length < 2) return [];
+  if (!isSupabaseConfigured()) return [];
+  const q = query.trim().toLowerCase();
+  const { data, error } = await supabase
+    .from('users')
+    .select('id,name,email,avatar,phone')
+    .or(`email.ilike.%${q}%,name.ilike.%${q}%,phone.ilike.%${q}%`)
+    .neq('id', currentUserId)
+    .limit(10);
+  if (error) return [];
+  return (data || []).map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '' }));
+};
+
+// --- Get suggested friends from groups (Feature #4 & #7) ---
+export const getSuggestedFriendsFromGroups = async (userId) => {
+  if (isDemo(userId) || !isSupabaseConfigured()) return [];
+  try {
+    const groups = await getGroups(userId);
+    const friendIds = new Set();
+    const { data: friendRows } = await supabase.from('friends').select('user_id,friend_id')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+    (friendRows || []).forEach(f => {
+      friendIds.add(f.user_id === userId ? f.friend_id : f.user_id);
+    });
+    friendIds.add(userId);
+
+    const memberFreq = {};
+    groups.forEach(g => {
+      (g.members || []).forEach(m => {
+        if (m.id && !friendIds.has(m.id)) {
+          memberFreq[m.id] = (memberFreq[m.id] || 0) + 1;
+        }
+      });
+    });
+
+    const memberIds = Object.keys(memberFreq);
+    if (memberIds.length === 0) return [];
+    const { data: users } = await supabase.from('users').select('id,name,email,avatar,phone').in('id', memberIds);
+    return (users || []).map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '', coGroupCount: memberFreq[u.id] || 0 }))
+      .sort((a, b) => b.coGroupCount - a.coGroupCount);
+  } catch (e) {
+    console.error('getSuggestedFriendsFromGroups error:', e);
+    return [];
+  }
+};
+
+// --- Pending invites (Feature #6) ---
+const PENDING_INVITES_KEY = 'sw_pending_invites';
+
+export const getPendingInvites = async (userId) => {
+  // Try Supabase first
+  if (isSupabaseConfigured() && userId) {
+    try {
+      const { data, error } = await supabase.from('pending_invites').select('*').eq('inviter_id', userId);
+      if (!error && data) return data.map(i => ({ id: i.id, email: i.email, inviterId: i.inviter_id, invitedAt: i.created_at || i.invited_at }));
+    } catch {}
+  }
+  // Fallback to AsyncStorage (demo accounts)
+  try {
+    const val = await AsyncStorage.getItem(PENDING_INVITES_KEY);
+    return val ? JSON.parse(val) : [];
+  } catch { return []; }
+};
+
+export const savePendingInvite = async (email, userId) => {
+  // Save to Supabase if configured
+  if (isSupabaseConfigured() && userId) {
+    try {
+      await supabase.from('pending_invites').upsert({
+        id: uuidv4(),
+        email,
+        inviter_id: userId,
+      }, { onConflict: 'email,inviter_id' });
+    } catch {}
+  }
+  // Also save to AsyncStorage for local access
+  const invites = await getPendingInvites();
+  if (invites.some(i => i.email === email)) return invites;
+  const updated = [...invites, { email, invitedAt: new Date().toISOString() }];
+  await AsyncStorage.setItem(PENDING_INVITES_KEY, JSON.stringify(updated));
+  return updated;
+};
+
+export const removePendingInvite = async (email, userId) => {
+  // Remove from Supabase if configured
+  if (isSupabaseConfigured() && userId) {
+    try {
+      await supabase.from('pending_invites').delete().eq('email', email).eq('inviter_id', userId);
+    } catch {}
+  }
+  // Also remove from AsyncStorage
+  const invites = await getPendingInvites();
+  const updated = invites.filter(i => i.email !== email);
+  await AsyncStorage.setItem(PENDING_INVITES_KEY, JSON.stringify(updated));
+  return updated;
+};
+
+// --- Handle invite link: auto-add friend on app open (Feature #2) ---
+export const handleInviteLink = async (inviterUserId, currentUserId) => {
+  if (!inviterUserId || !currentUserId || inviterUserId === currentUserId) return;
+  if (isDemo(currentUserId) || !isSupabaseConfigured()) return;
+  try {
+    // Check if already friends
+    const { data: existing } = await supabase.from('friends').select('id')
+      .or(`and(user_id.eq.${currentUserId},friend_id.eq.${inviterUserId}),and(user_id.eq.${inviterUserId},friend_id.eq.${currentUserId})`)
+      .maybeSingle();
+    if (existing) return;
+
+    // Auto-create bilateral friendship (no request needed for invite links)
+    await supabase.from('friends').insert([
+      { id: uuidv4(), user_id: inviterUserId, friend_id: currentUserId, created_at: new Date().toISOString() },
+      { id: uuidv4(), user_id: currentUserId, friend_id: inviterUserId, created_at: new Date().toISOString() },
+    ]);
+    await addActivity({ type: 'friend_added', userId: currentUserId, targetUserId: inviterUserId, createdAt: new Date().toISOString() });
+  } catch (e) {
+    console.error('handleInviteLink error:', e);
+  }
+};
+
+// --- Get suggested members for a specific group (Feature #7 enhanced) ---
+export const getSuggestedMembersForGroup = async (userId, groupId) => {
+  if (isDemo(userId) || !isSupabaseConfigured()) return [];
+  try {
+    const groups = await getGroups(userId);
+    const targetGroup = groups.find(g => g.id === groupId);
+    if (!targetGroup) return [];
+    const targetMemberIds = new Set((targetGroup.members || []).map(m => m.id));
+
+    const memberFreq = {};
+    groups.forEach(g => {
+      if (g.id === groupId) return;
+      (g.members || []).forEach(m => {
+        if (m.id && !targetMemberIds.has(m.id) && m.id !== userId) {
+          memberFreq[m.id] = (memberFreq[m.id] || 0) + 1;
+        }
+      });
+    });
+
+    const memberIds = Object.keys(memberFreq);
+    if (memberIds.length === 0) return [];
+    const { data: users } = await supabase.from('users').select('id,name,email,avatar,phone').in('id', memberIds);
+    return (users || []).map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '', coGroupCount: memberFreq[u.id] || 0 }))
+      .sort((a, b) => b.coGroupCount - a.coGroupCount)
+      .slice(0, 20);
+  } catch (e) {
+    console.error('getSuggestedMembersForGroup error:', e);
+    return [];
+  }
+};
+
+// --- Match device contacts to registered users (Feature #11) ---
+export const matchContactsToUsers = async (contacts) => {
+  if (!isSupabaseConfigured() || !contacts?.length) return [];
+  try {
+    const emails = contacts.map(c => c.email).filter(Boolean).map(e => e.toLowerCase());
+    const phones = contacts.map(c => c.phone).filter(Boolean).map(p => p.replace(/[\s\-\(\)\+]/g, ''));
+    if (emails.length === 0 && phones.length === 0) return [];
+
+    const orClauses = [];
+    // Chunk emails to avoid URL length issues
+    for (let i = 0; i < emails.length; i += 50) {
+      const chunk = emails.slice(i, i + 50);
+      orClauses.push(...chunk.map(e => `email.ilike.${e}`));
+    }
+    for (let i = 0; i < phones.length; i += 50) {
+      const chunk = phones.slice(i, i + 50);
+      orClauses.push(...chunk.map(p => `phone.ilike.%${p}%`));
+    }
+
+    const results = [];
+    // Query in batches of 50 OR clauses
+    for (let i = 0; i < orClauses.length; i += 50) {
+      const batch = orClauses.slice(i, i + 50);
+      const { data } = await supabase.from('users').select('id,name,email,avatar,phone').or(batch.join(','));
+      if (data) results.push(...data);
+    }
+
+    // Deduplicate and map contact names
+    const seen = new Set();
+    return results.filter(u => {
+      if (seen.has(u.id)) return false;
+      seen.add(u.id);
+      return true;
+    }).map(u => {
+      const contact = contacts.find(c => c.email?.toLowerCase() === u.email?.toLowerCase() || (c.phone && u.phone?.includes(c.phone.replace(/[\s\-\(\)\+]/g, ''))));
+      return { id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '', contactName: contact?.name || null };
+    });
+  } catch (e) {
+    console.error('matchContactsToUsers error:', e);
+    return [];
+  }
+};
+
+// --- Invite context persistence for deep link auto-join (Feature #10) ---
+const INVITE_CONTEXT_KEY = 'sw_invite_context';
+
+export const storeInviteContext = async (context) => {
+  try {
+    await AsyncStorage.setItem(INVITE_CONTEXT_KEY, JSON.stringify(context));
+  } catch (e) {
+    console.error('storeInviteContext error:', e);
+  }
+};
+
+export const getAndClearInviteContext = async () => {
+  try {
+    const val = await AsyncStorage.getItem(INVITE_CONTEXT_KEY);
+    if (val) await AsyncStorage.removeItem(INVITE_CONTEXT_KEY);
+    return val ? JSON.parse(val) : null;
+  } catch {
+    return null;
+  }
 };

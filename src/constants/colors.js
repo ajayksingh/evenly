@@ -1,9 +1,13 @@
+// Legacy COLORS export — kept for backward compatibility during migration.
+// New code should use useTheme() from ThemeContext instead.
 export const COLORS = {
   // Primary — Teal (matches Figma)
   primary: '#00d4aa',
   primaryDark: '#00b894',
   primaryLight: 'rgba(0,212,170,0.12)',
   primaryGradient: ['#00d4aa', '#00b894'],
+  // Gradient CTA: teal → cyan
+  ctaGradient: ['#00d4aa', '#00b4d8'],
 
   // Semantic
   secondary: '#a55eea',
@@ -16,20 +20,25 @@ export const COLORS = {
   negative: '#ff6b6b',
   neutral: '#71717a',
 
-  // Surface / Layout — Dark theme (matches Figma)
-  background: '#0a0a0f',
-  white: '#1a1a24',
+  // Surface / Layout — Dark theme (softer, warmer)
+  background: '#111113',
+  white: '#1c1c22',
   black: '#ffffff',
-  card: '#1a1a24',
+  card: '#1c1c22',
   border: 'rgba(255,255,255,0.08)',
   shadow: 'rgba(0,212,170,0.15)',
   overlay: 'rgba(0,0,0,0.7)',
 
   // Typography
   text: '#ffffff',
-  textLight: '#a1a1aa',
+  textLight: '#9ca3af',
   textMuted: '#52525b',
 };
+
+// Border radius system
+export const RADIUS_SM = 12;
+export const RADIUS_MD = 16;
+export const RADIUS_LG = 24;
 
 export const CATEGORIES = [
   { id: 'food',          label: 'Food & Drink',   icon: 'restaurant',    emoji: '🍔', color: '#F43F5E' },

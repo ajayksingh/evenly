@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { getInitials, generateAvatarColor } from '../utils/splitCalculator';
+import { useTheme } from '../context/ThemeContext';
 
 const Avatar = ({ name, avatar, size = 40, fontSize }) => {
+  const { theme } = useTheme();
   const initials = getInitials(name);
   const color = generateAvatarColor(name);
   const fs = fontSize || size * 0.38;
@@ -20,21 +22,10 @@ const Avatar = ({ name, avatar, size = 40, fontSize }) => {
   }
 
   return (
-    <View style={[styles.container, { width: size, height: size, borderRadius: size / 2, backgroundColor: color }]}>
-      <Text style={[styles.initials, { fontSize: fs }]}>{initials}</Text>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: fs, color: theme.background, fontWeight: '700' }}>{initials}</Text>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-});
 
 export default Avatar;

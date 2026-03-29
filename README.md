@@ -61,6 +61,17 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | **Monetisation** | Google AdMob banner (HomeScreen) + interstitial (post-settlement) on Android |
 | **Scroll-fade headers** | Headers fade from transparent to opaque as the user scrolls — all screens |
 | **Entrance animations** | Fade-in + slide-up on screen focus (native only; disabled on web to prevent flicker) |
+| **Unified Add People** | Single reusable modal for adding friends and group members with tabs: Search, Contacts, Friends, Suggested, Link |
+| **Group member from contacts** | Import device contacts as group members with batch selection (iOS/Android) |
+| **Group member from friends** | One-tap add existing friends to groups — no email typing needed |
+| **Group QR code / invite link** | Generate QR code and shareable link for any group — scan to auto-join |
+| **Phone number search** | Find users by phone number in addition to name and email |
+| **Smart suggestions** | AI-ranked suggestions based on co-group frequency — people you split with most appear first |
+| **Batch operations** | Select multiple people across any tab and add/invite them all at once |
+| **WhatsApp group invites** | Pre-formatted WhatsApp messages with group join link |
+| **Deep link auto-join** | Invite links persist through signup — new users auto-join groups after registration |
+| **Contact sync** | Background matching of device contacts against registered users — discover friends already on Evenly |
+| **Responsive adaptive layout** | All screens adapt to phone widths from 320dp to 430dp+ — text truncation, responsive padding, scalable fonts |
 
 ---
 
@@ -377,7 +388,7 @@ NavigationContainer (deep link scheme: evenly://)
        +-- Activity        -> Filterable transaction log
        +-- [+] FAB         -> AddExpense modal (4 split modes)
        +-- Groups          -> Group list + FAB to create
-       +-- Friends         -> Balance grid, add by email
+       +-- Friends         -> Balance grid, unified add modal (search/contacts/QR)
 
   Modal / Stack Screens:
   +-- GroupDetail          -> Expenses / Balances / Members tabs
@@ -417,6 +428,11 @@ Primary interface between UI and data stores. Automatically routes to AsyncStora
 | `sendFriendRequest(userId, email)` | Send a friend request (Supabase users); direct add for demo |
 | `getFriendRequests(userId)` | Fetch pending incoming friend requests |
 | `respondToFriendRequest(id, accept, userId)` | Accept or reject a friend request |
+| `searchUsers(query, userId)` | Search by name, email, or phone number |
+| `getSuggestedMembersForGroup(userId, groupId)` | Smart suggestions ranked by co-group frequency |
+| `matchContactsToUsers(contacts)` | Batch match device contacts against registered users |
+| `storeInviteContext(context)` | Persist invite link context for post-signup auto-join |
+| `getAndClearInviteContext()` | Retrieve and clear stored invite context |
 
 **Balance calculation fixes (v1.0.2):**
 - All returned balance amounts rounded with `parseFloat(x.toFixed(2))` to eliminate float accumulation
@@ -542,6 +558,9 @@ UX:       screen_view · whatsapp_notify
 | `sendWhatsAppMessage(phone, msg)` | Open WhatsApp; fallback to wa.me URL |
 | `buildExpenseWhatsAppMessage(...)` | Pre-formatted expense notification |
 | `buildSettlementWhatsAppMessage(...)` | Pre-formatted payment confirmation |
+| `buildGroupWhatsAppInviteMessage(userName, groupName, joinLink)` | Pre-formatted group invite for WhatsApp |
+| `checkContactsPermissionSilently()` | Check contacts permission without prompting user |
+| `getContactsIfPermitted()` | Fetch contacts only if permission was already granted (no prompt) |
 
 ---
 
@@ -580,6 +599,7 @@ Evenly uses **React Context** (`AppContext`) as its single source of truth. No R
   activity:       ActivityItem[],
   friendRequests: FriendRequest[],
   groupInvites:   GroupInvite[],
+  contactMatches: User[],         // device contacts who are on Evenly but not yet friends
 
   isOnline:     boolean,
   syncStatus:   null | 'offline' | 'syncing' | 'synced' | 'error',
@@ -849,7 +869,7 @@ evenly/
 |   |   +-- syncService.js        # Offline queue and flush logic
 |   |   +-- analytics.js          # Event tracking
 |   |   +-- currency.js           # Multi-currency with live rates
-|   |   +-- contacts.js           # Native address book + WhatsApp
+|   |   +-- contacts.js           # Native address book, WhatsApp, contact sync
 |   |   +-- ads.js                # Google AdMob (banner + interstitial)
 |   |   +-- firebase.js           # Firebase config (analytics)
 |   |
@@ -864,8 +884,13 @@ evenly/
 |   |
 |   +-- components/               # Shared UI components
 |   |   +-- Avatar.js             # User avatar with initials fallback
+|   |   +-- AddPeopleModal.js     # Unified add friends/members modal (5 tabs)
 |   |   +-- BackgroundOrbs.js     # Animated gradient background
 |   |   +-- BalanceSummary.js     # Balance summary card
+|   |   +-- FadeInView.js         # Staggered fade-in animation
+|   |   +-- PressableScale.js     # Spring-animated pressable button
+|   |   +-- ShakeView.js          # Shake feedback for validation errors
+|   |   +-- Skeleton.js           # Loading shimmer placeholder
 |   |   +-- SyncBanner.js         # Network / sync status indicator
 |   |
 |   +-- constants/
@@ -875,8 +900,10 @@ evenly/
 |       +-- splitCalculator.js    # 4 split algorithms + debt simplification
 |       +-- haptics.js            # Haptic feedback wrappers
 |       +-- alert.js              # Cross-platform alert helpers
+|       +-- responsive.js         # Screen-width breakpoints and scaling helpers
+|       +-- share.js              # Cross-platform share/clipboard utility
 |
-+-- maestro/flows/                # E2E test suite (5 flows + helpers)
++-- maestro/flows/                # E2E test suite (17 flows + helpers)
 |   +-- helpers/
 |       +-- do_login.yaml
 |       +-- do_logout.yaml

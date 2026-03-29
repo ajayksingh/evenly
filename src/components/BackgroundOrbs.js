@@ -1,31 +1,33 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Platform } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const BackgroundOrbs = () => {
+  const { theme } = useTheme();
   const pulse1 = useRef(new Animated.Value(0.2)).current;
   const pulse2 = useRef(new Animated.Value(0.1)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse1, { toValue: 0.35, duration: 2800, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.timing(pulse1, { toValue: 0.2, duration: 2800, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(pulse1, { toValue: theme.orbOpacityHigh, duration: 4000, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(pulse1, { toValue: theme.orbOpacityHigh * 0.57, duration: 4000, useNativeDriver: Platform.OS !== 'web' }),
       ])
     ).start();
     setTimeout(() => {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulse2, { toValue: 0.18, duration: 2800, useNativeDriver: Platform.OS !== 'web' }),
-          Animated.timing(pulse2, { toValue: 0.08, duration: 2800, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(pulse2, { toValue: theme.orbOpacityLow * 2.25, duration: 4000, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(pulse2, { toValue: theme.orbOpacityLow, duration: 4000, useNativeDriver: Platform.OS !== 'web' }),
         ])
       ).start();
-    }, 1000);
+    }, 1500);
   }, []);
 
   return (
     <View style={styles.container} pointerEvents="none">
-      <Animated.View style={[styles.orb1, { opacity: pulse1 }]} />
-      <Animated.View style={[styles.orb2, { opacity: pulse2 }]} />
+      <Animated.View style={[styles.orb1, { opacity: pulse1, backgroundColor: theme.orbPrimary }]} />
+      <Animated.View style={[styles.orb2, { opacity: pulse2, backgroundColor: theme.orbSecondary }]} />
     </View>
   );
 };
@@ -38,14 +40,10 @@ const styles = StyleSheet.create({
   orb1: {
     position: 'absolute', top: -80, right: -80,
     width: 320, height: 320, borderRadius: 160,
-    backgroundColor: '#00d4aa',
-    // React Native doesn't have CSS blur, so we use a large borderRadius + opacity trick
-    // For blur effect, we stack multiple orbs with increasing transparency
   },
   orb2: {
     position: 'absolute', top: 300, left: -80,
     width: 280, height: 280, borderRadius: 140,
-    backgroundColor: '#ff6b6b',
   },
 });
 

@@ -1,10 +1,16 @@
 ---
-# Flow: User B sees shared expenses and settles payment
+# Flow: Bob Demo sees shared expenses and settles payment
 appId: com.ajayksingh.evenly
 ---
 
 - launchApp:
     clearState: true
+- waitForAnimationToEnd
+
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
 - waitForAnimationToEnd
 
 # Dismiss any system crash dialogs
@@ -16,15 +22,9 @@ appId: com.ajayksingh.evenly
     optional: true
 - waitForAnimationToEnd
 
-- assertVisible: "Welcome back"
-- tapOn:
-    id: "auth-email-input"
-- inputText: "ajsworld@gmail.com"
-- tapOn:
-    id: "auth-password-input"
-- inputText: "abc123"
-- tapOn:
-    id: "auth-submit-btn"
+- assertVisible: "Continue with Google"
+- runFlow:
+    file: ./helpers/do_login_bob.yaml
 
 - extendedWaitUntil:
     visible:
@@ -37,14 +37,14 @@ appId: com.ajayksingh.evenly
 - tapOn: "E2E Test Group"
 - waitForAnimationToEnd
 
-# Both expenses from User A visible to User B
+# Both expenses from Alice visible to Bob
 - extendedWaitUntil:
     visible:
       text: "Dinner at restaurant"
     timeout: 10000
 - assertVisible: "Cab ride home"
 
-# Balances: User B owes User A
+# Balances: Bob owes Alice
 - tapOn:
     id: "tab-balances"
 - waitForAnimationToEnd
@@ -55,7 +55,7 @@ appId: com.ajayksingh.evenly
 - waitForAnimationToEnd
 - assertVisible: "Settle Up"
 
-# Select receiver (deepsags = first non-payer)
+# Select receiver (Alice = first non-payer)
 - tapOn:
     id: "settle-receiver-first"
 - waitForAnimationToEnd
@@ -74,7 +74,7 @@ appId: com.ajayksingh.evenly
 
 - extendedWaitUntil:
     visible:
-      text: "Payment Successful!"
+      text: "All settled!"
     timeout: 8000
 
 - waitForAnimationToEnd:

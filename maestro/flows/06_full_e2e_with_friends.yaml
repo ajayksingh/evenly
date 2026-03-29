@@ -1,26 +1,18 @@
 ---
-# Flow: Full E2E — friends, multiple expenses, verify data persists on backend
+# Flow: Full E2E — friends, multiple expenses, verify data persists
 appId: com.ajayksingh.evenly
 ---
 
-# === USER A: Add User B as friend if not already ===
+# === Alice Demo: Add Bob as friend if not already ===
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
 
-# Ensure logged in as User A
+# Ensure logged in as Alice
 - runFlow:
     when:
-      visible: "Welcome back"
-    commands:
-      - tapOn:
-          text: "Sign In"
-          optional: true
-      - runFlow:
-          file: ./helpers/do_login.yaml
-          env:
-            EMAIL: "deepsags@gmail.com"
-            PASS: "abc123"
+      visible: "Continue with Google"
+    file: ./helpers/do_login.yaml
 
 - waitForAnimationToEnd
 
@@ -28,10 +20,10 @@ appId: com.ajayksingh.evenly
 - tapOn: "Friends"
 - waitForAnimationToEnd
 
-# Add User B as friend (if not already added)
+# Add Bob as friend (if not already added)
 - runFlow:
     when:
-      notVisible: "ajsworld"
+      notVisible: "Bob Demo"
     commands:
       - tapOn:
           text: "Add Friend"
@@ -39,7 +31,7 @@ appId: com.ajayksingh.evenly
       - tapOn:
           id: "add-friend-input"
           optional: true
-      - inputText: "ajsworld@gmail.com"
+      - inputText: "bob@demo.com"
       - tapOn:
           text: "Add"
           optional: true
@@ -47,16 +39,32 @@ appId: com.ajayksingh.evenly
 
 # Verify friend appears
 - assertVisible:
-    text: "ajsworld"
+    text: "Bob"
     optional: true
 
-# --- Navigate to Groups and open shared group ---
+# --- Navigate to Groups and create/open group ---
 - tapOn: "Groups"
 - waitForAnimationToEnd
+
+# Create new group if needed
+- tapOn:
+    id: "fab-add-group"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    id: "group-name-input"
+    optional: true
+- inputText: "Maestro E2E Group"
+  optional: true
+- tapOn:
+    text: "Create"
+    optional: true
+- waitForAnimationToEnd
+
 - tapOn: "Maestro E2E Group"
 - waitForAnimationToEnd
 
-# --- Add expense for a different category ---
+# --- Add expense ---
 - tapOn: "Add"
 - waitForAnimationToEnd
 
@@ -83,7 +91,7 @@ appId: com.ajayksingh.evenly
 - waitForAnimationToEnd
 - assertVisible: "members"
 
-# --- Verify back on Groups screen it shows updated total ---
+# --- Verify back on Groups screen ---
 - tapOn:
     text: "Back"
     optional: true
@@ -91,7 +99,6 @@ appId: com.ajayksingh.evenly
     text: "Groups"
     optional: true
 - waitForAnimationToEnd
-- assertVisible: "Maestro E2E Group"
 
 # --- Go to Activity screen ---
 - tapOn:

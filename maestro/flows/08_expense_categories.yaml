@@ -3,9 +3,6 @@
 # Opens the category picker, selects each category in sequence,
 # and verifies the label updates on the form after each selection.
 appId: com.ajayksingh.evenly
-env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
 ---
 
 - launchApp:
@@ -15,11 +12,8 @@ env:
 # === Login as User A (or reuse session) ===
 - runFlow:
     when:
-      visible: "Welcome back"
+      visible: "Continue with Google"
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:

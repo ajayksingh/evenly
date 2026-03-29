@@ -1,10 +1,8 @@
 ---
 # Shared test config
 env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
-  USER_B_EMAIL: ajsworld@gmail.com
-  USER_B_PASS: abc123
+  USER_A_EMAIL: alice@demo.com
+  USER_B_EMAIL: bob@demo.com
   TEST_GROUP_NAME: "Maestro Test Group"
   TEST_EXPENSE_1: "Dinner at restaurant"
   TEST_EXPENSE_2: "Cab ride"

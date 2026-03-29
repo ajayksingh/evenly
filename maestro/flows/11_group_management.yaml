@@ -3,9 +3,7 @@
 # verify both in list, open one and add User B as member.
 appId: com.ajayksingh.evenly
 env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
-  USER_B_EMAIL: ajsworld@gmail.com
+  USER_B_EMAIL: bob@demo.com
 ---
 
 - launchApp:
@@ -15,11 +13,8 @@ env:
 # === Login as User A (or reuse existing session) ===
 - runFlow:
     when:
-      visible: "Welcome back"
+      visible: "Continue with Google"
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:
@@ -150,32 +145,35 @@ env:
 - waitForAnimationToEnd
 - assertVisible: "members"
 
-# Tap Add Member button
+# Tap Add Member button → opens unified AddPeopleModal
 - tapOn:
     id: "add-member-btn"
 - waitForAnimationToEnd
-- assertVisible: "Add Member"
+- assertVisible: "Add Members"
 
-# Search for User B by email
+# Switch to Search tab and search for User B
+- tapOn:
+    id: "tab-search"
+    optional: true
+- waitForAnimationToEnd
 - tapOn:
     id: "member-search-input"
 - inputText: ${USER_B_EMAIL}
-- tapOn:
-    id: "member-search-btn"
 
-# Wait for the Add action button on the result card
+# Wait for debounced search results
 - extendedWaitUntil:
     visible:
-      id: "add-member-action-btn"
+      text: "Ajay"
     timeout: 8000
 
-# Dismiss keyboard then tap Add
 - hideKeyboard
 - waitForAnimationToEnd
+# Tap the result to select/add
 - tapOn:
-    id: "add-member-action-btn"
+    text: "Ajay"
+    index: 0
 
-# Wait for modal to close (Cancel button disappears when modal closes)
+# Wait for modal to close
 - extendedWaitUntil:
     notVisible:
       text: "Cancel"

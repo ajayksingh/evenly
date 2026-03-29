@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring } from 'react-native-reanimated';
 import { NavigationContainer } from '@react-navigation/native';
@@ -8,10 +9,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useApp } from '../context/AppContext';
-import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import { hapticSelection } from '../utils/haptics';
 import SyncBanner from '../components/SyncBanner';
 
+import OnboardingScreen from '../screens/OnboardingScreen';
 import AuthScreen from '../screens/AuthScreen';
 import HomeScreen from '../screens/HomeScreen';
 import GroupsScreen from '../screens/GroupsScreen';
@@ -27,36 +29,48 @@ import CreateGroupScreen from '../screens/CreateGroupScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const MODAL_OPTIONS = { headerShown: false, presentation: 'modal', cardStyle: { backgroundColor: COLORS.background } };
-const CARD_OPTIONS  = { headerShown: false, cardStyle: { backgroundColor: COLORS.background } };
-
 // ─── Per-tab nested stacks ────────────────────────────────────────────────────
 
-const HomeStack = () => (
-  <Stack.Navigator screenOptions={CARD_OPTIONS}>
-    <Stack.Screen name="HomeMain"   component={HomeScreen} />
-    <Stack.Screen name="SettleUp"   component={SettleUpScreen}  options={MODAL_OPTIONS} />
-    <Stack.Screen name="Profile"    component={ProfileScreen} />
-    <Stack.Screen name="Currency"   component={CurrencyScreen} />
-  </Stack.Navigator>
-);
+const HomeStack = () => {
+  const { theme } = useTheme();
+  const cardOptions = { headerShown: false, cardStyle: { backgroundColor: theme.background } };
+  const modalOptions = { headerShown: false, presentation: 'modal', cardStyle: { backgroundColor: theme.background } };
+  return (
+    <Stack.Navigator screenOptions={cardOptions}>
+      <Stack.Screen name="HomeMain"   component={HomeScreen} />
+      <Stack.Screen name="SettleUp"   component={SettleUpScreen}  options={modalOptions} />
+      <Stack.Screen name="Profile"    component={ProfileScreen} />
+      <Stack.Screen name="Currency"   component={CurrencyScreen} />
+    </Stack.Navigator>
+  );
+};
 
-const GroupsStack = () => (
-  <Stack.Navigator screenOptions={CARD_OPTIONS}>
-    <Stack.Screen name="GroupsList"  component={GroupsScreen} />
-    <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
-    <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
-    <Stack.Screen name="AddExpense"  component={AddExpenseScreen} options={MODAL_OPTIONS} />
-    <Stack.Screen name="SettleUp"    component={SettleUpScreen}   options={MODAL_OPTIONS} />
-  </Stack.Navigator>
-);
+const GroupsStack = () => {
+  const { theme } = useTheme();
+  const cardOptions = { headerShown: false, cardStyle: { backgroundColor: theme.background } };
+  const modalOptions = { headerShown: false, presentation: 'modal', cardStyle: { backgroundColor: theme.background } };
+  return (
+    <Stack.Navigator screenOptions={cardOptions}>
+      <Stack.Screen name="GroupsList"  component={GroupsScreen} />
+      <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
+      <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
+      <Stack.Screen name="AddExpense"  component={AddExpenseScreen} options={modalOptions} />
+      <Stack.Screen name="SettleUp"    component={SettleUpScreen}   options={modalOptions} />
+    </Stack.Navigator>
+  );
+};
 
-const FriendsStack = () => (
-  <Stack.Navigator screenOptions={CARD_OPTIONS}>
-    <Stack.Screen name="FriendsList" component={FriendsScreen} />
-    <Stack.Screen name="SettleUp"    component={SettleUpScreen} options={MODAL_OPTIONS} />
-  </Stack.Navigator>
-);
+const FriendsStack = () => {
+  const { theme } = useTheme();
+  const cardOptions = { headerShown: false, cardStyle: { backgroundColor: theme.background } };
+  const modalOptions = { headerShown: false, presentation: 'modal', cardStyle: { backgroundColor: theme.background } };
+  return (
+    <Stack.Navigator screenOptions={cardOptions}>
+      <Stack.Screen name="FriendsList" component={FriendsScreen} />
+      <Stack.Screen name="SettleUp"    component={SettleUpScreen} options={modalOptions} />
+    </Stack.Navigator>
+  );
+};
 
 // ─── Animated tab icon ────────────────────────────────────────────────────────
 
@@ -89,18 +103,20 @@ const AnimatedTabIcon = ({ name, focused, color }) => {
 
 const MainTabs = () => {
   const { bottom } = useSafeAreaInsets();
+  const { theme } = useTheme();
   const tabBarHeight = 62 + bottom;
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        animation: 'fade',
         tabBarShowLabel: true,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textMuted,
         tabBarStyle: {
-          backgroundColor: 'rgba(10,10,15,0.95)',
-          borderTopColor: COLORS.border,
+          backgroundColor: theme.tabBar,
+          borderTopColor: theme.border,
           borderTopWidth: 1,
           height: tabBarHeight,
           paddingBottom: bottom > 0 ? bottom : 12,
@@ -124,10 +140,10 @@ const MainTabs = () => {
       })}
       screenListeners={{ tabPress: () => hapticSelection() }}
     >
-      <Tab.Screen name="Home"     component={HomeStack} />
-      <Tab.Screen name="Activity" component={ActivityScreen} />
-      <Tab.Screen name="Groups"   component={GroupsStack} />
-      <Tab.Screen name="Friends"  component={FriendsStack} />
+      <Tab.Screen name="Home"     component={HomeStack} options={{ tabBarAccessibilityLabel: 'Navigate to Home tab' }} />
+      <Tab.Screen name="Activity" component={ActivityScreen} options={{ tabBarAccessibilityLabel: 'Navigate to Activity tab' }} />
+      <Tab.Screen name="Groups"   component={GroupsStack} options={{ tabBarAccessibilityLabel: 'Navigate to Groups tab' }} />
+      <Tab.Screen name="Friends"  component={FriendsStack} options={{ tabBarAccessibilityLabel: 'Navigate to Friends tab' }} />
     </Tab.Navigator>
   );
 };
@@ -136,21 +152,56 @@ const MainTabs = () => {
 
 const AppNavigator = () => {
   const { user, loading, syncStatus } = useApp();
+  const { theme, colorScheme } = useTheme();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width > 768;
+  const [hasOnboarded, setHasOnboarded] = useState(null);
 
-  if (loading) return null;
+  useEffect(() => {
+    AsyncStorage.getItem('@evenly_onboarded').then(val => {
+      setHasOnboarded(val === 'true');
+    });
+  }, []);
+
+  if (loading || hasOnboarded === null) return null;
+
+  const navigationTheme = {
+    dark: colorScheme === 'dark',
+    colors: {
+      primary: theme.primary,
+      background: theme.background,
+      card: theme.card,
+      text: theme.text,
+      border: theme.border,
+      notification: theme.primary,
+    },
+    fonts: {
+      regular: { fontFamily: 'System', fontWeight: '400' },
+      medium: { fontFamily: 'System', fontWeight: '500' },
+      bold: { fontFamily: 'System', fontWeight: '700' },
+      heavy: { fontFamily: 'System', fontWeight: '800' },
+    },
+  };
 
   return (
-    <View style={isDesktop ? styles.desktopContainer : { flex: 1 }}>
-      <View style={isDesktop ? styles.desktopApp : { flex: 1 }}>
-        <NavigationContainer>
+    <View style={isDesktop ? [styles.desktopContainer, { backgroundColor: theme.desktopBg }] : { flex: 1 }}>
+      <View style={isDesktop ? [styles.desktopApp, { borderColor: theme.desktopBorder, shadowColor: theme.primary }] : { flex: 1 }}>
+        <NavigationContainer theme={navigationTheme}>
           <View style={{ flex: 1 }}>
             <Stack.Navigator
-              key={user ? 'main' : 'auth'}
-              screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}
+              key={user ? 'main' : hasOnboarded ? 'auth' : 'onboarding'}
+              screenOptions={{ headerShown: false, cardStyle: { backgroundColor: theme.background } }}
             >
-              {!user ? (
+              {!hasOnboarded ? (
+                <Stack.Screen name="Onboarding">
+                  {(props) => (
+                    <OnboardingScreen
+                      {...props}
+                      onComplete={() => setHasOnboarded(true)}
+                    />
+                  )}
+                </Stack.Screen>
+              ) : !user ? (
                 <Stack.Screen name="Auth" component={AuthScreen} />
               ) : (
                 <Stack.Screen name="Main" component={MainTabs} />
@@ -167,7 +218,6 @@ const AppNavigator = () => {
 const styles = StyleSheet.create({
   desktopContainer: {
     flex: 1,
-    backgroundColor: '#050508',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -178,8 +228,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    shadowColor: '#00d4aa',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.08,
     shadowRadius: 40,

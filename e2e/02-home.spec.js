@@ -25,38 +25,30 @@ test.describe('Home screen', () => {
   });
 
   test('hero card shows a balance status badge', async ({ page }) => {
-    const settled    = page.getByText('All settled up!');
-    const youAreOwed = page.getByText('You are owed');
-    const youOwe     = page.getByText('You owe');
-
     const anyVisible =
-      (await settled.isVisible().catch(() => false)) ||
-      (await youAreOwed.isVisible().catch(() => false)) ||
-      (await youOwe.isVisible().catch(() => false));
+      (await page.getByText('All square').isVisible().catch(() => false)) ||
+      (await page.getByText('Ready to split').isVisible().catch(() => false)) ||
+      (await page.getByText('Friends owe you').isVisible().catch(() => false)) ||
+      (await page.getByText('You owe friends').isVisible().catch(() => false)) ||
+      (await page.getByText('owe').isVisible().catch(() => false));
 
     expect(anyVisible).toBe(true);
   });
 
-  // ─── Stats row ────────────────────────────────────────────────────────────
+  // ─── Debt summary ─────────────────────────────────────────────────────────
 
-  test('stats row shows "you\'re owed" label', async ({ page }) => {
-    await expect(page.getByText("you're owed")).toBeVisible();
-  });
-
-  test('stats row shows "you owe" label', async ({ page }) => {
-    await expect(page.getByText('you owe')).toBeVisible();
-  });
-
-  test('both stat cards are visible simultaneously', async ({ page }) => {
-    await expect(page.getByText("you're owed")).toBeVisible();
-    await expect(page.getByText('you owe')).toBeVisible();
+  test('debt summary or all-square card is visible', async ({ page }) => {
+    const owedCard = await page.locator('[data-testid="debt-owed-to-me"]').isVisible({ timeout: 5000 }).catch(() => false);
+    const oweCard = await page.locator('[data-testid="debt-i-owe"]').isVisible().catch(() => false);
+    const allSquare = await page.getByText(/All square|Ready to split/).isVisible().catch(() => false);
+    expect(owedCard || oweCard || allSquare).toBe(true);
   });
 
   // ─── Activity feed ────────────────────────────────────────────────────────
 
-  test('"Recent activity" section heading is visible', async ({ page }) => {
-    // "Recent activity" is the exact section title (not the tab label "Activity")
-    await expect(page.getByText('Recent activity')).toBeVisible();
+  test('"Recent transactions" section heading is visible', async ({ page }) => {
+    // "Recent transactions" is the exact section title (not the tab label "Activity")
+    await expect(page.getByText('Recent transactions')).toBeVisible();
   });
 
   test('activity feed loads — shows items or empty-state message', async ({ page }) => {
@@ -70,11 +62,11 @@ test.describe('Home screen', () => {
 
   // ─── Navigation ──────────────────────────────────────────────────────────
 
-  test('tapping the header avatar navigates to Profile / My Account', async ({ page }) => {
+  test('tapping the header avatar navigates to Profile', async ({ page }) => {
     const avatarBtn = page.locator('[data-testid="header-avatar"]');
     await expect(avatarBtn).toBeVisible();
     await avatarBtn.click();
-    await expect(page.getByText('My Account')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Profile')).toBeVisible({ timeout: 15000 });
   });
 
   test('all four bottom tabs have role="tab" and are visible', async ({ page }) => {
@@ -101,7 +93,7 @@ test.describe('Home screen', () => {
 
   // ─── "See all" navigation ─────────────────────────────────────────────────
 
-  test('"See all" in Recent activity navigates to Activity tab', async ({ page }) => {
+  test('"See all" in Recent transactions navigates to Activity tab', async ({ page }) => {
     const seeAllLinks = page.getByText('See all');
     const count = await seeAllLinks.count();
 

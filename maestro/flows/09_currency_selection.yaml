@@ -2,9 +2,6 @@
 # Flow: Currency selection via Profile → Default Currency.
 # Selects USD, EUR, and returns to INR, verifying the symbol updates.
 appId: com.ajayksingh.evenly
-env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
 ---
 
 - launchApp:
@@ -14,11 +11,8 @@ env:
 # === Login as User A (or reuse existing session) ===
 - runFlow:
     when:
-      visible: "Welcome back"
+      visible: "Continue with Google"
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:

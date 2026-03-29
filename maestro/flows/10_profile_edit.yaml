@@ -3,9 +3,6 @@
 # Covers: edit name, change password alert, rate app alert,
 # notifications toggle, sign out cancel, and sign out confirm.
 appId: com.ajayksingh.evenly
-env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
 ---
 
 - launchApp:
@@ -15,11 +12,8 @@ env:
 # === Login as User A (or reuse existing session) ===
 - runFlow:
     when:
-      visible: "Welcome back"
+      visible: "Continue with Google"
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:
@@ -210,5 +204,5 @@ env:
 
 # Verify navigated to Auth screen
 - extendedWaitUntil:
-    visible: "Welcome back"
+    visible: "Continue with Google"
     timeout: 15000

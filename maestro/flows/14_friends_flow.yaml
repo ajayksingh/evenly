@@ -3,9 +3,8 @@
 # invalid email error, add User B, verify in list, settle navigation.
 appId: com.ajayksingh.evenly
 env:
-  USER_A_EMAIL: deepsags@gmail.com
-  USER_A_PASS: abc123
-  USER_B_EMAIL: ajsworld@gmail.com
+  USER_A_EMAIL: alice@demo.com
+  USER_B_EMAIL: bob@demo.com
 ---
 
 - launchApp:
@@ -15,11 +14,8 @@ env:
 # === Login as User A (or reuse session) ===
 - runFlow:
     when:
-      visible: "Welcome back"
+      visible: "Continue with Google"
     file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ${USER_A_EMAIL}
-      PASS: ${USER_A_PASS}
 
 - extendedWaitUntil:
     visible:
@@ -58,7 +54,7 @@ env:
     optional: true
 
 # ============================================================
-# Section 3: Try adding self (deepsags@gmail.com) → error
+# Section 3: Try adding self (alice@demo.com) → error
 # ============================================================
 - tapOn:
     id: "add-friend-input"
@@ -120,7 +116,7 @@ env:
 - waitForAnimationToEnd
 
 # ============================================================
-# Section 5: Add User B (ajsworld@gmail.com) if not already friends
+# Section 5: Add User B (bob@demo.com) if not already friends
 # ============================================================
 - tapOn:
     id: "add-friend-input"
@@ -161,7 +157,7 @@ env:
 # Wait for friends list to show User B
 - extendedWaitUntil:
     visible:
-      text: "ajsworld"
+      text: "Bob"
     timeout: 15000
     optional: true
 
@@ -196,7 +192,7 @@ env:
     text: "Ajay"
     optional: true
 - assertVisible:
-    text: "ajsworld"
+    text: "Bob"
     optional: true
 
 # ============================================================

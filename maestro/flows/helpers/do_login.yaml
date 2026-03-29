@@ -1,49 +1,24 @@
 appId: com.ajayksingh.evenly
 ---
-# Reusable: performs login with EMAIL and PASS env vars.
-# The Back-press strategy dismisses Samsung/Google credential manager popups
-# that appear when the password field is tapped.
-# We re-type email after each Back press in case credential manager auto-filled wrong values.
+# Reusable: performs login via Alice Demo account tap.
+# OAuth sign-in cannot be automated, so all automated tests use demo accounts.
 
+# Skip onboarding if it appears
 - tapOn:
-    id: "auth-email-input"
-- inputText: ${EMAIL}
-# Tap password field - credential manager may appear and corrupt email field
-- tapOn:
-    id: "auth-password-input"
+    id: "onboarding-skip"
     optional: true
-- pressKey: Back
 - waitForAnimationToEnd
-# Re-type email to ensure it wasn't overwritten by credential manager auto-fill
-- tapOn:
-    id: "auth-email-input"
-- eraseText: 50
-- inputText: ${EMAIL}
-# Second attempt at password field
-- tapOn:
-    id: "auth-password-input"
-    optional: true
-- pressKey: Back
+
+- extendedWaitUntil:
+    visible: "Quick Demo Access"
+    timeout: 15000
+
+# Tap Alice Demo row to login
+- tapOn: "Alice Demo"
 - waitForAnimationToEnd
-# Re-type email again (safety net for second credential manager appearance)
-- tapOn:
-    id: "auth-email-input"
-- eraseText: 50
-- inputText: ${EMAIL}
-# Now tap password and type (credential manager should be suppressed by now)
-- tapOn:
-    id: "auth-password-input"
-- inputText: ${PASS}
-- hideKeyboard
-- tapOn:
-    id: "auth-submit-btn"
-- waitForAnimationToEnd
-# Dismiss any auth error dialog (optional)
-- tapOn:
-    text: "OK"
-    optional: true
+
 # Wait until auth screen is gone
 - extendedWaitUntil:
     notVisible:
-      text: "Welcome back"
+      text: "Continue with Google"
     timeout: 30000

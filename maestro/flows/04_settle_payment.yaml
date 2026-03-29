@@ -1,9 +1,6 @@
 ---
-# Flow: User B settles payment to User A
+# Flow: Bob Demo settles payment to Alice Demo
 appId: com.ajayksingh.evenly
-env:
-  USER_B_EMAIL: ajsworld@gmail.com
-  USER_B_PASS: abc123
 ---
 
 - launchApp:
@@ -15,17 +12,14 @@ env:
     text: "Home"
     optional: true
 - waitForAnimationToEnd
-# Logout User A and login as User B
+# Logout Alice and login as Bob
 - runFlow:
     file: ./helpers/do_logout.yaml
 - extendedWaitUntil:
-    visible: "Welcome back"
+    visible: "Continue with Google"
     timeout: 15000
 - runFlow:
-    file: ./helpers/do_login.yaml
-    env:
-      EMAIL: ajsworld@gmail.com
-      PASS: abc123
+    file: ./helpers/do_login_bob.yaml
 
 - extendedWaitUntil:
     visible:
@@ -48,17 +42,12 @@ env:
 - waitForAnimationToEnd
 - assertVisible: "Settle Up"
 
-# --- Payer is User B (already selected as current user) ---
-# --- Receiver: User A ---
+# --- Receiver: Alice Demo ---
 - tapOn:
-    text: "deepsags"
-    optional: true
-- tapOn:
-    text: "Deep"
+    text: "Alice"
     optional: true
 
-# --- Amount should be auto-suggested ---
-# If not, enter manually
+# --- Amount ---
 - tapOn:
     id: "settle-amount-input"
     optional: true
@@ -71,11 +60,11 @@ env:
 - inputText: "Settling cab ride"
 
 # --- Record payment ---
-- tapOn: "Record Payment"
+- tapOn: "Settle Up"
 - waitForAnimationToEnd
 
 # --- Verify success screen ---
-- assertVisible: "Payment Successful!"
+- assertVisible: "All settled!"
 
 # --- Wait for auto-navigation back ---
 - waitForAnimationToEnd:

@@ -1,0 +1,280 @@
+---
+# Flow: Scroll experience validation across all screens
+# Tests that every screen scrolls properly, content is reachable,
+# and scroll doesn't break layout or navigation.
+appId: com.ajayksingh.evenly
+---
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
+- waitForAnimationToEnd
+
+# Dismiss system dialogs
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd
+
+# Login as Alice Demo
+- extendedWaitUntil:
+    visible: "Continue with Google"
+    timeout: 30000
+- runFlow:
+    file: ./helpers/do_login.yaml
+
+- extendedWaitUntil:
+    visible: "Total balance"
+    timeout: 15000
+
+# ============================================================
+# Section 1: Home Screen scroll
+# ============================================================
+# Verify hero card visible at top
+- assertVisible: "Total balance"
+
+# Scroll down to find more content
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+
+# Scroll back up — hero should reappear
+- swipe:
+    direction: DOWN
+    duration: 500
+- waitForAnimationToEnd
+- assertVisible: "Total balance"
+
+# Fast scroll: multiple swipes
+- swipe:
+    direction: UP
+    duration: 300
+- swipe:
+    direction: UP
+    duration: 300
+- waitForAnimationToEnd
+
+# Scroll all the way back to top
+- swipe:
+    direction: DOWN
+    duration: 300
+- swipe:
+    direction: DOWN
+    duration: 300
+- waitForAnimationToEnd
+- assertVisible: "Total balance"
+
+# ============================================================
+# Section 2: Groups Screen scroll
+# ============================================================
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+# FAB should be visible
+- assertVisible:
+    id: "fab-add-group"
+
+# Scroll the groups list
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+
+# FAB should still be visible after scroll (floating)
+- assertVisible:
+    id: "fab-add-group"
+
+# Scroll back
+- swipe:
+    direction: DOWN
+    duration: 500
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 3: Create a test group and test Group Detail scroll
+# ============================================================
+- tapOn:
+    id: "fab-add-group"
+- waitForAnimationToEnd
+- tapOn:
+    id: "group-name-input"
+- inputText: "Scroll Test"
+- tapOn: "Create"
+- waitForAnimationToEnd
+
+# Open the group
+- extendedWaitUntil:
+    visible: "Scroll Test"
+    timeout: 10000
+- tapOn: "Scroll Test"
+- waitForAnimationToEnd
+
+# Scroll within group detail
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+
+# Tab buttons should still be reachable
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+- assertVisible: "Group Balances"
+
+# Scroll balances tab
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+- swipe:
+    direction: DOWN
+    duration: 500
+- waitForAnimationToEnd
+
+# Switch to members tab
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+- assertVisible: "members"
+
+# Go back to groups list
+- back
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 4: Activity Screen scroll
+# ============================================================
+- tapOn: "Activity"
+- waitForAnimationToEnd
+
+# Filter chips should be visible
+- assertVisible:
+    text: "All"
+
+# Scroll activity list
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+
+# Scroll back
+- swipe:
+    direction: DOWN
+    duration: 500
+- waitForAnimationToEnd
+
+# Filter chips should still be visible
+- assertVisible:
+    text: "All"
+
+# ============================================================
+# Section 5: Friends Screen scroll
+# ============================================================
+- tapOn: "Friends"
+- waitForAnimationToEnd
+
+# Scroll friends list
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+
+# Scroll back up
+- swipe:
+    direction: DOWN
+    duration: 500
+- waitForAnimationToEnd
+
+# Tab bar should still be visible and functional
+- tapOn: "Home"
+- waitForAnimationToEnd
+- assertVisible: "Total balance"
+
+# ============================================================
+# Section 6: Profile Screen scroll
+# ============================================================
+- tapOn:
+    id: "header-avatar"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+# Scroll down to Sign Out (it's at the bottom)
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Sign Out"
+
+# Scroll back to top
+- swipe:
+    direction: DOWN
+    duration: 500
+- swipe:
+    direction: DOWN
+    duration: 500
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+# Go back
+- back
+- waitForAnimationToEnd
+
+# ============================================================
+# Section 7: Rapid tab switching doesn't break scroll
+# ============================================================
+- tapOn: "Groups"
+- waitForAnimationToEnd
+- tapOn: "Activity"
+- waitForAnimationToEnd
+- tapOn: "Friends"
+- waitForAnimationToEnd
+- tapOn: "Home"
+- waitForAnimationToEnd
+
+# Home should still scroll properly
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+- swipe:
+    direction: DOWN
+    duration: 500
+- waitForAnimationToEnd
+- assertVisible: "Total balance"
+
+# ============================================================
+# Section 8: Auth screen scroll (after logout)
+# ============================================================
+- runFlow:
+    file: ./helpers/do_logout.yaml
+
+- extendedWaitUntil:
+    visible: "Continue with Google"
+    timeout: 15000
+
+# Auth screen should scroll to show demo cards
+- scrollUntilVisible:
+    element:
+      text: "Quick Demo Access"
+    direction: DOWN
+    timeout: 5000
+    optional: true
+- assertVisible: "Alice Demo"
+- assertVisible: "Bob Demo"
+
+# Scroll back up
+- swipe:
+    direction: DOWN
+    duration: 500
+- waitForAnimationToEnd
+- assertVisible: "Continue with Google"

@@ -14,5 +14,5 @@ appId: com.ajayksingh.evenly
 - tapOn: "SIGN OUT"
 - waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: "Welcome back"
+    visible: "Continue with Google"
     timeout: 15000

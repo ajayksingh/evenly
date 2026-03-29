@@ -1,9 +1,9 @@
 ---
-# Flow: User B (ajsworld) logs in, sees User A's expense, adds a counter expense
+# Flow: Bob Demo logs in, sees Alice's expense, adds a counter expense
 appId: com.ajayksingh.evenly
 ---
 
-# --- Step 1: Logout User A ---
+# --- Step 1: Logout Alice ---
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
@@ -18,16 +18,10 @@ appId: com.ajayksingh.evenly
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
 
-# --- Step 2: Login as User B ---
-- assertVisible: "Welcome back"
-- tapOn:
-    text: "Sign In"
-    optional: true
+# --- Step 2: Login as Bob Demo ---
+- assertVisible: "Continue with Google"
 - runFlow:
-    file: ./helpers/do_login.yaml
-    env:
-      EMAIL: "ajsworld@gmail.com"
-      PASS: "abc123"
+    file: ./helpers/do_login_bob.yaml
 
 # --- Step 3: Navigate to Groups ---
 - waitForAnimationToEnd
@@ -38,16 +32,16 @@ appId: com.ajayksingh.evenly
 - tapOn: "Maestro E2E Group"
 - waitForAnimationToEnd
 
-# --- Step 5: Verify User A's expense is visible ---
+# --- Step 5: Verify Alice's expense is visible ---
 - assertVisible: "Dinner at restaurant"
 
-# --- Step 6: Check balance shows User B owes User A ---
+# --- Step 6: Check balance shows Bob owes Alice ---
 - tapOn:
     id: "tab-balances"
 - waitForAnimationToEnd
 - assertVisible: "owes"
 
-# --- Step 7: User B adds a counter expense ---
+# --- Step 7: Bob adds a counter expense ---
 - tapOn: "Add"
 - waitForAnimationToEnd
 
@@ -62,7 +56,7 @@ appId: com.ajayksingh.evenly
 - tapOn: "Save"
 - waitForAnimationToEnd
 
-# --- Step 8: Verify User B's expense appears ---
+# --- Step 8: Verify Bob's expense appears ---
 - assertVisible: "Cab ride"
 
 # --- Step 9: Go home and check balance ---
