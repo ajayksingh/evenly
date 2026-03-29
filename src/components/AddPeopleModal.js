@@ -177,15 +177,10 @@ const AddPeopleModal = ({
     });
   }, []);
 
-  // Add member to group — tries invite first, falls back to direct add for demo/offline
+  // Add member to group — direct add (no invite flow, instant membership)
   const addToGroup = useCallback(async (item) => {
-    try {
-      await sendGroupInvite(groupId, groupName, item.id, user.id, user.name);
-    } catch {
-      // Fallback: directly add member to group (works for demo + offline)
-      await addMemberToGroup(groupId, { id: item.id, name: item.name, email: item.email, avatar: item.avatar || null });
-    }
-  }, [groupId, groupName, user]);
+    await addMemberToGroup(groupId, { id: item.id, name: item.name, email: item.email, avatar: item.avatar || null });
+  }, [groupId]);
 
   const handleAddSingle = useCallback(async (item) => {
     setAdding(true);
