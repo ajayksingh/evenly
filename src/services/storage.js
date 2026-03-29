@@ -7,11 +7,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 const uuidv4 = () =>
-  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
 
 const KEYS = {
   CURRENT_USER: 'sw_current_user',
@@ -498,6 +499,7 @@ export const removeMemberFromGroup = async (groupId, memberId) => {
 
 // --- Expenses ---
 export const addExpense = async (expense) => {
+  invalidateBalanceCache();
   expense = { ...expense, description: (expense.description || '').trim() };
   if (isDemo(expense.paidBy?.id)) {
     const expenses = await getData(KEYS.EXPENSES);
@@ -547,6 +549,7 @@ export const getExpenses = async (groupId) => {
 
 
 export const deleteExpense = async (expenseId) => {
+  invalidateBalanceCache();
   const localExpenses = await getData(KEYS.EXPENSES);
   if (localExpenses.find(e => e.id === expenseId)) {
     await setData(KEYS.EXPENSES, localExpenses.filter(e => e.id !== expenseId));
@@ -557,8 +560,17 @@ export const deleteExpense = async (expenseId) => {
   if (error) throw new Error('Failed to delete expense');
 };
 
-// --- Balances ---
+// --- Balances (with 30s TTL cache) ---
+let _balanceCacheData = null;
+let _balanceCacheTime = 0;
+let _balanceCacheUserId = null;
+export const invalidateBalanceCache = () => { _balanceCacheData = null; _balanceCacheTime = 0; };
+
 export const calculateBalances = async (userId, userEmail = null, cachedGroupIds = null) => {
+  // Return cached result if fresh (30s TTL) and same user
+  if (_balanceCacheData && _balanceCacheUserId === userId && Date.now() - _balanceCacheTime < 30000) {
+    return _balanceCacheData;
+  }
   if (isDemo(userId)) {
     const expenses = await getData(KEYS.EXPENSES);
     const settlements = await getData(KEYS.SETTLEMENTS);
@@ -622,6 +634,9 @@ export const calculateBalances = async (userId, userEmail = null, cachedGroupIds
       result.push({ userId: otherUserId, name: otherUser.name, email: otherUser.email, avatar: otherUser.avatar, amount });
     }
   });
+  _balanceCacheData = result;
+  _balanceCacheTime = Date.now();
+  _balanceCacheUserId = userId;
   return result;
 };
 
@@ -704,6 +719,8 @@ const _calculateGroupBalancesFromData = (groupId, members, groupExpenses, groupS
 
 // --- Settlements ---
 export const recordSettlement = async (settlement) => {
+  invalidateBalanceCache();
+  settlement = { ...settlement, amount: parseFloat(parseFloat(settlement.amount).toFixed(2)) };
   if (isDemo(settlement.paidBy)) {
     const settlements = await getData(KEYS.SETTLEMENTS);
     const newSettlement = { id: uuidv4(), ...settlement, createdAt: new Date().toISOString() };
