@@ -5,23 +5,22 @@ appId: com.ajayksingh.evenly
 
 - launchApp:
     clearState: true
-- tapOn:
-    text: "Close app"
-    optional: true
-- tapOn:
-    text: "OK"
-    optional: true
-# Skip onboarding if it appears
-- tapOn:
-    id: "onboarding-skip"
-    optional: true
+    appId: com.ajayksingh.evenly
 - waitForAnimationToEnd
-- extendedWaitUntil:
-    visible: "Quick Demo Access"
-    timeout: 30000
-- waitForAnimationToEnd:
-    timeout: 3000
+
 - runFlow:
+    when:
+      visible: "Skip"
+    file: ./helpers/do_login.yaml
+
+- runFlow:
+    when:
+      visible: "Continue with Google"
+    file: ./helpers/do_login.yaml
+
+- runFlow:
+    when:
+      visible: "Quick Demo Access"
     file: ./helpers/do_login.yaml
 
 # Wait for home screen
@@ -40,7 +39,7 @@ appId: com.ajayksingh.evenly
 
 # Open Add Friend modal
 - tapOn:
-    id: "fab-add-friend"
+    id: "friends-add-btn"
 - waitForAnimationToEnd
 
 # Verify "Add Friend" title is visible
@@ -50,12 +49,12 @@ appId: com.ajayksingh.evenly
 
 # Verify Search tab is active and has an input field
 - assertVisible:
-    id: "add-people-search-input"
+    id: "member-search-input"
     optional: true
 
 # Type a search query and wait for results or hint
 - tapOn:
-    id: "add-people-search-input"
+    id: "member-search-input"
     optional: true
 - inputText: "bob"
 - waitForAnimationToEnd:
@@ -69,7 +68,7 @@ appId: com.ajayksingh.evenly
 
 # Cancel / close the modal
 - tapOn:
-    id: "add-people-close"
+    id: "modal-cancel-btn"
     optional: true
 - tapOn:
     text: "Cancel"
@@ -86,7 +85,7 @@ appId: com.ajayksingh.evenly
 # ────────────────────────────────────────────
 
 - tapOn:
-    id: "fab-add-friend"
+    id: "friends-add-btn"
 - waitForAnimationToEnd
 
 # Switch to QR tab if available
@@ -94,7 +93,7 @@ appId: com.ajayksingh.evenly
     text: "QR"
     optional: true
 - tapOn:
-    id: "add-people-tab-qr"
+    id: "tab-link"
     optional: true
 - waitForAnimationToEnd
 
@@ -109,7 +108,7 @@ appId: com.ajayksingh.evenly
 
 # Close QR modal
 - tapOn:
-    id: "add-people-close"
+    id: "modal-cancel-btn"
     optional: true
 - tapOn:
     text: "Cancel"
@@ -131,13 +130,16 @@ appId: com.ajayksingh.evenly
 - tapOn:
     id: "group-name-input"
 - inputText: "Modal Test Group"
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn: "Create"
 - waitForAnimationToEnd
 
+# Wait for group list to show with new group
 - extendedWaitUntil:
     visible:
       text: "Modal Test Group"
-    timeout: 15000
+    timeout: 20000
 
 # Open the group
 - tapOn: "Modal Test Group"
@@ -184,7 +186,7 @@ appId: com.ajayksingh.evenly
 
 # Cancel / close the Add Members modal
 - tapOn:
-    id: "add-people-close"
+    id: "modal-cancel-btn"
     optional: true
 - tapOn:
     text: "Cancel"

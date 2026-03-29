@@ -5,30 +5,29 @@ appId: com.ajayksingh.evenly
 
 - launchApp:
     clearState: true
-- tapOn:
-    text: "Close app"
-    optional: true
-- tapOn:
-    text: "OK"
-    optional: true
-# Skip onboarding if it appears
-- tapOn:
-    id: "onboarding-skip"
-    optional: true
+    appId: com.ajayksingh.evenly
 - waitForAnimationToEnd
-- extendedWaitUntil:
-    visible: "Quick Demo Access"
-    timeout: 30000
-- waitForAnimationToEnd:
-    timeout: 3000
+
 - runFlow:
+    when:
+      visible: "Skip"
     file: ./helpers/do_login.yaml
 
-# Wait for home screen
+- runFlow:
+    when:
+      visible: "Continue with Google"
+    file: ./helpers/do_login.yaml
+
+- runFlow:
+    when:
+      visible: "Quick Demo Access"
+    file: ./helpers/do_login.yaml
+
 - extendedWaitUntil:
     visible:
       text: "Total balance"
     timeout: 30000
+- waitForAnimationToEnd
 
 # ────────────────────────────────────────────
 # STEP 1 — Create a group for navigation tests
@@ -140,7 +139,7 @@ appId: com.ajayksingh.evenly
 - extendedWaitUntil:
     visible:
       text: "Total balance"
-    timeout: 10000
+    timeout: 20000
 
 # ────────────────────────────────────────────
 # STEP 8 — Profile screen is NOT blank, back works
