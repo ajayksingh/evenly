@@ -277,7 +277,7 @@ const ActivityScreen = ({ navigation }) => {
     </View>
   );
 
-  const unseenCount = activity.filter(a => isUnseen(a)).length;
+  const unseenCount = useMemo(() => activity.filter(a => isUnseen(a)).length, [activity, seenIds]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -380,6 +380,8 @@ const ActivityScreen = ({ navigation }) => {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+                    removeClippedSubviews={Platform.OS !== 'web'}
+                    maxToRenderPerBatch={10}
                   />
                 </View>
               )}

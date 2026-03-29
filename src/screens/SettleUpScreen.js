@@ -78,8 +78,10 @@ const SettleUpScreen = ({ route, navigation }) => {
     opacity: screenOpacity.value,
     transform: [{ translateY: screenTranslateY.value }],
   }));
+  const animatedOnce = useRef(false);
   useFocusEffect(useCallback(() => {
-    if (!isWeb) {
+    if (!isWeb && !animatedOnce.current) {
+      animatedOnce.current = true;
       screenOpacity.value = 0;
       screenTranslateY.value = 32;
       screenOpacity.value = withTiming(1, { duration: 380 });

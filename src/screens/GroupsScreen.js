@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, StatusBar,
-  Animated as RNAnimated, Alert,
+  Animated as RNAnimated, Alert, Platform,
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
 
@@ -106,13 +106,15 @@ const GroupsScreen = ({ navigation }) => {
   };
 
   // Filter and sort groups
-  const filteredGroups = groups
-    .filter(g => viewTab === 'archived' ? archivedIds.has(g.id) : !archivedIds.has(g.id))
-    .sort((a, b) => {
-      const aPinned = pinnedIds.has(a.id) ? 0 : 1;
-      const bPinned = pinnedIds.has(b.id) ? 0 : 1;
-      return aPinned - bPinned;
-    });
+  const filteredGroups = useMemo(() => {
+    return groups
+      .filter(g => viewTab === 'archived' ? archivedIds.has(g.id) : !archivedIds.has(g.id))
+      .sort((a, b) => {
+        const aPinned = pinnedIds.has(a.id) ? 0 : 1;
+        const bPinned = pinnedIds.has(b.id) ? 0 : 1;
+        return aPinned - bPinned;
+      });
+  }, [groups, viewTab, archivedIds, pinnedIds]);
 
   // Load total expenses per group
   useEffect(() => {
@@ -244,6 +246,8 @@ const GroupsScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+          removeClippedSubviews={Platform.OS !== 'web'}
+          maxToRenderPerBatch={10}
           ListEmptyComponent={viewTab === 'archived' ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>No archived groups</Text>

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef, useMemo } from 'react';
+import React, { useCallback, useState, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Image,
   RefreshControl, StatusBar, Alert, ActivityIndicator,
@@ -46,9 +46,11 @@ const HomeScreen = ({ navigation }) => {
     transform: [{ translateY: statsTranslateY.value }],
   }));
 
+  const animatedOnce = useRef(false);
   useFocusEffect(useCallback(() => {
     refresh();
-    if (!isWeb) {
+    if (!isWeb && !animatedOnce.current) {
+      animatedOnce.current = true;
       cardOpacity.value = 0;
       cardTranslateY.value = 32;
       statsOpacity.value = 0;
@@ -95,10 +97,13 @@ const HomeScreen = ({ navigation }) => {
     return () => displayBalance.removeListener(id);
   }, [totalBalance]);
 
-  const oweMe = balances.filter(b => b.amount > 0);
-  const iOwe = balances.filter(b => b.amount < 0);
-  const totalOwedToMe = oweMe.reduce((s, b) => s + b.amount, 0);
-  const totalIOwe = iOwe.reduce((s, b) => s + Math.abs(b.amount), 0);
+  const { oweMe, iOwe, totalOwedToMe, totalIOwe } = useMemo(() => {
+    const oweMe = balances.filter(b => b.amount > 0);
+    const iOwe = balances.filter(b => b.amount < 0);
+    const totalOwedToMe = oweMe.reduce((s, b) => s + b.amount, 0);
+    const totalIOwe = iOwe.reduce((s, b) => s + Math.abs(b.amount), 0);
+    return { oweMe, iOwe, totalOwedToMe, totalIOwe };
+  }, [balances]);
 
   const getActivityIcon = (type) => {
     switch (type) {

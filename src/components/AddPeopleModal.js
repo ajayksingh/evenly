@@ -427,6 +427,8 @@ const AddPeopleModal = ({
             return renderPersonRow({ item, isAlready, showCheckbox: true });
           }}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={Platform.OS !== 'web'}
+          maxToRenderPerBatch={10}
         />
       ) : searchQuery.trim().length >= 2 && !searching ? (
         <View style={styles.hintBox}>
@@ -486,6 +488,8 @@ const AddPeopleModal = ({
               </Text>
             }
             showsVerticalScrollIndicator={false}
+            removeClippedSubviews={Platform.OS !== 'web'}
+            maxToRenderPerBatch={10}
           />
         </>
       )}
@@ -511,6 +515,8 @@ const AddPeopleModal = ({
           </View>
         }
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={Platform.OS !== 'web'}
+        maxToRenderPerBatch={10}
       />
     </>
   );
@@ -546,6 +552,8 @@ const AddPeopleModal = ({
               </View>
             }
             showsVerticalScrollIndicator={false}
+            removeClippedSubviews={Platform.OS !== 'web'}
+            maxToRenderPerBatch={10}
           />
         </>
       )}

@@ -372,6 +372,8 @@ const FriendsScreen = ({ navigation }) => {
             keyExtractor={item => item.id}
             renderItem={renderFriendRequest}
             scrollEnabled={false}
+            removeClippedSubviews={Platform.OS !== 'web'}
+            maxToRenderPerBatch={10}
           />
         </View>
       )}

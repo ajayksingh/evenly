@@ -53,8 +53,10 @@ const AddExpenseScreen = ({ route, navigation }) => {
     opacity: screenOpacity.value,
     transform: [{ translateY: screenTranslateY.value }],
   }));
+  const animatedOnce = useRef(false);
   useFocusEffect(useCallback(() => {
-    if (!isWeb) {
+    if (!isWeb && !animatedOnce.current) {
+      animatedOnce.current = true;
       screenOpacity.value = 0;
       screenTranslateY.value = 32;
       screenOpacity.value = withTiming(1, { duration: 380 });
@@ -310,7 +312,7 @@ if (!validate()) { hapticError(); return; }
   };
 
   const catInfo = CATEGORIES.find(c => c.id === category) || CATEGORIES[8];
-  const splits = getSplits();
+  const splits = useMemo(() => getSplits(), [amountDisplay, splitType, participants, exactAmounts, percentages, shares, splitMemberSelection]);
 
   return (
     <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>

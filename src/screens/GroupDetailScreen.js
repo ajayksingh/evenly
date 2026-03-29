@@ -143,7 +143,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
   };
 
   // Feature 1 & 2: sorted and filtered expenses
-  const sortedFilteredExpenses = (() => {
+  const sortedFilteredExpenses = useMemo(() => {
     let list = [...expenses];
     // Search filter
     if (expenseSearch.trim()) {
@@ -159,7 +159,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       default: list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); break;
     }
     return list;
-  })();
+  }, [expenses, expenseSearch, expenseSortMode]);
 
   // Feature 3: Edit expense handler
   const handleEditExpense = (expense) => {
@@ -245,7 +245,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     } catch {}
   };
 
-  const simplifiedDebts = getSimplifiedDebts(memberBalances.map(m => ({ userId: m.id, name: m.name, amount: m.balance })));
+  const simplifiedDebts = useMemo(() => getSimplifiedDebts(memberBalances.map(m => ({ userId: m.id, name: m.name, amount: m.balance }))), [memberBalances]);
 
   const getCategoryInfo = (cat) => CATEGORIES.find(c => c.id === cat) || CATEGORIES[8];
 

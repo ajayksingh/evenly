@@ -28,4 +28,6 @@ const Avatar = ({ name, avatar, size = 40, fontSize }) => {
   );
 };
 
-export default Avatar;
+export default React.memo(Avatar, (prev, next) =>
+  prev.avatar === next.avatar && prev.name === next.name && prev.size === next.size
+);
