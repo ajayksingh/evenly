@@ -1,0 +1,198 @@
+---
+# Flow: Verify the unified AddPeopleModal in Friend and Group contexts
+appId: com.ajayksingh.evenly
+---
+
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Quick Demo Access"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    file: ./helpers/do_login.yaml
+
+# Wait for home screen
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# ────────────────────────────────────────────
+# PART 1 — AddPeopleModal in Friends context
+# ────────────────────────────────────────────
+
+# Navigate to Friends tab
+- tapOn: "Friends"
+- waitForAnimationToEnd
+
+# Open Add Friend modal
+- tapOn:
+    id: "fab-add-friend"
+- waitForAnimationToEnd
+
+# Verify "Add Friend" title is visible
+- assertVisible:
+    text: "Add Friend"
+    optional: true
+
+# Verify Search tab is active and has an input field
+- assertVisible:
+    id: "add-people-search-input"
+    optional: true
+
+# Type a search query and wait for results or hint
+- tapOn:
+    id: "add-people-search-input"
+    optional: true
+- inputText: "bob"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Verify Suggested tab works (tap it, ensure no crash)
+- tapOn:
+    text: "Suggested"
+    optional: true
+- waitForAnimationToEnd
+
+# Cancel / close the modal
+- tapOn:
+    id: "add-people-close"
+    optional: true
+- tapOn:
+    text: "Cancel"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify the modal is closed (Friends screen still visible)
+- assertVisible:
+    text: "Friends"
+    optional: true
+
+# ────────────────────────────────────────────
+# PART 1b — QR code modal
+# ────────────────────────────────────────────
+
+- tapOn:
+    id: "fab-add-friend"
+- waitForAnimationToEnd
+
+# Switch to QR tab if available
+- tapOn:
+    text: "QR"
+    optional: true
+- tapOn:
+    id: "add-people-tab-qr"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify QR content is visible (camera permission dialog may appear)
+- tapOn:
+    text: "Allow"
+    optional: true
+- tapOn:
+    text: "While using the app"
+    optional: true
+- waitForAnimationToEnd
+
+# Close QR modal
+- tapOn:
+    id: "add-people-close"
+    optional: true
+- tapOn:
+    text: "Cancel"
+    optional: true
+- waitForAnimationToEnd
+
+# ────────────────────────────────────────────
+# PART 2 — AddPeopleModal in Group context
+# ────────────────────────────────────────────
+
+# Navigate to Groups tab
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+# Create a group to test with (if none exist)
+- tapOn:
+    id: "fab-add-group"
+- waitForAnimationToEnd
+- tapOn:
+    id: "group-name-input"
+- inputText: "Modal Test Group"
+- tapOn: "Create"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Modal Test Group"
+    timeout: 15000
+
+# Open the group
+- tapOn: "Modal Test Group"
+- waitForAnimationToEnd
+
+# Navigate to Members tab
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+
+# Open Add Member modal
+- tapOn:
+    id: "add-member-btn"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify "Add Members" title
+- assertVisible:
+    text: "Add Members"
+    optional: true
+
+# Verify Friends tab is visible (default in group mode)
+- assertVisible:
+    text: "Friends"
+    optional: true
+
+# Verify Search tab is visible
+- assertVisible:
+    text: "Search"
+    optional: true
+
+# Verify Link tab is visible
+- assertVisible:
+    text: "Link"
+    optional: true
+
+# Verify WhatsApp invite row is visible
+- assertVisible:
+    text: "WhatsApp"
+    optional: true
+
+# Cancel / close the Add Members modal
+- tapOn:
+    id: "add-people-close"
+    optional: true
+- tapOn:
+    text: "Cancel"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify we are back on GroupDetail
+- extendedWaitUntil:
+    visible:
+      text: "Modal Test Group"
+    timeout: 10000

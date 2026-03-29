@@ -46,8 +46,16 @@ const SettleUpScreen = ({ route, navigation }) => {
   const [settledWith, setSettledWith] = useState(null);
 
   const amountShakeRef = useRef(null);
+  const settleTimerRef = useRef(null);
   const spinAnim = useRef(new RNAnimated.Value(0)).current;
   const scrollY = useRef(new RNAnimated.Value(0)).current;
+
+  // Cleanup timers on unmount to prevent blank screen / dangling navigation
+  useEffect(() => {
+    return () => {
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    };
+  }, []);
 
   // Celebration confetti particles
   const CONFETTI_COUNT = 12;
@@ -160,19 +168,21 @@ const SettleUpScreen = ({ route, navigation }) => {
 
       // Transition to processing → success → navigate
       setStep('processing');
-      showInterstitial();
-      setTimeout(() => {
+      if (Platform.OS !== 'web') showInterstitial();
+      const whatsAppMsg = friendWithPhone ? buildSettlementWhatsAppMessage({
+        payerName: payer.id === user.id ? user.name : payer.name,
+        receiverName: receiver.id === user.id ? user.name : receiver.name,
+        amount: amt,
+        currency,
+      }) : null;
+      settleTimerRef.current = setTimeout(() => {
         setStep('success');
-        if (friendWithPhone) {
-          const msg = buildSettlementWhatsAppMessage({
-            payerName: payer.id === user.id ? user.name : payer.name,
-            receiverName: receiver.id === user.id ? user.name : receiver.name,
-            amount: amt,
-            currency,
-          });
-          sendWhatsAppMessage(friendWithPhone.phone, msg).catch(() => {});
+        if (friendWithPhone && whatsAppMsg) {
+          sendWhatsAppMessage(friendWithPhone.phone, whatsAppMsg).catch(() => {});
         }
-        setTimeout(() => navigation.goBack(), 1500);
+        settleTimerRef.current = setTimeout(() => {
+          if (navigation.canGoBack()) navigation.goBack();
+        }, 1500);
       }, 1000);
     } catch (e) {
       Alert.alert('Error', e.message);

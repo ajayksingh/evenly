@@ -1011,8 +1011,23 @@ export const updateExpense = async (expenseId, updates) => {
 // --- Search users by name or email (Feature #5) ---
 export const searchUsers = async (query, currentUserId) => {
   if (!query || query.trim().length < 2) return [];
-  if (!isSupabaseConfigured()) return [];
   const q = query.trim().toLowerCase();
+
+  // Demo/local fallback: search AsyncStorage users
+  if (!isSupabaseConfigured() || isDemo(currentUserId)) {
+    try {
+      const localUsers = await getData(KEYS.USERS);
+      return localUsers
+        .filter(u => u.id !== currentUserId && (
+          u.email?.toLowerCase().includes(q) ||
+          u.name?.toLowerCase().includes(q) ||
+          u.phone?.includes(q)
+        ))
+        .slice(0, 10)
+        .map(u => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || null, phone: u.phone || '' }));
+    } catch { return []; }
+  }
+
   const { data, error } = await supabase
     .from('users')
     .select('id,name,email,avatar,phone')

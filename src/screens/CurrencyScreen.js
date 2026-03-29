@@ -58,9 +58,8 @@ const CurrencyScreen = ({ navigation }) => {
 
   const handleSelect = async (code) => {
     await setCurrency(code);
-    Alert.alert('Currency Updated', `Default currency set to ${code}`, [
-      { text: 'OK', onPress: () => navigation.goBack() }
-    ]);
+    Alert.alert('Currency Updated', `Default currency set to ${code}`);
+    navigation.goBack();
   };
 
   const deviceDefault = detectDefaultCurrency();

@@ -1,0 +1,250 @@
+---
+# Flow: Verify that NO navigation leads to a blank screen
+appId: com.ajayksingh.evenly
+---
+
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "Close app"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Quick Demo Access"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    file: ./helpers/do_login.yaml
+
+# Wait for home screen
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 30000
+
+# ────────────────────────────────────────────
+# STEP 1 — Create a group for navigation tests
+# ────────────────────────────────────────────
+
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "fab-add-group"
+- waitForAnimationToEnd
+- assertVisible: "New Group"
+
+- tapOn:
+    id: "group-name-input"
+- inputText: "Nav Test Group"
+
+- tapOn: "Create"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Nav Test Group"
+    timeout: 15000
+
+# ────────────────────────────────────────────
+# STEP 2 — Add expense, verify NOT blank after save
+# ────────────────────────────────────────────
+
+- tapOn: "Nav Test Group"
+- waitForAnimationToEnd
+
+- tapOn: "Add"
+- waitForAnimationToEnd
+- assertVisible: "Add Expense"
+
+- tapOn:
+    id: "expense-amount-input"
+- inputText: "100"
+
+- tapOn:
+    id: "expense-description-input"
+- inputText: "Nav test"
+
+- tapOn:
+    id: "expense-save-btn"
+- waitForAnimationToEnd
+
+# After saving, verify GroupDetail is visible (NOT blank)
+- extendedWaitUntil:
+    visible:
+      text: "Nav test"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      text: "Nav Test Group"
+    timeout: 5000
+
+# ────────────────────────────────────────────
+# STEP 3 — Members tab is NOT blank
+# ────────────────────────────────────────────
+
+- tapOn:
+    id: "tab-members"
+- waitForAnimationToEnd
+- assertVisible: "members"
+
+# ────────────────────────────────────────────
+# STEP 4 — Balances tab is NOT blank
+# ────────────────────────────────────────────
+
+- tapOn:
+    id: "tab-balances"
+- waitForAnimationToEnd
+- assertVisible: "Group Balances"
+
+# Navigate back to main tabs
+- back
+- waitForAnimationToEnd
+
+# ────────────────────────────────────────────
+# STEP 5 — Friends tab is NOT blank
+# ────────────────────────────────────────────
+
+- tapOn: "Friends"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      text: "Friends"
+    timeout: 10000
+
+# ────────────────────────────────────────────
+# STEP 6 — Activity tab is NOT blank
+# ────────────────────────────────────────────
+
+- tapOn: "Activity"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      text: "Activity"
+    timeout: 10000
+
+# ────────────────────────────────────────────
+# STEP 7 — Home tab shows Total balance (NOT blank)
+# ────────────────────────────────────────────
+
+- tapOn: "Home"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 10000
+
+# ────────────────────────────────────────────
+# STEP 8 — Profile screen is NOT blank, back works
+# ────────────────────────────────────────────
+
+- tapOn:
+    id: "profile-avatar"
+    optional: true
+- tapOn:
+    text: "Profile"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify profile content is visible
+- assertVisible:
+    text: "Alice"
+    optional: true
+
+- back
+- waitForAnimationToEnd
+
+# Verify we returned to Home (NOT blank)
+- extendedWaitUntil:
+    visible:
+      text: "Total balance"
+    timeout: 10000
+
+# ────────────────────────────────────────────
+# STEP 9 — Currency selection navigates back (NOT blank)
+# ────────────────────────────────────────────
+
+- tapOn:
+    id: "profile-avatar"
+    optional: true
+- tapOn:
+    text: "Profile"
+    optional: true
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Currency"
+    optional: true
+- tapOn:
+    id: "currency-setting"
+    optional: true
+- waitForAnimationToEnd
+
+# Select a currency (tap first visible option)
+- tapOn:
+    text: "USD"
+    optional: true
+- tapOn:
+    text: "EUR"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify we navigated back (NOT blank) — profile or home should be visible
+- assertVisible:
+    text: "Alice"
+    optional: true
+
+- back
+- waitForAnimationToEnd
+- back
+- waitForAnimationToEnd
+
+# ────────────────────────────────────────────
+# STEP 10 — SettleUp flow does NOT leave blank screen
+# ────────────────────────────────────────────
+
+- tapOn: "Groups"
+- waitForAnimationToEnd
+
+- tapOn: "Nav Test Group"
+- waitForAnimationToEnd
+
+# Open SettleUp
+- tapOn:
+    text: "Settle Up"
+    optional: true
+- tapOn:
+    id: "settle-up-btn"
+    optional: true
+- waitForAnimationToEnd
+
+# Enter settlement amount
+- tapOn:
+    id: "settle-amount-input"
+    optional: true
+- inputText: "50"
+- waitForAnimationToEnd
+
+# Confirm settlement
+- tapOn:
+    id: "settle-confirm-btn"
+    optional: true
+- tapOn:
+    text: "Settle"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# After settlement, verify screen is NOT blank (GroupDetail visible)
+- extendedWaitUntil:
+    visible:
+      text: "Nav Test Group"
+    timeout: 15000

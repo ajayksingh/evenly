@@ -87,7 +87,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       destructive: true,
       onConfirm: async () => {
         await deleteExpense(expense.id);
-        notifyWrite('delete_expense');
+        await notifyWrite('delete_expense');
         globalRefresh();
         loadData();
       },
@@ -198,7 +198,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
               note: 'Settle All',
             });
           }
-          notifyWrite('settle_all');
+          await notifyWrite('settle_all');
           globalRefresh();
           loadData();
           Alert.alert('Done', 'All balances have been settled.');
@@ -224,7 +224,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       onConfirm: async () => {
         try {
           await removeMemberFromGroup(groupId, member.id);
-          notifyWrite('remove_member');
+          await notifyWrite('remove_member');
           globalRefresh();
           loadData();
         } catch (e) {
@@ -784,7 +784,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
         groupId={groupId}
         groupName={group?.name}
         existingMemberIds={(group?.members || []).map(m => m.id)}
-        onPersonAdded={() => { loadData(); globalRefresh(); notifyWrite('add_member'); }}
+        onPersonAdded={async () => { await notifyWrite('add_member'); globalRefresh(); loadData(); }}
       />
     </View>
   );
