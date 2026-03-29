@@ -42,6 +42,10 @@ export const AppProvider = ({ children }) => {
   const syncTimeoutRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const userRef = useRef(null);
+  const loadingRef = useRef(null); // Prevents concurrent loadData calls
+  const realtimeActiveRef = useRef(false); // Skip polling when realtime is active
+  const lastLoadTimestampRef = useRef(0); // Stale-time tracking for screen focus
+  const syncScheduledRef = useRef(false); // Debounce realtime change handlers
 
   // Keep userRef in sync so polling closure always has latest user
   useEffect(() => { userRef.current = user; }, [user]);
@@ -120,10 +124,9 @@ export const AppProvider = ({ children }) => {
           return;
         }
 
-        // User is logged in — process immediately
+        // User is logged in — process immediately (loadData called by main user effect)
         if (inviteUserId) {
           await handleInviteLink(inviteUserId, user.id);
-          loadData();
         }
         if (joinGroupId) {
           try {
@@ -131,7 +134,6 @@ export const AppProvider = ({ children }) => {
             if (grp && !grp.members.find(m => m.id === user.id)) {
               await addMemberToGroup(joinGroupId, { id: user.id, name: user.name, email: user.email, avatar: user.avatar });
             }
-            loadData();
           } catch (e) {
             console.error('Join group link error:', e);
           }
@@ -152,13 +154,11 @@ export const AppProvider = ({ children }) => {
         if (!ctx) return;
         if (ctx.type === 'invite' && ctx.id) {
           await handleInviteLink(ctx.id, user.id);
-          loadData();
         } else if (ctx.type === 'joinGroup' && ctx.id) {
           const grp = await getGroup(ctx.id);
           if (grp && !grp.members.find(m => m.id === user.id)) {
             await addMemberToGroup(ctx.id, { id: user.id, name: user.name, email: user.email, avatar: user.avatar });
           }
-          loadData();
         }
       } catch (e) {
         console.error('Process stored invite error:', e);
@@ -209,23 +209,30 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const loadData = useCallback(async () => {
+    // Deduplicate: if already loading, return the existing promise
+    if (loadingRef.current) return loadingRef.current;
     if (!userRef.current) return;
-    try {
-      const { id, email } = userRef.current;
-      // Fetch groups first so groupIds can be reused — avoids 2 extra getGroups calls
-      const g = await getGroups(id, email);
-      const groupIds = g.map(gr => gr.id);
-      const [f, b, a, inv, fr] = await Promise.all([
-        getFriends(id),
-        calculateBalances(id, email, groupIds),
-        getActivity(id, groupIds),
-        getGroupInvites(id),
-        getFriendRequests(id),
-      ]);
-      setGroups(g); setFriends(f); setBalances(b); setActivity(a); setGroupInvites(inv); setFriendRequests(fr);
-    } catch (e) {
-      console.error('Load data error:', e);
-    }
+    loadingRef.current = (async () => {
+      try {
+        const { id, email } = userRef.current;
+        const g = await getGroups(id, email);
+        const groupIds = g.map(gr => gr.id);
+        const [f, b, a, inv, fr] = await Promise.all([
+          getFriends(id),
+          calculateBalances(id, email, groupIds),
+          getActivity(id, groupIds),
+          getGroupInvites(id),
+          getFriendRequests(id),
+        ]);
+        setGroups(g); setFriends(f); setBalances(b); setActivity(a); setGroupInvites(inv); setFriendRequests(fr);
+        lastLoadTimestampRef.current = Date.now();
+      } catch (e) {
+        console.error('Load data error:', e);
+      } finally {
+        loadingRef.current = null;
+      }
+    })();
+    return loadingRef.current;
   }, []);
 
   // Network listener — reload data when coming back online
@@ -321,6 +328,7 @@ export const AppProvider = ({ children }) => {
 
     const poll = async () => {
       if (!userRef.current) return;
+      if (realtimeActiveRef.current) return; // Skip poll when realtime is active
       try { await loadData(); } catch (e) { console.error('[Sync] polling error:', e); }
     };
 
@@ -335,41 +343,48 @@ export const AppProvider = ({ children }) => {
     };
   }, [user, loadData]);
 
-  // Supabase Realtime: subscribe to changes in groups/expenses/settlements/friends
+  // Debounced sync handler — batches multiple realtime events into one loadData call
+  const scheduleSync = useCallback(() => {
+    if (syncScheduledRef.current) return;
+    syncScheduledRef.current = true;
+    setTimeout(() => {
+      loadData().catch(() => {});
+      syncScheduledRef.current = false;
+    }, 500);
+  }, [loadData]);
+
+  // Supabase Realtime: subscribe to changes (native only — web uses polling)
   useEffect(() => {
-    if (!user || !supabase || !isSupabaseConfigured()) return;
+    if (!user || !supabase || !isSupabaseConfigured() || Platform.OS === 'web') return;
 
     const channel = supabase
       .channel(`user-sync-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' }, () => { loadData().catch(() => {}); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' }, () => scheduleSync())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, (payload) => {
-        loadData().catch(() => {});
+        scheduleSync();
         try {
           if (payload?.eventType === 'INSERT' && payload.new) {
             const expense = payload.new;
             if (expense.paid_by !== user.id) {
-              showExpenseNotification(
-                expense.description || 'Expense',
-                expense.amount || '',
-                expense.paid_by_name || 'Someone',
-              );
+              showExpenseNotification(expense.description || 'Expense', expense.amount || '', expense.paid_by_name || 'Someone');
             }
           }
-        } catch (e) {
-          console.warn('Expense notification error:', e);
-        }
+        } catch (e) { console.warn('Expense notification error:', e); }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements' }, () => { loadData().catch(() => {}); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, () => { loadData().catch(() => {}); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity' }, () => { loadData().catch(() => {}); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_invites' }, () => { loadData().catch(() => {}); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, () => { loadData().catch(() => {}); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements' }, () => scheduleSync())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, () => scheduleSync())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity' }, () => scheduleSync())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_invites' }, () => scheduleSync())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, () => scheduleSync())
       .subscribe();
 
+    realtimeActiveRef.current = true;
+
     return () => {
+      realtimeActiveRef.current = false;
       supabase.removeChannel(channel);
     };
-  }, [user, loadData]);
+  }, [user, loadData, scheduleSync]);
 
   const setCurrency = async (code) => {
     setCurrencyState(code);
@@ -441,24 +456,21 @@ export const AppProvider = ({ children }) => {
     setSyncStatus(null);
   };
 
-  // Feature #11: Contact sync & auto-match — runs once after user logs in and data loads
-  // Uses getContactsIfPermitted() which never prompts for permission
+  // Feature #11: Contact sync & auto-match — delayed 5s to not compete with initial load
   useEffect(() => {
     if (!user || Platform.OS === 'web' || friends.length === 0) return;
-    const syncContacts = async () => {
+    const timerId = setTimeout(async () => {
       try {
         const deviceContacts = await getContactsIfPermitted();
         if (deviceContacts.length === 0) return;
         const matches = await matchContactsToUsers(deviceContacts);
         const newMatches = matches.filter(m => !friends.some(f => f.id === m.id) && m.id !== user.id);
-        if (newMatches.length > 0) {
-          setContactMatches(newMatches);
-        }
+        if (newMatches.length > 0) setContactMatches(newMatches);
       } catch (e) {
         console.error('Contact sync error:', e);
       }
-    };
-    syncContacts();
+    }, 5000);
+    return () => clearTimeout(timerId);
   }, [user?.id, friends.length]);
 
   const totalBalance = parseFloat(balances.reduce((sum, b) => sum + b.amount, 0).toFixed(2));
@@ -476,6 +488,8 @@ export const AppProvider = ({ children }) => {
       notifyWrite, triggerSync,
       // Feature #11: Contact matches
       contactMatches,
+      // Performance: stale-time ref for screen focus optimization
+      lastLoadTimestamp: lastLoadTimestampRef,
     }}>
       {children}
     </AppContext.Provider>
