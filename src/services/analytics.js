@@ -1,10 +1,8 @@
 /**
  * Analytics Service
- * - Logs events locally in dev
- * - Pushes to Supabase analytics table (free, no extra service needed)
- * - Falls back gracefully if Supabase not configured
+ * Logs events to console in dev mode only.
+ * Supabase analytics table writes removed to conserve free-tier DB space.
  */
-import { logAnalyticsEvent } from './supabase';
 
 let currentUserId = null;
 
@@ -16,8 +14,6 @@ const log = async (event, params = {}) => {
   if (__DEV__) {
     console.log(`[Analytics] ${event}`, params);
   }
-  // Push to Supabase analytics table asynchronously (non-blocking)
-  logAnalyticsEvent(event, params, currentUserId).catch(() => {});
 };
 
 export const Analytics = {

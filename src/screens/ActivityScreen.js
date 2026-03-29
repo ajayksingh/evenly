@@ -70,13 +70,14 @@ const ActivityScreen = ({ navigation }) => {
           : null;
         items.push({
           id: `nudge-owe-${friend.id}`,
-          type: 'remind',
+          type: 'collect',
           icon: '💬',
           color: theme.primary,
           text: `${friend.name} owes you ${formatCurrency(b.amount, currency)}`,
           subtext: daysSince ? `${daysSince}d ago` : null,
-          action: 'Remind',
+          action: 'Settle',
           friend,
+          amount: b.amount,
         });
       }
     });
@@ -99,6 +100,7 @@ const ActivityScreen = ({ navigation }) => {
           subtext: null,
           action: 'Settle',
           friend,
+          amount: Math.abs(b.amount),
         });
       }
     });
@@ -191,13 +193,19 @@ const ActivityScreen = ({ navigation }) => {
   // ─── Nudge actions ─────────────────────────────────────────
   const handleNudge = (nudge) => {
     if (nudge.type === 'settle') {
+      // You owe them — you are the payer
       navigation.navigate('SettleUp', {
         preselectedPayer: user.id,
         preselectedReceiver: nudge.friend.id,
+        prefilledAmount: nudge.amount,
       });
-    } else {
-      // Navigate to friend or show remind
-      navigation.navigate('Friends');
+    } else if (nudge.type === 'collect') {
+      // They owe you — they are the payer
+      navigation.navigate('SettleUp', {
+        preselectedPayer: nudge.friend.id,
+        preselectedReceiver: user.id,
+        prefilledAmount: nudge.amount,
+      });
     }
   };
 

@@ -18,10 +18,10 @@ if (Platform.OS !== 'web') {
 export const AD_UNIT_IDS = {
   banner: __DEV__
     ? (TestIds?.BANNER || 'ca-app-pub-3940256099942544/6300978111')
-    : 'ca-app-pub-9004418283363709/7297137403',
+    : (process.env.EXPO_PUBLIC_ADMOB_BANNER_ID || ''),
   interstitial: __DEV__
     ? (TestIds?.INTERSTITIAL || 'ca-app-pub-3940256099942544/1033173712')
-    : 'ca-app-pub-9004418283363709/4684384107',
+    : (process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID || ''),
 };
 
 // Initialize AdMob once at app start

@@ -14,10 +14,9 @@ if (Platform.OS !== 'web') {
   WebBrowser.maybeCompleteAuthSession();
 }
 
-// ⚠️  Replace these with your actual Supabase project credentials
-// Get them from: https://supabase.com/dashboard → project → Settings → API
-export const SUPABASE_URL = 'https://eexxrssfgrybcquoocne.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleHhyc3NmZ3J5YmNxdW9vY25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTMzNjEsImV4cCI6MjA4OTUyOTM2MX0.tT8fEFrVIUkpkug5qSVCpaY-DX2qIU8qPI7NmLhtKbk';
+// Loaded from .env (EXPO_PUBLIC_ prefix makes them available in the app bundle)
+export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 const isConfigured = !SUPABASE_URL.includes('YOUR_PROJECT_ID');
 
@@ -69,21 +68,5 @@ export const deleteRecord = async (table, id) => {
   if (error) throw error;
 };
 
-// Log analytics event to Supabase (free analytics!)
-export const logAnalyticsEvent = async (name, params = {}, userId = null) => {
-  if (!supabase) return;
-  try {
-    await supabase.from('analytics').insert({
-      id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2),
-      event: name,
-      user_id: userId,
-      params,
-      created_at: new Date().toISOString(),
-    });
-  } catch (e) {
-    // Analytics errors should never crash the app
-    console.warn('[Analytics]', e.message);
-  }
-};
 
 export const isSupabaseConfigured = () => isConfigured;

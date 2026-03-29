@@ -1,0 +1,23 @@
+name: Keep Supabase Alive
+
+# Supabase free tier pauses projects after 7 days of inactivity.
+# This cron pings the DB every 5 days to prevent that.
+
+on:
+  schedule:
+    - cron: '0 8 */5 * *'  # Every 5 days at 8 AM UTC
+  workflow_dispatch: {}      # Allow manual trigger
+
+jobs:
+  ping:
+    name: Ping Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Supabase to keep project active
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/users?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Supabase responded with HTTP $STATUS"
+          [ "$STATUS" -lt 400 ] || exit 1
