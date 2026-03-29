@@ -341,7 +341,7 @@ const AddPeopleModal = ({
       >
         {showCheckbox && !isAlready && (
           <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-            {isSelected && <Ionicons name="checkmark" size={14} color="#0a0a0f" />}
+            {isSelected && <Ionicons name="checkmark" size={14} color={theme.background} />}
           </View>
         )}
         <Avatar name={item.name} avatar={item.avatar} size={40} />
@@ -378,10 +378,10 @@ const AddPeopleModal = ({
         disabled={batchAdding}
       >
         {batchAdding ? (
-          <ActivityIndicator size="small" color="#0a0a0f" />
+          <ActivityIndicator size="small" color={theme.background} />
         ) : (
           <>
-            <Ionicons name="people" size={16} color="#0a0a0f" />
+            <Ionicons name="people" size={16} color={theme.background} />
             <Text style={styles.batchAddBtnText}>
               {isGroupMode ? `Invite Selected (${selectedCount})` : `Add Selected (${selectedCount})`}
             </Text>

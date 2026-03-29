@@ -134,6 +134,7 @@ const ProfileScreen = ({ navigation }) => {
       <RNAnimated.ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       scrollEventThrottle={16}
       onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
     >

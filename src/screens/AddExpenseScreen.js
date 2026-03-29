@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform, Animated as RNAnimated,
-  Switch, Image,
+  Switch, Image, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -331,7 +331,7 @@ if (!validate()) { hapticError(); return; }
               end={{ x: 1, y: 0 }}
               style={styles.saveBtn}
             >
-              <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text>
+              {saving ? <ActivityIndicator size="small" color={theme.background} /> : <Text style={styles.saveText}>Save</Text>}
             </LinearGradient>
           </TouchableOpacity>
         </RNAnimated.View>
@@ -592,7 +592,7 @@ if (!validate()) { hapticError(); return; }
                         <Text style={[styles.splitMemberChipText, splitMemberSelection[m.id] !== false && styles.splitMemberChipTextActive]}>
                           {m.id === user.id ? 'You' : (m.name || '').split(' ')[0]}
                         </Text>
-                        {splitMemberSelection[m.id] !== false && <Ionicons name="checkmark" size={14} color="#0a0a0f" />}
+                        {splitMemberSelection[m.id] !== false && <Ionicons name="checkmark" size={14} color={theme.background} />}
                       </TouchableOpacity>
                     ))}
                   </View>

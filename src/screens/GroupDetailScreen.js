@@ -43,6 +43,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const [expenseSearch, setExpenseSearch] = useState('');
   // Feature 8: Delete confirmation on long press
   const [longPressExpenseId, setLongPressExpenseId] = useState(null);
+  const [settlingAll, setSettlingAll] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerBg = scrollY.interpolate({ inputRange: [0, 80], outputRange: [theme.headerBgTransparent, theme.headerBg], extrapolate: 'clamp' });
@@ -180,6 +181,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
   // Feature 10: Settle All handler
   const handleSettleAll = () => {
+    if (settlingAll) return;
     const debts = getSimplifiedDebts(memberBalances.map(m => ({ userId: m.id, name: m.name, amount: m.balance })));
     if (debts.length === 0) { Alert.alert('All settled', 'No outstanding balances.'); return; }
     confirmAlert({
@@ -187,6 +189,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       message: `This will record ${debts.length} settlement${debts.length > 1 ? 's' : ''} to clear all balances. Continue?`,
       confirmText: 'Settle All',
       onConfirm: async () => {
+        setSettlingAll(true);
         try {
           for (const d of debts) {
             await recordSettlement({
@@ -204,6 +207,8 @@ const GroupDetailScreen = ({ route, navigation }) => {
           Alert.alert('Done', 'All balances have been settled.');
         } catch (e) {
           Alert.alert('Error', e.message || 'Failed to settle');
+        } finally {
+          setSettlingAll(false);
         }
       },
     });
@@ -322,6 +327,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 100 }}
         scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
@@ -332,7 +338,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
         {/* Row 1: icon + label */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
           <View style={styles.heroIconBox}>
-            <Ionicons name="cash-outline" size={20} color="#00d4aa" />
+            <Ionicons name="cash-outline" size={20} color={theme.primary} />
           </View>
           <Text style={styles.heroLabel}>Total group spending</Text>
         </View>
@@ -363,7 +369,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           {/* Left: members */}
           <View style={styles.heroStatCell}>
             <View style={styles.heroIconBox}>
-              <Ionicons name="people-outline" size={20} color="#00d4aa" />
+              <Ionicons name="people-outline" size={20} color={theme.primary} />
             </View>
             <Text style={styles.heroStatValue}>{memberCount}</Text>
             <Text style={styles.heroStatLabel}>members</Text>
@@ -565,9 +571,9 @@ const GroupDetailScreen = ({ route, navigation }) => {
             {/* Feature 10: Settle All button */}
             {simplifiedDebts.length > 0 && (
               <View style={{ marginHorizontal: 16, marginTop: 12 }}>
-                <TouchableOpacity testID="settle-all-btn" accessibilityLabel="Settle all debts" activeOpacity={0.7} style={styles.settleAllBtn} onPress={handleSettleAll}>
-                  <Ionicons name="checkmark-done-circle" size={20} color="#0a0a0f" />
-                  <Text style={styles.settleAllBtnText}>Settle All ({simplifiedDebts.length} payment{simplifiedDebts.length > 1 ? 's' : ''})</Text>
+                <TouchableOpacity testID="settle-all-btn" accessibilityLabel="Settle all debts" activeOpacity={0.7} style={[styles.settleAllBtn, settlingAll && { opacity: 0.5 }]} onPress={handleSettleAll} disabled={settlingAll}>
+                  {settlingAll ? <ActivityIndicator size="small" color={theme.background} /> : <Ionicons name="checkmark-done-circle" size={20} color={theme.background} />}
+                  <Text style={styles.settleAllBtnText}>{settlingAll ? 'Settling...' : `Settle All (${simplifiedDebts.length} payment${simplifiedDebts.length > 1 ? 's' : ''})`}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -756,7 +762,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
       {/* Receipt Modal (Feature 5) */}
       <Modal visible={!!receiptModalUri} animationType="fade" transparent>
-        <View style={styles.receiptModalOverlay}>
+        <TouchableOpacity activeOpacity={1} style={styles.receiptModalOverlay} onPress={() => setReceiptModalUri(null)}>
           <TouchableOpacity
             testID="close-receipt-modal"
             accessibilityLabel="Close receipt"
@@ -773,7 +779,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
               resizeMode="contain"
             />
           )}
-        </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* Unified Add Member Modal */}

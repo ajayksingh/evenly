@@ -182,7 +182,7 @@ const CreateGroupScreen = ({ navigation }) => {
   return (
     <Animated.View style={[{ flex: 1 }, screenAnimStyle]}>
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
         {/* Feature 19: Templates */}
         <Text style={styles.fieldLabel}>Quick Start</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
@@ -332,7 +332,7 @@ const CreateGroupScreen = ({ navigation }) => {
                 <Text style={styles.friendEmail} numberOfLines={1}>{f.email}</Text>
               </View>
               <View style={[styles.checkbox, selectedMembers.find(m => m.id === f.id) && styles.checkboxChecked]}>
-                {selectedMembers.find(m => m.id === f.id) && <Ionicons name="checkmark" size={14} color="#0a0a0f" />}
+                {selectedMembers.find(m => m.id === f.id) && <Ionicons name="checkmark" size={14} color={theme.background} />}
               </View>
             </TouchableOpacity>
           ))
@@ -373,7 +373,7 @@ const CreateGroupScreen = ({ navigation }) => {
                   </View>
                   {c.email ? (
                     <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                      {isSelected && <Ionicons name="checkmark" size={14} color="#0a0a0f" />}
+                      {isSelected && <Ionicons name="checkmark" size={14} color={theme.background} />}
                     </View>
                   ) : (
                     <Text style={{ fontSize: 11, color: theme.textMuted }}>No email</Text>
@@ -405,7 +405,7 @@ const CreateGroupScreen = ({ navigation }) => {
                     )}
                   </View>
                   <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                    {isSelected && <Ionicons name="checkmark" size={14} color="#0a0a0f" />}
+                    {isSelected && <Ionicons name="checkmark" size={14} color={theme.background} />}
                   </View>
                 </TouchableOpacity>
               );

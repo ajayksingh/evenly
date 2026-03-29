@@ -233,7 +233,7 @@ const GroupsScreen = ({ navigation }) => {
           <Text style={styles.emptyTitle}>No groups yet</Text>
           <Text style={styles.emptyText}>Create one to start splitting expenses with friends</Text>
           <TouchableOpacity accessibilityLabel="Create new group" activeOpacity={0.7} style={styles.createBtn} onPress={() => navigation.navigate('CreateGroup')}>
-            <Ionicons name="add" size={20} color="#0a0a0f" />
+            <Ionicons name="add" size={20} color={theme.background} />
             <Text style={styles.createBtnText}>New Group</Text>
           </TouchableOpacity>
         </View>
@@ -265,7 +265,7 @@ const GroupsScreen = ({ navigation }) => {
         style={[styles.fab, fabAnimStyle]}
         onPress={handleFabPress}
       >
-        <Ionicons name="add" size={28} color="#0a0a0f" />
+        <Ionicons name="add" size={28} color={theme.background} />
       </AnimatedTouchable>
     </View>
   );

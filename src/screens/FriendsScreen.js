@@ -151,12 +151,10 @@ const FriendsScreen = ({ navigation }) => {
     const owesThem = balance && balance.amount < 0;
     const owesUs = balance && balance.amount > 0;
     return (
-      <TouchableOpacity
+      <View
         testID="friend-card"
         accessibilityLabel={`Friend: ${item.name}`}
-        activeOpacity={0.7}
         style={styles.friendCard}
-        onPress={() => {}}
       >
         <Avatar name={item.name} avatar={item.avatar} size={44} />
         <View style={styles.friendInfo}>
@@ -213,7 +211,7 @@ const FriendsScreen = ({ navigation }) => {
             )}
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -425,6 +423,7 @@ const FriendsScreen = ({ navigation }) => {
           sections={sections}
           keyExtractor={item => item.id}
           renderItem={renderFriend}
+          keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
           renderSectionHeader={({ section: { title } }) => {
@@ -462,8 +461,8 @@ const FriendsScreen = ({ navigation }) => {
 
       {/* Feature #3: QR Code Modal */}
       <Modal visible={showQR} animationType="fade" transparent>
-        <View style={styles.qrOverlay}>
-          <View style={styles.qrModal}>
+        <TouchableOpacity activeOpacity={1} style={styles.qrOverlay} onPress={() => setShowQR(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.qrModal} onPress={() => {}}>
             <View style={styles.qrHeader}>
               <Text style={styles.qrTitle}>My QR Code</Text>
               <TouchableOpacity testID="qr-close-btn" activeOpacity={0.7} onPress={() => setShowQR(false)}>
@@ -493,8 +492,8 @@ const FriendsScreen = ({ navigation }) => {
                 </View>
               )}
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

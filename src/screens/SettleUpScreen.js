@@ -291,6 +291,7 @@ const SettleUpScreen = ({ route, navigation }) => {
         <RNAnimated.ScrollView
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
         >
@@ -484,7 +485,7 @@ const SettleUpScreen = ({ route, navigation }) => {
               end={{ x: 1, y: 0 }}
               style={styles.settleBtn}
             >
-              <Ionicons name="checkmark-circle" size={20} color={theme.background} />
+              {saving ? <ActivityIndicator size="small" color={theme.background} /> : <Ionicons name="checkmark-circle" size={20} color={theme.background} />}
               <Text style={styles.settleBtnText}>{saving ? 'Settling up...' : 'Settle Up'}</Text>
             </LinearGradient>
           </PressableScale>
