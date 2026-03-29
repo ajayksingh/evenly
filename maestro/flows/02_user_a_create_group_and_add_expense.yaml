@@ -11,8 +11,13 @@ appId: com.ajayksingh.evenly
 - tapOn:
     text: "OK"
     optional: true
+# Skip onboarding if it appears
+- tapOn:
+    id: "onboarding-skip"
+    optional: true
+- waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: "Continue with Google"
+    visible: "Quick Demo Access"
     timeout: 30000
 # Wait for entrance animation to finish before interacting
 - waitForAnimationToEnd:
