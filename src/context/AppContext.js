@@ -79,7 +79,7 @@ export const AppProvider = ({ children }) => {
         const access_token = params.get('access_token');
         const refresh_token = params.get('refresh_token');
         if (access_token && refresh_token) {
-          console.log('Deep link OAuth: setting session from URL');
+          __DEV__ && console.log('Deep link OAuth: setting session from URL');
           await supabase.auth.setSession({ access_token, refresh_token });
         }
       } catch (e) {
@@ -171,14 +171,14 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, !!session);
+      __DEV__ && console.log('Auth state change:', event, !!session);
       // Clean up OAuth tokens from URL on web to prevent reload loops
       if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash?.includes('access_token')) {
         window.history.replaceState({}, '', window.location.pathname);
       }
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
         try {
-          console.log('Handling OAuth session for event:', event);
+          __DEV__ && console.log('Handling OAuth session for event:', event);
           // Race against a timeout — if Supabase upsert hangs, use basic profile
           const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
           let profile;
@@ -197,7 +197,7 @@ export const AppProvider = ({ children }) => {
               createdAt: new Date().toISOString(),
             };
           }
-          console.log('OAuth profile set:', profile?.name);
+          __DEV__ && console.log('OAuth profile set:', profile?.name);
           setUser(profile);
           setAnalyticsUser(profile.id);
           Analytics.login(session.user.app_metadata?.provider || 'oauth');
@@ -423,31 +423,20 @@ export const AppProvider = ({ children }) => {
         oauthRedirectUri,
         { showInRecents: true, createTask: false }
       );
-      console.log('OAuth result type:', result.type);
-      console.log('OAuth result url:', result.url?.substring(0, 100));
+      __DEV__ && console.log('OAuth result:', result.type);
       if (result.type === 'success' && result.url) {
-        // Extract tokens from the redirect URL and set the session
         const redirectUrl = result.url;
-        // Tokens can be in hash fragment (#) or query params (?)
         const hashPart = redirectUrl.includes('#') ? redirectUrl.split('#')[1] : '';
         const queryPart = redirectUrl.includes('?') ? redirectUrl.split('?')[1] : '';
         const tokenString = hashPart || queryPart;
-        console.log('OAuth token string:', tokenString?.substring(0, 80));
         const params = new URLSearchParams(tokenString);
         const access_token = params.get('access_token');
         const refresh_token = params.get('refresh_token');
-        console.log('OAuth tokens found:', !!access_token, !!refresh_token);
         if (access_token && refresh_token) {
-          const { error: sessionError } = await supabase.auth.setSession({ access_token, refresh_token });
-          console.log('OAuth setSession result:', sessionError ? sessionError.message : 'success');
+          await supabase.auth.setSession({ access_token, refresh_token });
         } else {
-          console.log('OAuth: No tokens in redirect URL, trying to get session...');
-          // Fallback: Supabase may have already set the session via the URL
-          const { data: session } = await supabase.auth.getSession();
-          console.log('OAuth fallback session:', !!session?.session);
+          await supabase.auth.getSession();
         }
-      } else {
-        console.log('OAuth flow ended with:', result.type);
       }
     }
   };
