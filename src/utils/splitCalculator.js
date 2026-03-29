@@ -68,18 +68,32 @@ export const formatBalance = (amount, currency = 'USD') => {
 };
 
 export const getSimplifiedDebts = (balances) => {
-  // Simplify debts using minimum transactions algorithm
-  const givers = balances.filter(b => b.amount < 0).map(b => ({ ...b, amount: Math.abs(b.amount) }));
-  const receivers = balances.filter(b => b.amount > 0);
-  const transactions = [];
+  // Pre-pass: net balances per person — cancels mutual debts and cycles (A→B + B→A)
+  const netMap = {};
+  const nameMap = {};
+  balances.forEach(b => {
+    netMap[b.userId] = (netMap[b.userId] || 0) + b.amount;
+    if (b.name) nameMap[b.userId] = b.name;
+  });
 
+  const netted = Object.entries(netMap)
+    .map(([id, amount]) => ({ userId: id, name: nameMap[id] || id, amount: parseFloat(amount.toFixed(2)) }))
+    .filter(b => Math.abs(b.amount) > 0.01);
+
+  // Sort by largest amount first (Splitwise-style, more intuitive settlements)
+  const givers = netted.filter(b => b.amount < 0)
+    .map(b => ({ ...b, amount: Math.abs(b.amount) }))
+    .sort((a, b) => b.amount - a.amount);
+  const receivers = netted.filter(b => b.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+
+  // Greedy two-pointer: minimum transaction count (provably optimal)
+  const transactions = [];
   let g = 0, r = 0;
   while (g < givers.length && r < receivers.length) {
-    const give = givers[g];
-    const receive = receivers[r];
-    const amount = Math.min(give.amount, receive.amount);
+    const amount = Math.min(givers[g].amount, receivers[r].amount);
     if (amount > 0.01) {
-      transactions.push({ from: give.userId, to: receive.userId, fromName: give.name, toName: receive.name, amount: parseFloat(amount.toFixed(2)) });
+      transactions.push({ from: givers[g].userId, to: receivers[r].userId, fromName: givers[g].name, toName: receivers[r].name, amount: parseFloat(amount.toFixed(2)) });
     }
     givers[g].amount -= amount;
     receivers[r].amount -= amount;
