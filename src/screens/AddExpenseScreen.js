@@ -240,7 +240,7 @@ if (!validate()) { hapticError(); return; }
           notes: notes.trim() || null,
         });
         hapticSuccess();
-        notifyWrite('update_expense');
+        await notifyWrite('update_expense');
         navigation.goBack();
         return;
       }
@@ -264,7 +264,7 @@ if (!validate()) { hapticError(); return; }
         AsyncStorage.setItem(`@evenly_last_split_${selectedGroup.id}`, splitType).catch(() => {});
       }
       hapticSuccess();
-      notifyWrite('add_expense');
+      await notifyWrite('add_expense');
 
       // WhatsApp notifications: ask user if they want to notify others
       const otherSplits = splits.filter(s => s.userId !== user.id && s.amount > 0);

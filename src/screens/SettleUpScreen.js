@@ -148,7 +148,7 @@ const SettleUpScreen = ({ route, navigation }) => {
         note: note.trim(),
         groupId: group?.id || null,
       });
-      notifyWrite('settlement');
+      await notifyWrite('settlement');
 
       // Store for success screen
       const otherParty = payer.id === user.id ? receiver : payer;
@@ -172,7 +172,7 @@ const SettleUpScreen = ({ route, navigation }) => {
           });
           sendWhatsAppMessage(friendWithPhone.phone, msg).catch(() => {});
         }
-        setTimeout(() => navigation.popToTop(), 1500);
+        setTimeout(() => navigation.goBack(), 1500);
       }, 1000);
     } catch (e) {
       Alert.alert('Error', e.message);
