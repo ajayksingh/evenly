@@ -177,17 +177,28 @@ const AddPeopleModal = ({
     });
   }, []);
 
-  // Add member to group — direct add (no invite flow, instant membership)
+  // Add member to group — friends get instant add, non-friends get invite
   const addToGroup = useCallback(async (item) => {
-    await addMemberToGroup(groupId, { id: item.id, name: item.name, email: item.email, avatar: item.avatar || null });
-  }, [groupId]);
+    const isFriend = friends.some(f => f.id === item.id);
+    if (isFriend) {
+      await addMemberToGroup(groupId, { id: item.id, name: item.name, email: item.email, avatar: item.avatar || null });
+    } else {
+      await sendGroupInvite(groupId, groupName, item.id, user.id, user.name);
+    }
+  }, [groupId, groupName, user, friends]);
 
   const handleAddSingle = useCallback(async (item) => {
     setAdding(true);
     try {
       if (isGroupMode) {
         await addToGroup(item);
-        Alert.alert('Member Added', `${item.name} has been added to "${groupName}".`);
+        const isFriend = friends.some(f => f.id === item.id);
+        Alert.alert(
+          isFriend ? 'Member Added' : 'Invite Sent',
+          isFriend
+            ? `${item.name} has been added to "${groupName}".`
+            : `${item.name} will receive an invite to join "${groupName}".`
+        );
       } else {
         if (!item.email) {
           Alert.alert('No Email', `${item.name || 'This contact'} doesn't have an email address. Share your invite link instead.`);
