@@ -7,7 +7,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { initAds } from './src/services/ads';
 
 export default function App() {
-  useEffect(() => { initAds(); }, []);
+  useEffect(() => { setTimeout(() => initAds(), 3000); }, []);
 
   return (
     <SafeAreaProvider>

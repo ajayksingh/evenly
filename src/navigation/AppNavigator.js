@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
+import { View, StyleSheet, Platform, useWindowDimensions, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring } from 'react-native-reanimated';
@@ -13,18 +13,21 @@ import { useTheme } from '../context/ThemeContext';
 import { hapticSelection } from '../utils/haptics';
 import SyncBanner from '../components/SyncBanner';
 
-import OnboardingScreen from '../screens/OnboardingScreen';
-import AuthScreen from '../screens/AuthScreen';
+// Eagerly load tab screens (always visible)
 import HomeScreen from '../screens/HomeScreen';
 import GroupsScreen from '../screens/GroupsScreen';
-import GroupDetailScreen from '../screens/GroupDetailScreen';
-import AddExpenseScreen from '../screens/AddExpenseScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import ActivityScreen from '../screens/ActivityScreen';
-import SettleUpScreen from '../screens/SettleUpScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import CurrencyScreen from '../screens/CurrencyScreen';
-import CreateGroupScreen from '../screens/CreateGroupScreen';
+import AuthScreen from '../screens/AuthScreen';
+
+// Lazy load non-tab screens (loaded on demand)
+const OnboardingScreen = lazy(() => import('../screens/OnboardingScreen'));
+const GroupDetailScreen = lazy(() => import('../screens/GroupDetailScreen'));
+const AddExpenseScreen = lazy(() => import('../screens/AddExpenseScreen'));
+const SettleUpScreen = lazy(() => import('../screens/SettleUpScreen'));
+const ProfileScreen = lazy(() => import('../screens/ProfileScreen'));
+const CurrencyScreen = lazy(() => import('../screens/CurrencyScreen'));
+const CreateGroupScreen = lazy(() => import('../screens/CreateGroupScreen'));
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -187,6 +190,7 @@ const AppNavigator = () => {
     <View style={isDesktop ? [styles.desktopContainer, { backgroundColor: theme.desktopBg }] : { flex: 1 }}>
       <View style={isDesktop ? [styles.desktopApp, { borderColor: theme.desktopBorder, shadowColor: theme.primary }] : { flex: 1 }}>
         <NavigationContainer theme={navigationTheme}>
+          <Suspense fallback={<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator size="large" /></View>}>
           <View style={{ flex: 1 }}>
             <Stack.Navigator
               key={user ? 'main' : hasOnboarded ? 'auth' : 'onboarding'}
@@ -209,6 +213,7 @@ const AppNavigator = () => {
             </Stack.Navigator>
             <SyncBanner status={syncStatus} />
           </View>
+          </Suspense>
         </NavigationContainer>
       </View>
     </View>

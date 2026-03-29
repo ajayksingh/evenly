@@ -24,6 +24,9 @@ export const rFontSize = (normal) => {
   return normal;
 };
 
+// Scroll event throttle — 60fps on native, relaxed on web
+export const scrollThrottle = SCREEN_WIDTH && Platform.OS === 'web' ? 100 : 16;
+
 // Responsive width — replaces hardcoded widths with screen-relative values
 export const rWidth = (normal, minVal) => {
   const scaled = isVeryNarrow ? normal * 0.75 : isNarrow ? normal * 0.85 : normal;
