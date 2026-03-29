@@ -178,6 +178,7 @@ const AddExpenseScreen = ({ route, navigation }) => {
     if (!descriptionRef.current.trim()) { descriptionShakeRef.current?.shake(); Alert.alert('Missing description', 'What was this expense for?'); return false; }
     const amt = parseFloat(amountRef.current);
     if (isNaN(amt) || amt <= 0) { amountShakeRef.current?.shake(); Alert.alert('Missing amount', 'Enter how much was spent'); return false; }
+    if (amt > 10000000) { amountShakeRef.current?.shake(); Alert.alert('Amount too large', 'Maximum expense amount is ₹1,00,00,000 (1 Crore)'); return false; }
     if (!selectedGroup) { Alert.alert('No group selected', 'Pick a group to split this expense with'); return false; }
     if (!paidBy) { Alert.alert('Who paid?', 'Select the person who paid for this'); return false; }
     if (splitType === SPLIT_TYPES.EXACT) {
