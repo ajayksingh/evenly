@@ -403,6 +403,7 @@ const AddPeopleModal = ({
         <FlatList
           data={searchResults}
           keyExtractor={item => item.id}
+          extraData={selectedItems}
           renderItem={({ item }) => {
             const isAlready = isGroupMode
               ? existingMemberIds.includes(item.id)
@@ -456,6 +457,7 @@ const AddPeopleModal = ({
           <FlatList
             data={filteredContacts}
             keyExtractor={item => item.id}
+            extraData={selectedItems}
             renderItem={({ item }) => {
               const isAlready = friends.some(f =>
               f.email === item.email && (isGroupMode ? existingMemberIds.includes(f.id) : true)
@@ -480,6 +482,7 @@ const AddPeopleModal = ({
       <FlatList
         data={availableFriends}
         keyExtractor={item => item.id}
+        extraData={selectedItems}
         renderItem={({ item }) => renderPersonRow({ item, isAlready: false, showCheckbox: true })}
         ListEmptyComponent={
           <View style={styles.hintBox}>
@@ -509,6 +512,7 @@ const AddPeopleModal = ({
           <FlatList
             data={suggestedPeople}
             keyExtractor={item => item.id}
+            extraData={selectedItems}
             renderItem={({ item }) => {
               const isAlready = isGroupMode
                 ? existingMemberIds.includes(item.id)
