@@ -199,16 +199,6 @@ const SettleUpScreen = ({ route, navigation }) => {
       .concat([{ userId: user.id, name: user.name, amount: globalBalances.reduce((s, b) => s + b.amount, 0) }])
   );
 
-  // --- Processing state ---
-  if (step === 'processing') {
-    return (
-      <View style={styles.centeredScreen}>
-        <RNAnimated.View style={[styles.spinnerRing, { transform: [{ rotate: spin }] }]} />
-        <Text style={styles.processingText}>Settling up...</Text>
-      </View>
-    );
-  }
-
   // Trigger confetti burst when success step starts
   useEffect(() => {
     if (step === 'success') {
@@ -228,6 +218,16 @@ const SettleUpScreen = ({ route, navigation }) => {
       });
     }
   }, [step]);
+
+  // --- Processing state ---
+  if (step === 'processing') {
+    return (
+      <View style={styles.centeredScreen}>
+        <RNAnimated.View style={[styles.spinnerRing, { transform: [{ rotate: spin }] }]} />
+        <Text style={styles.processingText}>Settling up...</Text>
+      </View>
+    );
+  }
 
   // --- Success state ---
   if (step === 'success') {

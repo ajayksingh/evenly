@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Platform } from 'react-native';
 let NetInfo;
 try { NetInfo = require('@react-native-community/netinfo').default; } catch (_) {}
@@ -219,14 +219,17 @@ export const AppProvider = ({ children }) => {
     loadingRef.current = (async () => {
       try {
         const { id, email } = userRef.current;
-        const g = await getGroups(id, email);
-        const groupIds = g.map(gr => gr.id);
-        const [f, b, a, inv, fr] = await Promise.all([
+        // Fetch groups + independent queries in parallel; group-dependent queries wait for groupIds
+        const [g, f, inv, fr] = await Promise.all([
+          getGroups(id, email),
           getFriends(id),
-          calculateBalances(id, email, groupIds),
-          getActivity(id, groupIds),
           getGroupInvites(id),
           getFriendRequests(id),
+        ]);
+        const groupIds = g.map(gr => gr.id);
+        const [b, a] = await Promise.all([
+          calculateBalances(id, email, groupIds),
+          getActivity(id, groupIds),
         ]);
         setGroups(g); setFriends(f); setBalances(b); setActivity(a); setGroupInvites(inv); setFriendRequests(fr);
         lastLoadTimestampRef.current = Date.now();
@@ -466,24 +469,23 @@ export const AppProvider = ({ children }) => {
     return () => clearTimeout(timerId);
   }, [user?.id, friends.length]);
 
-  const totalBalance = parseFloat(balances.reduce((sum, b) => sum + b.amount, 0).toFixed(2));
+  const totalBalance = useMemo(() => parseFloat(balances.reduce((sum, b) => sum + b.amount, 0).toFixed(2)), [balances]);
+
+  const contextValue = useMemo(() => ({
+    user, setUser, loading,
+    groups, friends, balances, activity, groupInvites, friendRequests,
+    totalBalance, currency, setCurrency,
+    login, signInWithOAuth, logout,
+    refresh, loadData, syncData,
+    respondToFriendRequest,
+    isOnline, syncStatus,
+    notifyWrite, triggerSync,
+    contactMatches,
+    lastLoadTimestamp: lastLoadTimestampRef,
+  }), [user, loading, groups, friends, balances, activity, groupInvites, friendRequests, totalBalance, currency, isOnline, syncStatus, contactMatches]);
 
   return (
-    <AppContext.Provider value={{
-      user, setUser, loading,
-      groups, friends, balances, activity, groupInvites, friendRequests,
-      totalBalance, currency, setCurrency,
-      login, signInWithOAuth, logout,
-      refresh, loadData, syncData,
-      respondToFriendRequest,
-      // Sync & network
-      isOnline, syncStatus,
-      notifyWrite, triggerSync,
-      // Feature #11: Contact matches
-      contactMatches,
-      // Performance: stale-time ref for screen focus optimization
-      lastLoadTimestamp: lastLoadTimestampRef,
-    }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

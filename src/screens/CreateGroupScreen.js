@@ -41,6 +41,7 @@ const CreateGroupScreen = ({ navigation }) => {
   const { user, friends, currency, refresh } = useApp();
 
   const isWeb = Platform.OS === 'web';
+  const animatedOnce = useRef(false);
   const screenOpacity = useSharedValue(isWeb ? 1 : 0);
   const screenTranslateY = useSharedValue(isWeb ? 0 : 32);
   const screenAnimStyle = useAnimatedStyle(() => ({
@@ -48,9 +49,8 @@ const CreateGroupScreen = ({ navigation }) => {
     transform: [{ translateY: screenTranslateY.value }],
   }));
   useFocusEffect(useCallback(() => {
-    if (!isWeb) {
-      screenOpacity.value = 0;
-      screenTranslateY.value = 32;
+    if (!isWeb && !animatedOnce.current) {
+      animatedOnce.current = true;
       screenOpacity.value = withTiming(1, { duration: 380 });
       screenTranslateY.value = withSpring(0, { damping: 18, stiffness: 120 });
     }

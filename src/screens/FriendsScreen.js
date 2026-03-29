@@ -299,24 +299,25 @@ const FriendsScreen = ({ navigation }) => {
     );
   };
 
-  // BUG-006: Summary grid
-  const oweYouCount = friends.filter(f => { const b = getFriendBalance(f.id); return b && b.amount > 0; }).length;
-  const youOweCount = friends.filter(f => { const b = getFriendBalance(f.id); return b && b.amount < 0; }).length;
-  const settledCount = friends.filter(f => { const b = getFriendBalance(f.id); return !b || Math.abs(b.amount) <= 0.01; }).length;
+  // BUG-006 + BUG-007: Single-pass partition of friends by balance category
+  const { oweYouFriends, youOweFriends, allSquareFriends, noHistoryFriends, oweYouCount, youOweCount, settledCount } = useMemo(() => {
+    const owe = [], you = [], square = [], noHist = [];
+    friends.forEach(f => {
+      const b = getFriendBalance(f.id);
+      if (b && b.amount > 0) owe.push(f);
+      else if (b && b.amount < 0) you.push(f);
+      else if (b && Math.abs(b.amount) <= 0.01) square.push(f);
+      else noHist.push(f);
+    });
+    return { oweYouFriends: owe, youOweFriends: you, allSquareFriends: square, noHistoryFriends: noHist, oweYouCount: owe.length, youOweCount: you.length, settledCount: square.length + noHist.length };
+  }, [friends, balances]);
 
-  // BUG-007: Build categorized sections for SectionList
-  const oweYouFriends = friends.filter(f => { const b = getFriendBalance(f.id); return b && b.amount > 0; });
-  const youOweFriends = friends.filter(f => { const b = getFriendBalance(f.id); return b && b.amount < 0; });
-  const allSquareFriends = friends.filter(f => { const b = getFriendBalance(f.id); return b && Math.abs(b.amount) <= 0.01; });
-  const noHistoryFriends = friends.filter(f => { const b = getFriendBalance(f.id); return !b; });
-  const settledFriends = [...allSquareFriends, ...noHistoryFriends];
-
-  const sections = [
+  const sections = useMemo(() => [
     ...(oweYouFriends.length > 0 ? [{ title: 'People who owe you', data: oweYouFriends }] : []),
     ...(youOweFriends.length > 0 ? [{ title: 'People you owe', data: youOweFriends }] : []),
     ...(allSquareFriends.length > 0 ? [{ title: 'All square', data: allSquareFriends }] : []),
     ...(noHistoryFriends.length > 0 ? [{ title: 'No balance', data: noHistoryFriends }] : []),
-  ];
+  ], [oweYouFriends, youOweFriends, allSquareFriends, noHistoryFriends]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

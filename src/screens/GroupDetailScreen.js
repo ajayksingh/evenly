@@ -51,18 +51,18 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [g, e] = await Promise.all([getGroup(groupId), getExpenses(groupId)]);
+    const [g, e, allActivity] = await Promise.all([
+      getGroup(groupId),
+      getExpenses(groupId),
+      getActivity(user?.id).catch(() => []),
+    ]);
     if (g) {
       setGroup(g);
       const mb = await calculateGroupBalances(groupId, g.members);
       setMemberBalances(mb);
     }
     setExpenses(e);
-    // Load activity for this group
-    try {
-      const allActivity = await getActivity(user?.id);
-      setActivityItems(allActivity.filter(a => a.groupId === groupId));
-    } catch { setActivityItems([]); }
+    setActivityItems((allActivity || []).filter(a => a.groupId === groupId));
     setLoading(false);
   }, [groupId, user?.id]);
 
@@ -191,16 +191,14 @@ const GroupDetailScreen = ({ route, navigation }) => {
       onConfirm: async () => {
         setSettlingAll(true);
         try {
-          for (const d of debts) {
-            await recordSettlement({
-              paidBy: d.from,
-              paidTo: d.to,
-              amount: d.amount,
-              currency,
-              groupId,
-              note: 'Settle All',
-            });
-          }
+          await Promise.all(debts.map(d => recordSettlement({
+            paidBy: d.from,
+            paidTo: d.to,
+            amount: d.amount,
+            currency,
+            groupId,
+            note: 'Settle All',
+          })));
           await notifyWrite('settle_all');
           globalRefresh();
           loadData();
@@ -254,31 +252,25 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
   const getCategoryInfo = (cat) => CATEGORIES.find(c => c.id === cat) || CATEGORIES[8];
 
-  const totalSpending = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-  const memberCount = group ? group.members.length : 0;
-  const perPersonAvg = memberCount > 0 ? totalSpending / memberCount : 0;
-
-  // Feature 2: Top spender
-  const spenderMap = {};
-  expenses.forEach(e => {
-    const name = e.paidBy?.name || 'Unknown';
-    spenderMap[name] = (spenderMap[name] || 0) + (e.amount || 0);
-  });
-  const topSpender = Object.entries(spenderMap).sort((a, b) => b[1] - a[1])[0];
-
-  // Feature 2: Category breakdown (top 3)
-  const catMap = {};
-  expenses.forEach(e => {
-    const cat = e.category || 'general';
-    catMap[cat] = (catMap[cat] || 0) + (e.amount || 0);
-  });
-  const topCategories = Object.entries(catMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([catId, amount]) => {
+  const { totalSpending, perPersonAvg, topSpender, topCategories } = useMemo(() => {
+    const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const mc = group ? group.members.length : 0;
+    const avg = mc > 0 ? total / mc : 0;
+    const spenderMap = {};
+    const catMap = {};
+    expenses.forEach(e => {
+      const name = e.paidBy?.name || 'Unknown';
+      spenderMap[name] = (spenderMap[name] || 0) + (e.amount || 0);
+      const cat = e.category || 'general';
+      catMap[cat] = (catMap[cat] || 0) + (e.amount || 0);
+    });
+    const ts = Object.entries(spenderMap).sort((a, b) => b[1] - a[1])[0];
+    const tc = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([catId, amount]) => {
       const catInfo = CATEGORIES.find(c => c.id === catId) || CATEGORIES[8];
       return { emoji: catInfo.emoji, label: catInfo.label, amount };
     });
+    return { totalSpending: total, perPersonAvg: avg, topSpender: ts, topCategories: tc };
+  }, [expenses, group]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={theme.primary} size="large" /></View>;
   if (!group) return <View style={styles.center}><Text>Group not found</Text></View>;

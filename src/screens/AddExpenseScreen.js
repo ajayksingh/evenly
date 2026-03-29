@@ -374,10 +374,22 @@ if (!validate()) { hapticError(); return; }
                 onChangeText={v => {
                   amountRef.current = v;
                   setAmountDisplay(v);
-                  // Feature 22: Calculator detection
+                  // Feature 22: Calculator detection (safe — only allows digits and +-*/)
                   if (/[+\-*/]/.test(v) && v.length > 1) {
                     try {
-                      const result = Function('"use strict"; return (' + v + ')')();
+                      const sanitized = v.replace(/[^0-9+\-*/.() ]/g, '');
+                      if (sanitized !== v || !sanitized) { setCalcResult(null); return; }
+                      const result = sanitized.split(/([+\-*/])/).reduce((acc, token, i, arr) => {
+                        if (i === 0) return parseFloat(token) || 0;
+                        const op = arr[i - 1];
+                        const num = parseFloat(token);
+                        if (isNaN(num)) return acc;
+                        if (op === '+') return acc + num;
+                        if (op === '-') return acc - num;
+                        if (op === '*') return acc * num;
+                        if (op === '/') return num !== 0 ? acc / num : acc;
+                        return acc;
+                      }, 0);
                       if (!isNaN(result) && isFinite(result)) setCalcResult(result.toFixed(2));
                       else setCalcResult(null);
                     } catch { setCalcResult(null); }
