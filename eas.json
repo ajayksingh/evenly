@@ -22,7 +22,7 @@
         "buildConfiguration": "Release"
       },
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       }
     }
   },
@@ -32,6 +32,10 @@
         "appleId": "ajsworld@gmail.com",
         "language": "en-US",
         "companyName": "Ajay Singh"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./play-store-key.json",
+        "track": "internal"
       }
     }
   }

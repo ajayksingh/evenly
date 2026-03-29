@@ -26,7 +26,13 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.ajayksingh.evenly"
+      "package": "com.ajayksingh.evenly",
+      "versionCode": 3,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.READ_CONTACTS",
+        "android.permission.VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",

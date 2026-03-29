@@ -172,6 +172,10 @@ export const AppProvider = ({ children }) => {
     if (!supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, !!session);
+      // Clean up OAuth tokens from URL on web to prevent reload loops
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash?.includes('access_token')) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
         try {
           console.log('Handling OAuth session for event:', event);
