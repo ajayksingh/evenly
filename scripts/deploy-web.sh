@@ -23,6 +23,19 @@ else
   echo ""
 fi
 
+# ── Autoperf Quality Gate (settlement algorithm) ─────────────────────────────
+echo "▶ Running settlement algorithm test (1000 scenarios)..."
+ALGO_RESULT=$(node "$REPO_ROOT/autoperf/test-scenarios.js" 2>/dev/null || echo '{"pass":false}')
+ALGO_PASS=$(echo "$ALGO_RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).pass)}catch{console.log(false)}})")
+if [ "$ALGO_PASS" = "true" ]; then
+  echo "  ✓ Settlement algorithm: 1000/1000 pass"
+else
+  echo "  ✗ Settlement algorithm FAILED — deploy blocked"
+  echo "  $ALGO_RESULT"
+  exit 1
+fi
+echo ""
+
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo "▶ Building web bundle..."
 npx expo export --platform web --output-dir dist
