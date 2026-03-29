@@ -43,8 +43,11 @@ LIGHTHOUSE_A11Y="-"
 LIGHTHOUSE_TTI="-"
 if command -v lighthouse &> /dev/null; then
   echo "▶ [2/4] Lighthouse audit..."
-  # Serve dist locally for accurate measurement
-  npx serve dist -l 3939 -s &>/dev/null &
+  # Serve dist at /evenly/ path to match production URL structure
+  LH_DIR=$(mktemp -d)
+  mkdir -p "$LH_DIR/evenly"
+  cp -r dist/* "$LH_DIR/evenly/"
+  npx serve "$LH_DIR" -l 3939 -s &>/dev/null &
   SERVE_PID=$!
   sleep 2
 
@@ -53,6 +56,7 @@ if command -v lighthouse &> /dev/null; then
     --output=json --quiet 2>/dev/null || echo '{}')
 
   kill $SERVE_PID 2>/dev/null || true
+  rm -rf "$LH_DIR" 2>/dev/null || true
 
   LIGHTHOUSE_SCORE=$(echo "$LIGHTHOUSE_JSON" | node -e "
     const fs = require('fs'); let d='';

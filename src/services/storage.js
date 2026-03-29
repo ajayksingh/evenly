@@ -795,21 +795,16 @@ export const getActivity = async (userId, cachedGroupIds = null) => {
     groupIds = userGroups.map(g => g.id);
   }
 
-  // Two separate queries — more reliable than .or() with in.() inside PostgREST
-  const [ownResult, groupResult] = await Promise.all([
-    supabase.from('activity').select('*').eq('user_id', userId)
-      .order('created_at', { ascending: false }).limit(100),
-    groupIds.length > 0
-      ? supabase.from('activity').select('*').in('group_id', groupIds)
-          .order('created_at', { ascending: false }).limit(200)
-      : Promise.resolve({ data: [] }),
-  ]);
+  // Single query with .or() — combines user's own activity + group activity
+  const filter = groupIds.length > 0
+    ? `user_id.eq.${userId},group_id.in.(${groupIds.join(',')})`
+    : `user_id.eq.${userId}`;
+  const { data: activityData } = await supabase.from('activity').select('*')
+    .or(filter)
+    .order('created_at', { ascending: false })
+    .limit(200);
 
-  const seen = new Set();
-  const merged = [...(ownResult.data || []), ...(groupResult.data || [])]
-    .filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; })
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 200);
+  const merged = activityData || [];
 
   return merged.map(a => ({
     id: a.id, type: a.type, userId: a.user_id, groupId: a.group_id,
