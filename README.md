@@ -5,10 +5,12 @@
 **Split expenses fairly. Settle instantly. Stay friends.**
 
 [![Web](https://img.shields.io/badge/Live%20Demo-ajayksingh.github.io%2Fevenly-00d4aa?style=for-the-badge&logo=github)](https://ajayksingh.github.io/evenly/)
+[![Play Store](https://img.shields.io/badge/Google%20Play-Coming%20Soon-414141?style=for-the-badge&logo=googleplay)](https://play.google.com/store/apps/details?id=com.ajayksingh.evenly)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-00d4aa?style=for-the-badge)](https://expo.dev/@ajayksingh/evenly)
 [![Expo SDK](https://img.shields.io/badge/Expo-SDK%2055-000020?style=for-the-badge&logo=expo)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React%20Native-0.83.2-61dafb?style=for-the-badge&logo=react)](https://reactnative.dev)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?style=for-the-badge&logo=supabase)](https://supabase.com)
+[![Lighthouse](https://img.shields.io/badge/Lighthouse-100%2F100-0cce6b?style=for-the-badge&logo=lighthouse)](https://ajayksingh.github.io/evenly/)
 
 <br/>
 
@@ -24,6 +26,8 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 ## Table of Contents
 
 - [Features](#-features)
+- [Performance](#-performance)
+- [Security](#-security)
 - [Tech Stack](#-tech-stack)
 - [Architecture](#-architecture)
 - [Data Flow](#-data-flow)
@@ -31,9 +35,9 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 - [Navigation Structure](#-navigation-structure)
 - [Services and Modules](#-services-and-modules)
 - [State Management](#-state-management)
-- [Observability and Analytics](#-observability-and-analytics)
 - [Monetisation](#-monetisation)
 - [Testing](#-testing)
+- [CI/CD](#-cicd)
 - [Build and Deployment](#-build-and-deployment)
 - [Getting Started](#-getting-started)
 - [Project Structure](#-project-structure)
@@ -52,26 +56,75 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | **Multi-currency** | 10 currencies with live exchange rates (INR, USD, EUR, GBP, AUD, CAD, SGD, JPY, AED, MYR) |
 | **Group management** | 4 group types (Home, Trip, Couple, Other) with member management |
 | **Debt simplification** | Minimum transactions algorithm to reduce settlement complexity |
+| **1-tap settle** | Settle directly from activity nudges with pre-filled amount and recipient |
 | **WhatsApp sharing** | Pre-formatted messages for expense notifications and payment reminders |
 | **Demo mode** | Instant onboarding — no sign-up needed with demo accounts |
-| **Friend requests** | Send/accept friend requests with real-time notifications — friends must approve before sharing expenses |
+| **Friend requests** | Send/accept friend requests with real-time notifications |
 | **Cross-platform** | Native iOS, Android, and Progressive Web App from a single codebase |
-| **Analytics** | Built-in event tracking with zero external services |
-| **Deep linking** | `evenly://` URI scheme for native navigation |
+| **Deep linking** | `evenly://` URI scheme for native navigation + web invite links |
 | **Monetisation** | Google AdMob banner (HomeScreen) + interstitial (post-settlement) on Android |
 | **Scroll-fade headers** | Headers fade from transparent to opaque as the user scrolls — all screens |
-| **Entrance animations** | Fade-in + slide-up on screen focus (native only; disabled on web to prevent flicker) |
-| **Unified Add People** | Single reusable modal for adding friends and group members with tabs: Search, Contacts, Friends, Suggested, Link |
-| **Group member from contacts** | Import device contacts as group members with batch selection (iOS/Android) |
-| **Group member from friends** | One-tap add existing friends to groups — no email typing needed |
-| **Group QR code / invite link** | Generate QR code and shareable link for any group — scan to auto-join |
-| **Phone number search** | Find users by phone number in addition to name and email |
-| **Smart suggestions** | AI-ranked suggestions based on co-group frequency — people you split with most appear first |
+| **Entrance animations** | Fade-in + slide-up on screen focus (native only; disabled on web) |
+| **Unified Add People** | Single reusable modal with tabs: Search, Contacts, Friends, Suggested, Link |
+| **Group QR code / invite link** | Generate QR code and shareable link — scan to auto-join |
+| **Smart suggestions** | Ranked by co-group frequency — people you split with most appear first |
 | **Batch operations** | Select multiple people across any tab and add/invite them all at once |
-| **WhatsApp group invites** | Pre-formatted WhatsApp messages with group join link |
-| **Deep link auto-join** | Invite links persist through signup — new users auto-join groups after registration |
-| **Contact sync** | Background matching of device contacts against registered users — discover friends already on Evenly |
-| **Responsive adaptive layout** | All screens adapt to phone widths from 320dp to 430dp+ — text truncation, responsive padding, scalable fonts |
+| **Contact sync** | Background matching of device contacts against registered users |
+| **Expense calculator** | Inline math expressions in the amount field (e.g. `100+50*2`) |
+| **Responsive layout** | All screens adapt to phone widths from 320dp to 430dp+ |
+
+---
+
+## Performance
+
+Evenly is continuously optimized using an automated performance framework (autoperf).
+
+| Metric | Score | Target |
+|--------|-------|--------|
+| **Lighthouse Performance** | 100/100 | > 60 |
+| **Lighthouse Accessibility** | 100/100 | > 80 |
+| **Web bundle size** | 2.41 MB | < 3 MB |
+| **API calls per login** | 8 | ≤ 6 |
+| **Settlement algorithm** | 1000/1000 correct | 100% |
+| **Viewport overflow** | Zero at 320/375/430px | Zero |
+| **Build time (web)** | ~7s | — |
+
+### Optimization Highlights
+
+- **Memoized context** — AppContext value wrapped in `useMemo` to prevent unnecessary re-renders across all 11 screens
+- **Parallelized data loading** — Independent queries (`getFriends`, `getGroupInvites`, `getFriendRequests`) run alongside `getGroups` instead of waiting for it
+- **Single-pass partitioning** — FriendsScreen categorizes friends in one pass instead of 7 separate filter iterations
+- **Memoized aggregations** — GroupDetailScreen expense statistics computed once per data change, not every render
+- **React.memo on BackgroundOrbs** — Prevents re-render of animated background on every parent state change
+- **Code-split screens** — Non-tab screens lazy-loaded via `React.lazy()` for faster initial load
+
+---
+
+## Security
+
+| Protection | Implementation |
+|---|---|
+| **Row-Level Security (RLS)** | Enabled on all 10 Supabase tables with per-table policies |
+| **Auth-scoped data** | Users can only read/write their own data and groups they belong to |
+| **Credentials in .env** | Supabase keys and AdMob IDs loaded from `EXPO_PUBLIC_*` env vars |
+| **Safe math parser** | Expense calculator uses sanitized evaluation — no `eval()` or `Function()` |
+| **Rate limiting** | Auth attempts limited to 20 per 60 seconds |
+| **OAuth token cleanup** | URL hash fragments stripped after Supabase processes them (prevents reload loops) |
+| **Production log gating** | OAuth debug logs gated behind `__DEV__` — no auth info leaks in production |
+| **Demo isolation** | `demo-*` accounts are fully local — never touch Supabase |
+
+### RLS Policy Summary
+
+| Table | Select | Insert | Update | Delete |
+|-------|--------|--------|--------|--------|
+| `users` | All authenticated | Own row only | Own row only | — |
+| `groups` | Creator + members | Any authenticated | Creator + members | Creator only |
+| `expenses` | Group members | Group members | — | Group members |
+| `settlements` | Payer or receiver | Payer only | — | — |
+| `friends` | Own relationships | Own user_id | — | Own relationships |
+| `activity` | Own + group members | Any authenticated | — | — |
+| `group_invites` | Sender or recipient | Sender only | Recipient only | — |
+| `friend_requests` | Sender or receiver | Sender only | Receiver only | — |
 
 ---
 
@@ -81,7 +134,7 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 
 | Layer | Technology | Version |
 |---|---|---|
-| Framework | React Native (Expo bare workflow) | 0.83.2 |
+| Framework | React Native (Expo) | 0.83.2 |
 | Runtime | Expo SDK | ~55.0.8 |
 | Language | JavaScript (ES2024) | — |
 | Web | React Native Web | ^0.21.0 |
@@ -98,7 +151,6 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | `expo-linear-gradient` | ^55.0.9 | Gradient UI elements |
 | `expo-haptics` | ~55.0.9 | Tactile feedback |
 | `@expo/vector-icons` | ^15.1.1 | Ionicons icon set |
-| `react-native-paper` | ^5.15.0 | Material Design components |
 
 ### Backend and Data
 
@@ -107,8 +159,6 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | `@supabase/supabase-js` | ^2.99.3 | PostgreSQL cloud backend |
 | `@react-native-async-storage/async-storage` | ^2.2.0 | Local offline storage |
 | `@react-native-community/netinfo` | 11.5.2 | Network state detection |
-| `expo-secure-store` | ^55.0.9 | Secure credential storage |
-| `uuid` | ^13.0.0 | Unique ID generation |
 
 ### Monetisation
 
@@ -123,24 +173,24 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 | `expo-contacts` | ^55.0.9 | Native address book access |
 | `expo-image-picker` | ^55.0.13 | Avatar photo selection |
 | `expo-linking` | ^55.0.8 | Deep link handling |
-| `expo-web-browser` | ^55.0.10 | In-app browser |
-| `expo-system-ui` | ~55.0.10 | System UI / dark mode support |
-| `firebase` | ^12.11.0 | Analytics (configured) |
+| `expo-notifications` | ~55.0.14 | Local push notifications |
+| `expo-web-browser` | ^55.0.10 | In-app OAuth browser |
+| `expo-auth-session` | ~55.0.10 | OAuth redirect handling |
 
-### Tooling
+### Testing
 
 | Tool | Purpose |
 |---|---|
-| Maestro CLI | E2E test automation |
-| Metro Bundler | JS bundling (web + native) |
-| GitHub Pages | Web hosting |
-| Gradle (local) | Android release APK builds |
+| Playwright | Web E2E tests (15 spec files, ~565 test cases) |
+| Maestro CLI | Android E2E tests (28+ flows) |
+| Jest | Unit tests (split calculator, debt simplification) |
+| Lighthouse CI | Performance and accessibility scoring |
 
 ---
 
 ## Architecture
 
-Evenly follows an **offline-first, cloud-synced** architecture. Every user action writes to local storage immediately and syncs to Supabase asynchronously, ensuring a fast and reliable experience regardless of network conditions.
+Evenly follows an **offline-first, cloud-synced** architecture. Every user action writes to local storage immediately and syncs to Supabase asynchronously.
 
 ```
 +---------------------------------------------------------------+
@@ -151,7 +201,7 @@ Evenly follows an **offline-first, cloud-synced** architecture. Every user actio
 |      +------------+----------+--------+-----------+          |
 |                              |                               |
 |  +---------------------------v-----------------------------+  |
-|  |            AppContext (React Context API)               |  |
+|  |         AppContext (memoized React Context)             |  |
 |  |  user · groups · friends · balances · activity         |  |
 |  |  isOnline · syncStatus · currency · loadData()         |  |
 |  +---------------------------+-----------------------------+  |
@@ -162,13 +212,15 @@ Evenly follows an **offline-first, cloud-synced** architecture. Every user actio
 +---------------+  +------------------+  +--------------------+
 | AsyncStorage  |  |  syncService.js  |  | Supabase (Cloud)   |
 |               |  |                  |  |                    |
-| Demo data     |<-| Offline Queue    |->| users              |
-| Sessions      |  | - enqueueUpsert  |  | groups             |
-| Currency      |  | - flushQueue     |  | expenses           |
-| Rate cache    |  | - 5-retry logic  |  | settlements        |
-| Sync queue    |  | - camelCase ->   |  | friends            |
-|               |  |   snake_case     |  | activity           |
-+---------------+  +------------------+  | analytics          |
+| Demo data     |<-| Offline Queue    |->| users (RLS)        |
+| Sessions      |  | - enqueueUpsert  |  | groups (RLS)       |
+| Currency      |  | - flushQueue     |  | expenses (RLS)     |
+| Rate cache    |  | - 5-retry logic  |  | settlements (RLS)  |
+|               |  | - camelCase ->   |  | friends (RLS)      |
+|               |  |   snake_case     |  | activity (RLS)     |
++---------------+  +------------------+  | group_invites(RLS) |
+                                         | friend_requests    |
+                                         | pending_invites    |
                                          |                    |
                                          | Realtime Changes   |
                                          | (live multiuser)   |
@@ -180,13 +232,14 @@ Evenly follows an **offline-first, cloud-synced** architecture. Every user actio
 | Principle | Implementation |
 |---|---|
 | **Offline-first** | AsyncStorage writes are synchronous and immediate; Supabase sync is async |
-| **Realtime multi-device** | Supabase Postgres Changes listener on groups, expenses, settlements, friends |
+| **Realtime multi-device** | Supabase Postgres Changes listener on 7 tables |
 | **Polling fallback** | 30-second background interval when Realtime is unavailable |
 | **Network awareness** | NetInfo (native) + `window.online/offline` (web) drive sync triggers |
 | **Demo isolation** | Accounts with `demo-*` IDs never touch Supabase; fully local |
 | **Eventual consistency** | Optimistic UI -> background sync -> reconciliation on next `loadData()` |
-| **Denormalized reads** | Activity log written at event time to avoid expensive JOINs on read |
-| **Platform-aware animations** | Entrance animations run on native; skipped on web to prevent reanimated flicker |
+| **Denormalized reads** | Activity log written at event time to avoid expensive JOINs |
+| **Platform-aware animations** | Entrance animations on native; skipped on web |
+| **Memoized state** | Context value + expensive computations wrapped in `useMemo` |
 
 ---
 
@@ -203,14 +256,13 @@ AddExpenseScreen validates form, calculates splits
       v
 storage.addExpense()
   +-- Demo user?  -> write to AsyncStorage only
-  +-- Real user?  -> write to Supabase
+  +-- Real user?  -> write to Supabase (RLS enforced)
                      enqueue to syncService (backup)
-                     log to analytics
       |
       v
 AppContext.notifyWrite('add_expense')
   +-- Offline? -> set syncStatus='offline', skip cloud
-  +-- Online?  -> loadData() (4 parallel queries)
+  +-- Online?  -> loadData() (parallel queries)
                  update groups, balances, activity
                  set syncStatus='synced' (clears after 1.5s)
       |
@@ -232,13 +284,19 @@ AppContext.restore() -> getCurrentUser() from AsyncStorage
       v
 User found?
   +-- No  -> Show AuthScreen
-  +-- Yes -> getGroups(userId, userEmail)  [fetch first for groupIds]
+  +-- Yes -> Phase 1 (parallel):
              Promise.all([
+               getGroups(userId, email),
                getFriends(userId),
-               calculateBalances(userId, userEmail, groupIds),
-               getActivity(userId, groupIds),
                getGroupInvites(userId),
                getFriendRequests(userId),
+             ])
+             |
+             v
+             Phase 2 (needs groupIds):
+             Promise.all([
+               calculateBalances(userId, email, groupIds),
+               getActivity(userId, groupIds),
              ])
              |
              v
@@ -259,7 +317,6 @@ syncService.flushQueue()
     +-- failure   -> increment retries (abandon after 5)
       |
       v
-Analytics.syncCompleted(count)
 AppContext.loadData() reconciles state
 ```
 
@@ -267,7 +324,7 @@ AppContext.loadData() reconciles state
 
 ## Database Schema
 
-Supabase PostgreSQL with 8 tables. All IDs are client-generated UUIDs enabling offline-safe record creation. JSONB columns store nested objects without additional tables.
+Supabase PostgreSQL with 10 tables. All IDs are client-generated UUIDs enabling offline-safe record creation. JSONB columns store nested objects without additional tables. **Row-Level Security (RLS) is enabled on all tables.**
 
 ```sql
 -- Auth-linked user profiles
@@ -285,10 +342,12 @@ CREATE TABLE users (
 CREATE TABLE groups (
   id           TEXT PRIMARY KEY,
   name         TEXT NOT NULL,
-  type         TEXT DEFAULT 'other',   -- 'home' | 'trip' | 'couple' | 'other'
+  type         TEXT DEFAULT 'other',
   description  TEXT DEFAULT '',
+  emoji        TEXT DEFAULT '',
+  currency     TEXT DEFAULT 'INR',
   created_by   TEXT,
-  members      JSONB DEFAULT '[]',  -- [{ id, name, email, avatar, phone }]
+  members      JSONB DEFAULT '[]',
   created_at   TIMESTAMPTZ DEFAULT now(),
   updated_at   TIMESTAMPTZ DEFAULT now()
 );
@@ -300,9 +359,12 @@ CREATE TABLE expenses (
   description  TEXT NOT NULL,
   amount       NUMERIC NOT NULL,
   currency     TEXT DEFAULT 'INR',
-  paid_by      JSONB NOT NULL,      -- { id, name }
-  splits       JSONB DEFAULT '[]',  -- [{ userId, name, amount }]
+  paid_by      JSONB NOT NULL,
+  splits       JSONB DEFAULT '[]',
   category     TEXT DEFAULT 'general',
+  notes        TEXT DEFAULT '',
+  comments     JSONB DEFAULT '[]',
+  receipt_url  TEXT,
   date         TIMESTAMPTZ DEFAULT now(),
   created_at   TIMESTAMPTZ DEFAULT now()
 );
@@ -326,40 +388,21 @@ CREATE TABLE friend_requests (
   sender_name  TEXT NOT NULL,
   sender_email TEXT NOT NULL,
   receiver_id  TEXT NOT NULL,
-  status       TEXT DEFAULT 'pending',  -- 'pending' | 'accepted' | 'rejected'
+  status       TEXT DEFAULT 'pending',
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
 -- Bidirectional friend relationships
-CREATE TABLE friends (
-  id           TEXT PRIMARY KEY,
-  user_id      TEXT NOT NULL,
-  friend_id    TEXT NOT NULL,
-  created_at   TIMESTAMPTZ DEFAULT now()
-);
+CREATE TABLE friends (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, friend_id TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT now());
+
+-- Group membership invitations
+CREATE TABLE group_invites (id TEXT PRIMARY KEY, group_id TEXT NOT NULL, group_name TEXT NOT NULL, invited_user_id TEXT NOT NULL, invited_by_user_id TEXT NOT NULL, invited_by_name TEXT NOT NULL, status TEXT DEFAULT 'pending', created_at TIMESTAMPTZ DEFAULT now());
+
+-- Pending email invites for non-registered users
+CREATE TABLE pending_invites (id TEXT PRIMARY KEY, email TEXT NOT NULL, inviter_id TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT now());
 
 -- Denormalized activity / event feed
-CREATE TABLE activity (
-  id           TEXT PRIMARY KEY,
-  type         TEXT NOT NULL,  -- 'expense_added' | 'settlement' | 'group_created'
-  user_id      TEXT,
-  group_id     TEXT,
-  expense_id   TEXT,
-  description  TEXT,
-  amount       NUMERIC,
-  group_name   TEXT,
-  paid_by_name TEXT,
-  created_at   TIMESTAMPTZ DEFAULT now()
-);
-
--- First-party analytics (zero external services)
-CREATE TABLE analytics (
-  id           TEXT PRIMARY KEY,
-  event        TEXT NOT NULL,
-  user_id      TEXT,
-  params       JSONB DEFAULT '{}',
-  created_at   TIMESTAMPTZ DEFAULT now()
-);
+CREATE TABLE activity (id TEXT PRIMARY KEY, type TEXT NOT NULL, user_id TEXT, group_id TEXT, expense_id TEXT, description TEXT, amount NUMERIC, group_name TEXT, paid_by_name TEXT, category TEXT, paid_by_id TEXT, created_at TIMESTAMPTZ DEFAULT now());
 ```
 
 ### Schema Design Rationale
@@ -369,9 +412,9 @@ CREATE TABLE analytics (
 | **Client-generated TEXT IDs** | Offline record creation with no server round-trip |
 | **JSONB for members/splits/paid_by** | Flexible nested data without schema migrations |
 | **Denormalized `activity` table** | Single-query feed — no JOINs across 4 tables at read time |
-| **`analytics` in-database** | Zero-cost event tracking on existing free tier |
 | **Currency on every amount** | Future multi-currency groups without a schema migration |
 | **`group_id` on settlements** | Group-scoped balance calculations; null = global/friend settlement |
+| **RLS on all tables** | Anon key is safe to ship in client bundles |
 
 ---
 
@@ -380,28 +423,24 @@ CREATE TABLE analytics (
 ```
 NavigationContainer (deep link scheme: evenly://)
   |
-  +-- Auth Screen          -> Login / Register / Demo quick-access
+  +-- Onboarding Screen    -> 3-page carousel (first launch only)
+  +-- Auth Screen           -> Google OAuth / Demo quick-access
   |
   +-- Main (Bottom Tabs)
        |
-       +-- Home            -> Balance card, stats, activity feed + AdMob banner
-       +-- Activity        -> Filterable transaction log
-       +-- [+] FAB         -> AddExpense modal (4 split modes)
-       +-- Groups          -> Group list + FAB to create
-       +-- Friends         -> Balance grid, unified add modal (search/contacts/QR)
+       +-- Home             -> Balance card, stats, activity feed + AdMob banner
+       +-- Activity         -> Filterable timeline + smart nudges with 1-tap settle
+       +-- [+] FAB          -> AddExpense modal (4 split modes)
+       +-- Groups           -> Group list + FAB to create
+       +-- Friends          -> Balance grid, unified add modal (search/contacts/QR)
 
   Modal / Stack Screens:
-  +-- GroupDetail          -> Expenses / Balances / Members tabs
-  +-- AddExpense           -> Add expense to specific group
-  +-- SettleUp             -> Record a payment (triggers AdMob interstitial on success)
-  +-- CreateGroup          -> Name, type, description
-  +-- Profile              -> Account settings, currency selection
-  +-- Currency             -> 10-currency picker with live rates
-
-Deep Link Routes:
-  evenly://home          evenly://groups        evenly://friends
-  evenly://activity      evenly://profile       evenly://login
-  evenly://group/:id     evenly://create-group
+  +-- GroupDetail           -> Expenses / Balances / Members / Activity tabs
+  +-- AddExpense            -> Add expense with inline calculator
+  +-- SettleUp              -> Record a payment with confetti celebration
+  +-- CreateGroup           -> Name, type, emoji, templates, member selection
+  +-- Profile               -> Account settings, theme toggle, notifications
+  +-- Currency              -> 10-currency picker with live rates
 ```
 
 ---
@@ -414,206 +453,60 @@ Primary interface between UI and data stores. Automatically routes to AsyncStora
 
 | Function | Description |
 |---|---|
-| `loginUser({ email, password })` | Authenticate and persist session |
-| `registerUser({ name, email, password })` | Create account and seed initial data |
-| `getCurrentUser()` | Restore session from AsyncStorage |
-| `seedDemoData()` | Populate demo account with sample groups and expenses |
+| `loginUser({ email, password })` | Authenticate demo accounts |
+| `handleOAuthSession(session)` | Process Supabase OAuth callback, upsert user profile |
+| `getCurrentUser()` | Restore session from AsyncStorage or Supabase auth |
 | `createGroup(group)` | Create group with member list |
-| `addMemberToGroup(groupId, user)` | Append member to JSONB array |
 | `addExpense(expense)` | Write expense and create activity event |
 | `recordSettlement(settlement)` | Record payment and create activity event |
-| `calculateBalances(userId, email, groupIds)` | Compute net balances across all groups; rounds to 2dp |
-| `calculateGroupBalances(groupId, members)` | Per-member balances within a single group; group-scoped settlements only |
-| `getActivity(userId, groupIds)` | Fetch filtered, sorted activity feed |
-| `sendFriendRequest(userId, email)` | Send a friend request (Supabase users); direct add for demo |
-| `getFriendRequests(userId)` | Fetch pending incoming friend requests |
+| `calculateBalances(userId, email, groupIds)` | Compute net balances across all groups |
+| `getActivity(userId, groupIds)` | Fetch activity with `.or()` filter (single query) |
+| `sendFriendRequest(userId, email)` | Send friend request or direct add for demo |
 | `respondToFriendRequest(id, accept, userId)` | Accept or reject a friend request |
 | `searchUsers(query, userId)` | Search by name, email, or phone number |
 | `getSuggestedMembersForGroup(userId, groupId)` | Smart suggestions ranked by co-group frequency |
 | `matchContactsToUsers(contacts)` | Batch match device contacts against registered users |
-| `storeInviteContext(context)` | Persist invite link context for post-signup auto-join |
-| `getAndClearInviteContext()` | Retrieve and clear stored invite context |
 
-**Balance calculation fixes (v1.0.2):**
-- All returned balance amounts rounded with `parseFloat(x.toFixed(2))` to eliminate float accumulation
-- `calculateGroupBalances` narrowed to group-scoped settlements only (no null-group bleed)
-- Empty members guard added to `calculateGroupBalances`
+### `src/services/supabase.js` — Supabase Client
 
----
-
-### `src/services/ads.js` — AdMob Integration
-
-Google AdMob integration for Android. No-ops silently on web.
-
-```javascript
-// Initialise at app start (App.js)
-initAds()
-
-// Show interstitial after settlement success (SettleUpScreen.js)
-showInterstitial()
-
-// Banner rendered in HomeScreen JSX (native only)
-<BannerAd unitId={AD_UNIT_IDS.banner} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} />
-```
-
-| Export | Description |
-|---|---|
-| `initAds()` | Initialize AdMob SDK once at app launch |
-| `showInterstitial()` | Load and show interstitial; auto-shows when loaded |
-| `AD_UNIT_IDS.banner` | Test ID in `__DEV__`, live `ca-app-pub-9004418283363709/7297137403` in production |
-| `AD_UNIT_IDS.interstitial` | Test ID in `__DEV__`, live `ca-app-pub-9004418283363709/4684384107` in production |
-| `BannerAd`, `BannerAdSize` | Re-exported from `react-native-google-mobile-ads` for use in screens |
-
----
-
-### `src/hooks/useScrollHeader.js` — Scroll-Fade Header Hook
-
-Returns animated values for the scroll-to-fade header effect used on all screens.
-
-```javascript
-const { onScroll, scrollEventThrottle, bgOpacity, borderOpacity } = useScrollHeader();
-
-// In JSX:
-<Animated.View style={[styles.header, {
-  backgroundColor: bgOpacity.interpolate({...}),
-  borderBottomColor: borderOpacity.interpolate({...}),
-}]} />
-<Animated.ScrollView onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} />
-```
-
-| Return | Description |
-|---|---|
-| `onScroll` | `Animated.event` handler to attach to ScrollView |
-| `scrollEventThrottle` | Fixed at `16` (60fps) |
-| `bgOpacity` | Interpolated 0→1 value for header background opacity |
-| `borderOpacity` | Interpolated 0→1 value for header border opacity |
-
----
+Credentials loaded from environment variables (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`).
 
 ### `src/services/syncService.js` — Offline Sync Queue
 
-Manages a persistent queue of write operations for offline-to-online synchronisation.
-
-```
-Queue item:
-{
-  op:       'upsert' | 'delete',
-  table:    'groups' | 'expenses' | 'settlements' | 'friends' | 'activity',
-  record:   { ...snake_case fields },
-  id:       string,
-  queuedAt: ISO timestamp,
-  retries:  number  // abandoned after 5
-}
-```
-
-Field mapping (JS camelCase to Postgres snake_case):
-
-| JS | Supabase |
-|---|---|
-| `groupId` | `group_id` |
-| `paidBy` | `paid_by` |
-| `paidTo` | `paid_to` |
-| `createdBy` | `created_by` |
-| `createdAt` | `created_at` |
-| `updatedAt` | `updated_at` |
-
----
+Persistent queue of write operations. Automatically flushes when network is restored. Converts camelCase to snake_case. Retries up to 5 times.
 
 ### `src/services/currency.js` — Multi-Currency Engine
 
-| Function | Description |
-|---|---|
-| `detectDefaultCurrency()` | Read device locale, map to currency code |
-| `fetchExchangeRates(base)` | Live rates from open.er-api.com (free, no key), 1-hour cache |
-| `convertCurrency(amount, from, to)` | Convert via USD as intermediate |
-| `getCurrencySymbol(code)` | Single canonical source for all symbol rendering |
-| `formatAmount(amount, code)` | Locale-formatted: `1,234.56` |
+Live exchange rates from open.er-api.com (free, no key). 1-hour cache. Supports: **INR, USD, EUR, GBP, AUD, CAD, SGD, JPY, AED, MYR**.
 
-Supported: **INR ₹ · USD $ · EUR € · GBP £ · AUD A$ · CAD C$ · SGD S$ · JPY ¥ · AED AED · MYR RM**
+### `src/services/analytics.js` — Event Tracking
 
----
+Console logging in `__DEV__` mode only. No external services, no database writes (removed to conserve free-tier storage).
 
-### `src/services/analytics.js` — Built-in Event Tracking
+### `src/services/ads.js` — Google AdMob
 
-Zero external dependencies. Events stored in the `analytics` Supabase table. Non-blocking — errors silently suppressed.
-
-```
-Auth:     login · register · logout
-Expenses: add_expense · delete_expense
-Social:   settle_up · create_group · add_friend
-Profile:  update_profile · change_currency
-Sync:     sync_completed · offline_save · sync_error
-UX:       screen_view · whatsapp_notify
-```
-
----
-
-### `src/services/contacts.js` — Native Address Book
-
-| Function | Description |
-|---|---|
-| `requestContactsPermission()` | Native permission prompt |
-| `getContacts()` | Read device contacts (max 200), normalise data |
-| `searchContacts(query)` | Filter by name, email, or phone |
-| `sendWhatsAppMessage(phone, msg)` | Open WhatsApp; fallback to wa.me URL |
-| `buildExpenseWhatsAppMessage(...)` | Pre-formatted expense notification |
-| `buildSettlementWhatsAppMessage(...)` | Pre-formatted payment confirmation |
-| `buildGroupWhatsAppInviteMessage(userName, groupName, joinLink)` | Pre-formatted group invite for WhatsApp |
-| `checkContactsPermissionSilently()` | Check contacts permission without prompting user |
-| `getContactsIfPermitted()` | Fetch contacts only if permission was already granted (no prompt) |
-
----
-
-### `src/utils/splitCalculator.js` — Split Algorithms
-
-```
-EQUAL      -> amount / N  (remainder to first member)
-EXACT      -> user-specified per-person amounts (validated: sum ~= total +/-0.01)
-PERCENTAGE -> user-specified percentages (must total 100%)
-SHARES     -> proportional units (2:1:1 splits 400 as 200/100/100)
-```
-
-Also provides:
-- `getSimplifiedDebts(balances)` — minimum-transactions debt simplification (expects positive = creditor)
-- `formatDate(dateString)` — relative timestamps (just now, 2h ago, Yesterday)
-- `formatCurrency(amount, currency)` — always requires `currency` argument to avoid INR default
-- `generateAvatarColor(name)` — deterministic hex colour from name
+Banner on HomeScreen + interstitial post-settlement. Test IDs in `__DEV__`, production IDs from `.env`. No-op on web.
 
 ---
 
 ## State Management
 
-Evenly uses **React Context** (`AppContext`) as its single source of truth. No Redux or Zustand needed at this scale.
+Evenly uses **memoized React Context** (`AppContext`) as its single source of truth. The context value is wrapped in `useMemo` to prevent unnecessary re-renders.
 
 ### Context Shape
 
 ```javascript
 {
-  user:         { id, name, email, avatar, phone, createdAt },
-  loading:      boolean,
-
-  groups:         Group[],
-  friends:        User[],
-  balances:       { userId, name, amount }[],  // positive = owed to you
-  totalBalance:   number,   // rounded to 2dp
-  activity:       ActivityItem[],
-  friendRequests: FriendRequest[],
-  groupInvites:   GroupInvite[],
-  contactMatches: User[],         // device contacts who are on Evenly but not yet friends
-
-  isOnline:     boolean,
-  syncStatus:   null | 'offline' | 'syncing' | 'synced' | 'error',
-
-  currency:     'INR' | 'USD' | 'EUR' | ...,
-
-  login(email, password):           Promise<void>,
-  register(name, email, password):  Promise<void>,
-  logout():                         Promise<void>,
-  resetPassword(email):             Promise<void>,
-  loadData():                       Promise<void>,
-  notifyWrite(action):              Promise<void>,
-  triggerSync():                    Promise<void>,
-  setCurrency(code):                void,
+  user, loading,
+  groups, friends, balances, activity,
+  groupInvites, friendRequests, contactMatches,
+  totalBalance,        // memoized, rounded to 2dp
+  isOnline, syncStatus,
+  currency, setCurrency,
+  login, signInWithOAuth, logout,
+  loadData, refresh, syncData,
+  notifyWrite, triggerSync,
+  respondToFriendRequest,
 }
 ```
 
@@ -626,66 +519,18 @@ Mount
   +-- restore() getCurrentUser()  re-auth from AsyncStorage
 
   (user found)
-  +-- loadData()                  fetch groups first, then 5 parallel queries
+  +-- loadData()
+      Phase 1: getGroups + getFriends + getInvites + getRequests (parallel)
+      Phase 2: calculateBalances + getActivity (parallel, needs groupIds)
   +-- NetInfo.addEventListener()  online -> trigger loadData
   +-- setInterval(30000)          polling fallback
   +-- supabase.channel()          Postgres Changes for live sync
-                                  (groups, expenses, settlements, friends,
-                                   activity, group_invites, friend_requests)
+                                  (7 tables, debounced 500ms)
 
 Unmount
   +-- clearInterval(pollRef)
   +-- supabase.removeAllChannels()
 ```
-
-**`loadData` optimisation:** groups are fetched first so their IDs can be passed to `calculateBalances` and `getActivity`, avoiding two extra `getGroups` calls.
-
----
-
-## Observability and Analytics
-
-### In-App Analytics
-
-All events write to the `analytics` Supabase table. No external service, no API keys, no cost beyond the free tier.
-
-```
-analytics table:
-  id          TEXT  (UUID)
-  event       TEXT  (event name)
-  user_id     TEXT  (nullable)
-  params      JSONB (event metadata)
-  created_at  TIMESTAMPTZ
-```
-
-### Event Catalogue
-
-| Category | Events | Key Params |
-|---|---|---|
-| **Auth** | `login`, `register`, `logout` | `method: 'email'` |
-| **Expenses** | `add_expense`, `delete_expense` | `amount`, `currency`, `group_id` |
-| **Social** | `settle_up`, `create_group`, `add_friend` | `amount`, `member_count` |
-| **Profile** | `update_profile`, `change_currency` | `currency_code` |
-| **Sync** | `sync_completed`, `offline_save`, `sync_error` | `count`, `action`, `error` |
-| **UX** | `screen_view`, `whatsapp_notify` | `screen`, `type` |
-
-### Sync Health
-
-The `SyncBanner` component surfaces real-time sync state:
-
-| Status | Indicator | Trigger |
-|---|---|---|
-| `syncing` | Pulsing teal banner | Active Supabase write |
-| `synced` | Green checkmark (auto-hides 1.5s) | Write completed |
-| `offline` | Amber pill | NetInfo reports no connection |
-| `error` | Red pill | Supabase operation failed |
-| `null` | Hidden | Stable connected state |
-
-### Error Strategy
-
-- All async operations wrapped in try/catch
-- User-visible errors via `Alert.alert()` (native) or `window.alert()` (web)
-- Non-critical failures (analytics, sync) suppressed silently
-- `__DEV__` mode: verbose console.log on all service calls
 
 ---
 
@@ -693,63 +538,72 @@ The `SyncBanner` component surfaces real-time sync state:
 
 ### Android — Google AdMob
 
-AdMob is integrated via `react-native-google-mobile-ads`. It is a no-op on web and in Expo Go — requires a native build.
-
 | Placement | Type | Trigger |
 |---|---|---|
 | HomeScreen bottom | Anchored adaptive banner | Always visible while logged in |
 | Post-settlement | Full-screen interstitial | Fires when user confirms a payment |
 
-**Ad Unit IDs (production):**
-
-| Unit | ID |
-|---|---|
-| Banner | `ca-app-pub-9004418283363709/7297137403` |
-| Interstitial | `ca-app-pub-9004418283363709/4684384107` |
-
-In `__DEV__` builds, Google's test IDs are substituted automatically — no real ad impressions during development.
-
-**`app.json` plugin config:**
-```json
-["react-native-google-mobile-ads", {
-  "androidAppId": "ca-app-pub-9004418283363709~4207939635",
-  "iosAppId":     "ca-app-pub-9004418283363709~4207939635"
-}]
-```
+Ad Unit IDs loaded from `.env` (`EXPO_PUBLIC_ADMOB_BANNER_ID`, `EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID`). In `__DEV__`, Google's test IDs are used automatically.
 
 ---
 
 ## Testing
 
-### E2E Test Suite — Maestro CLI
+### Web E2E — Playwright
 
-Automated flows covering all critical user journeys against the installed APK (`com.ajayksingh.evenly`).
+15 spec files covering auth, home, groups, expenses, settlement, friends, profile, activity, currency, responsive layout, scroll behavior, and onboarding.
 
 ```bash
-# Run full suite
-maestro --device emulator-5554 test maestro/flows/
-
-# Run single flow
-maestro test maestro/flows/02_user_a_create_group_and_add_expense.yaml
+npm run test:web           # Run headless
+npm run test:web:ui        # Interactive UI mode
+npm run test:web:report    # View HTML report
 ```
 
-### Flow Coverage
+### Android E2E — Maestro CLI
 
-| Flow | What it tests |
-|---|---|
-| `00_setup_user_b.yaml` | Register second test account for multi-user flows |
-| `02_user_a_create_group_and_add_expense.yaml` | Group creation + expense addition |
-| `03_add_member_and_second_expense.yaml` | Add member to group, add second expense |
-| `04_settle_payment.yaml` | Record a settlement payment |
-| `05_user_a_verify_settlement.yaml` | Verify settlement appears in activity and balances |
+28+ flows covering all critical user journeys.
 
-### Testing Patterns
+```bash
+npm run test:android                    # Full suite
+maestro test maestro/flows/02_*.yaml    # Single flow
+```
 
-- **State isolation**: Every flow uses `clearState: true` — independent of others
-- **Self-contained**: Flows that need a group create one within the flow
-- **Screenshot capture**: Key states saved to `~/.maestro/tests/`
-- **Optional steps**: Keyboard dismiss and prompts use `optional: true`
-- **Extended waits**: Network assertions use `extendedWaitUntil` (8-15s timeout)
+### Unit Tests — Jest
+
+Settlement algorithm correctness validated against 1000 random scenarios.
+
+```bash
+npx jest __tests__/mathLogic.test.js
+```
+
+### Performance — Autoperf
+
+Automated quality gate runs before every deploy:
+
+```bash
+bash autoperf/benchmark.sh    # Build + Lighthouse + overflow + algorithm
+bash autoperf/run.sh          # Full optimization cycle
+```
+
+---
+
+## CI/CD
+
+### GitHub Actions Workflows
+
+| Workflow | Trigger | Checks |
+|---|---|---|
+| **Spec Guard** | Push to main, PRs | Web build integrity, Playwright E2E, Maestro YAML lint |
+| **Keep Alive** | Every 5 days (cron) | Pings Supabase to prevent free-tier pause |
+
+### Pre-Deploy Quality Gate
+
+```
+1. Settlement algorithm test (1000 scenarios) — blocks on failure
+2. Web build (Expo export)
+3. Lighthouse audit (performance + accessibility)
+4. Viewport overflow detection (320px, 375px, 430px)
+```
 
 ---
 
@@ -758,43 +612,25 @@ maestro test maestro/flows/02_user_a_create_group_and_add_expense.yaml
 ### Web — GitHub Pages
 
 ```bash
-bash scripts/deploy-web.sh
+npm run deploy              # Build + quality gate + deploy
 ```
 
-This script builds and deploys in one step:
+Deploys to: **https://ajayksingh.github.io/evenly/**
 
-```
-npx expo export --platform web --output-dir dist
-  |
-  v
-touch dist/.nojekyll        <- exposes _expo/ dir (Jekyll ignores _ prefixes)
-  |
-  v
-git init dist/
-git push -f origin HEAD:gh-pages
-  |
-  v
-https://ajayksingh.github.io/evenly/  (~1 min propagation)
+### Android — EAS Build (Play Store AAB)
+
+```bash
+eas build --platform android --profile production    # AAB for Play Store
+eas build --platform android --profile preview        # APK for testing
 ```
 
 ### Android — Local Release APK
 
-Builds a signed, production APK locally using Gradle. No EAS cloud build required.
-
 ```bash
-# Apply plugin changes to native files (run after app.json plugin changes)
 npx expo prebuild --platform android
-
-# Build signed release APK
 cd android && ./gradlew assembleRelease
-
-# Output
-android/app/build/outputs/apk/release/app-release.apk
+# Output: android/app/build/outputs/apk/release/app-release.apk
 ```
-
-Signing config is in `android/app/build.gradle` under `signingConfigs.release`, pointing to `@ajayksingh__evenly.jks` in the project root.
-
-**Build time:** ~2–3 minutes on first build; ~45 seconds on subsequent builds (incremental).
 
 ---
 
@@ -803,16 +639,16 @@ Signing config is in `android/app/build.gradle` under `signingConfigs.release`, 
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- npm
 - Android Studio + JDK 17 (for Android builds)
 - Xcode 15+ (for iOS)
-- Maestro CLI (for E2E tests): `brew install maestro`
 
 ### Quick Start
 
 ```bash
 git clone https://github.com/ajayksingh/evenly.git
 cd evenly
+cp .env.example .env        # Add your Supabase keys
 npm install
 npx expo start
 
@@ -823,23 +659,30 @@ npx expo start
 # bob@demo.com   / demo123
 ```
 
-### Connect to Your Own Supabase
+### Environment Variables
 
 ```bash
-# 1. Create project at supabase.com
-# 2. Run supabase_schema.sql in SQL Editor
-# 3. Update src/services/supabase.js:
-export const SUPABASE_URL      = 'https://YOUR_PROJECT.supabase.co';
-export const SUPABASE_ANON_KEY = 'your-anon-key';
-# 4. Optional: disable email confirmation for dev
-#    Dashboard -> Authentication -> Email -> Confirm email -> OFF
+# .env
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+EXPO_PUBLIC_ADMOB_BANNER_ID=ca-app-pub-xxxx/xxxx
+EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID=ca-app-pub-xxxx/xxxx
 ```
 
-### Run E2E Tests
+### Connect to Your Own Supabase
+
+1. Create project at [supabase.com](https://supabase.com)
+2. Run `supabase_schema.sql` in SQL Editor
+3. Run migrations `001` through `006` in order
+4. Add your project URL and anon key to `.env`
+5. Enable Google OAuth in Supabase Dashboard > Authentication > Providers
+
+### Run Tests
 
 ```bash
-brew install maestro
-maestro --device emulator-5554 test maestro/flows/
+npm run test:web            # Playwright web E2E
+npm run test:android        # Maestro Android E2E
+npm run test:all            # Full orchestrated suite
 ```
 
 ---
@@ -851,41 +694,40 @@ evenly/
 |
 +-- src/
 |   +-- screens/                  # 11 UI screens
-|   |   +-- AuthScreen.js         # Login, register, demo quick-access
+|   |   +-- AuthScreen.js         # Google OAuth + demo quick-access
+|   |   +-- OnboardingScreen.js   # 3-page welcome carousel
 |   |   +-- HomeScreen.js         # Balance dashboard, activity feed, AdMob banner
-|   |   +-- ActivityScreen.js     # Filterable transaction log
-|   |   +-- GroupsScreen.js       # Group list with FAB
-|   |   +-- GroupDetailScreen.js  # Expenses / Balances / Members tabs
-|   |   +-- CreateGroupScreen.js  # Group creation form
-|   |   +-- AddExpenseScreen.js   # Expense form, 4 split modes
-|   |   +-- SettleUpScreen.js     # Payment recording + AdMob interstitial
-|   |   +-- FriendsScreen.js      # Friend list, balance grid
-|   |   +-- ProfileScreen.js      # Account settings (in-flow header, no position:absolute)
-|   |   +-- CurrencyScreen.js     # Multi-currency selector
+|   |   +-- ActivityScreen.js     # Timeline + smart nudges with 1-tap settle
+|   |   +-- GroupsScreen.js       # Group list with pin/archive
+|   |   +-- GroupDetailScreen.js  # Expenses / Balances / Members / Activity tabs
+|   |   +-- CreateGroupScreen.js  # Templates, emoji, member selection
+|   |   +-- AddExpenseScreen.js   # 4 split modes + inline calculator
+|   |   +-- SettleUpScreen.js     # Payment recording + confetti + AdMob
+|   |   +-- FriendsScreen.js      # Categorized list, balance grid, QR code
+|   |   +-- ProfileScreen.js      # Settings, theme toggle, notifications
+|   |   +-- CurrencyScreen.js     # 10-currency picker with live rates
 |   |
 |   +-- services/                 # Business logic
 |   |   +-- storage.js            # Data CRUD (AsyncStorage + Supabase)
-|   |   +-- supabase.js           # Supabase client + low-level API
+|   |   +-- supabase.js           # Supabase client (credentials from .env)
 |   |   +-- syncService.js        # Offline queue and flush logic
-|   |   +-- analytics.js          # Event tracking
+|   |   +-- analytics.js          # Dev-only console event tracking
 |   |   +-- currency.js           # Multi-currency with live rates
-|   |   +-- contacts.js           # Native address book, WhatsApp, contact sync
+|   |   +-- contacts.js           # Native address book + WhatsApp
 |   |   +-- ads.js                # Google AdMob (banner + interstitial)
-|   |   +-- firebase.js           # Firebase config (analytics)
-|   |
-|   +-- hooks/
-|   |   +-- useScrollHeader.js    # Scroll-to-fade header animation hook
+|   |   +-- notifications.js      # Local push notifications
 |   |
 |   +-- context/
-|   |   +-- AppContext.js         # Global state, auth, network, sync
+|   |   +-- AppContext.js         # Memoized global state, auth, sync
+|   |   +-- ThemeContext.js       # Light/dark theme with 20+ tokens
 |   |
 |   +-- navigation/
-|   |   +-- AppNavigator.js       # Stack + Tab navigator, deep links
+|   |   +-- AppNavigator.js       # Stack + Tab navigator, deep links, lazy loading
 |   |
 |   +-- components/               # Shared UI components
 |   |   +-- Avatar.js             # User avatar with initials fallback
-|   |   +-- AddPeopleModal.js     # Unified add friends/members modal (5 tabs)
-|   |   +-- BackgroundOrbs.js     # Animated gradient background
+|   |   +-- AddPeopleModal.js     # Unified add friends/members (5 tabs)
+|   |   +-- BackgroundOrbs.js     # Animated gradient background (React.memo)
 |   |   +-- BalanceSummary.js     # Balance summary card
 |   |   +-- FadeInView.js         # Staggered fade-in animation
 |   |   +-- PressableScale.js     # Spring-animated pressable button
@@ -893,33 +735,40 @@ evenly/
 |   |   +-- Skeleton.js           # Loading shimmer placeholder
 |   |   +-- SyncBanner.js         # Network / sync status indicator
 |   |
-|   +-- constants/
-|   |   +-- colors.js             # Color palette and gradients
-|   |
 |   +-- utils/
-|       +-- splitCalculator.js    # 4 split algorithms + debt simplification
-|       +-- haptics.js            # Haptic feedback wrappers
-|       +-- alert.js              # Cross-platform alert helpers
-|       +-- responsive.js         # Screen-width breakpoints and scaling helpers
-|       +-- share.js              # Cross-platform share/clipboard utility
+|   |   +-- splitCalculator.js    # 4 split algorithms + debt simplification
+|   |   +-- haptics.js            # Haptic feedback wrappers
+|   |   +-- alert.js              # Cross-platform alert helpers
+|   |   +-- responsive.js         # Screen-width breakpoints and scaling
+|   |   +-- share.js              # Cross-platform share/clipboard
+|   |
+|   +-- hooks/
+|       +-- useScrollHeader.js    # Scroll-to-fade header animation hook
 |
-+-- maestro/flows/                # E2E test suite (17 flows + helpers)
-|   +-- helpers/
-|       +-- do_login.yaml
-|       +-- do_logout.yaml
++-- autoperf/                     # Automated performance framework
+|   +-- benchmark.sh              # Quality gate (build + Lighthouse + overflow + algorithm)
+|   +-- run.sh                    # Nightly auto-optimizer
+|   +-- goals.md                  # Performance targets and constraints
+|   +-- test-scenarios.js         # 1000 random settlement scenarios
+|   +-- baseline-metrics.json     # Current performance baseline
 |
++-- e2e/                          # Playwright web E2E tests (15 specs)
++-- maestro/flows/                # Maestro Android E2E tests (28+ flows)
 +-- scripts/
-|   +-- deploy-web.sh             # Web build + gh-pages deploy (one command)
+|   +-- deploy-web.sh             # Build + quality gate + gh-pages deploy
+|   +-- run-tests.sh              # Maestro test runner
+|   +-- orchestrate.sh            # Parallel test + doc orchestrator
 |
-+-- android/                      # Native Android project (bare workflow)
-+-- app.json                      # Expo + EAS + AdMob configuration
-+-- eas.json                      # EAS Build profiles
-+-- metro.config.js               # Metro bundler config
-+-- babel.config.js               # Babel config
++-- .github/workflows/
+|   +-- spec-guard.yml            # CI: build + Playwright + Maestro lint
+|   +-- keep-alive.yml            # Cron: ping Supabase every 5 days
+|
 +-- supabase_schema.sql           # Full PostgreSQL schema
-+-- supabase_migration_003.sql    # Group invites flow
-+-- supabase_migration_004.sql    # Friend requests + expense columns fix
-+-- package.json                  # Dependencies and scripts
++-- supabase_migration_001-006.sql # Incremental migrations (including RLS)
++-- .env.example                  # Environment variable template
++-- app.json                      # Expo + EAS + AdMob config
++-- eas.json                      # EAS Build profiles (AAB for Play Store)
++-- public/privacy.html           # Privacy policy page
 ```
 
 ---
@@ -931,13 +780,12 @@ evenly/
 | Key | Value |
 |---|---|
 | App Name | Evenly |
+| Version | 1.0.2 |
 | Bundle ID (iOS) | `com.ajayksingh.evenly` |
 | Package (Android) | `com.ajayksingh.evenly` |
+| Version Code | 3 |
 | Deep Link Scheme | `evenly://` |
-| Expo Slug | `evenly` |
 | EAS Project ID | `ac20106b-0447-4a6f-8bcd-5d09f0a5b103` |
-| Web Base URL | `/evenly` |
-| AdMob App ID | `ca-app-pub-9004418283363709~4207939635` |
 
 ### npm Scripts
 
@@ -947,14 +795,11 @@ evenly/
 | `npm run android` | Run on Android |
 | `npm run ios` | Run on iOS |
 | `npm run web` | Run in browser |
-
-### Build Commands
-
-| Command | Output |
-|---|---|
-| `bash scripts/deploy-web.sh` | Build web + deploy to GitHub Pages |
-| `cd android && ./gradlew assembleRelease` | Signed release APK |
-| `npx expo prebuild --platform android` | Regenerate native Android files from app.json |
+| `npm run build:web` | Export web bundle to dist/ |
+| `npm run deploy` | Build + quality gate + deploy to GitHub Pages |
+| `npm run test:web` | Run Playwright E2E tests |
+| `npm run test:android` | Run Maestro Android E2E tests |
+| `npm run test:all` | Run full orchestrated test suite |
 
 ---
 
@@ -964,8 +809,8 @@ MIT (c) Ajay Singh — https://github.com/ajayksingh
 
 ---
 
-Built with React Native · Expo · Supabase · Google AdMob
+Built with React Native, Expo, Supabase, and Google AdMob
 
 **Live Demo: https://ajayksingh.github.io/evenly/**
 **GitHub: https://github.com/ajayksingh/evenly**
-**Expo: https://expo.dev/@ajayksingh/evenly**
+**Privacy Policy: https://ajayksingh.github.io/evenly/privacy.html**
