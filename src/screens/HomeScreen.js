@@ -24,7 +24,7 @@ import { isNarrow, rPadding, rFontSize, rWidth } from '../utils/responsive';
 import { BannerAd, BannerAdSize, AD_UNIT_IDS } from '../services/ads';
 
 const HomeScreen = ({ navigation }) => {
-  const { user, balances, activity, groups, totalBalance, currency, refresh, groupInvites, notifyWrite } = useApp();
+  const { user, balances, activity, groups, totalBalance, currency, refresh, groupInvites, notifyWrite, lastLoadTimestamp } = useApp();
   const { theme, colorScheme } = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
   const [refreshing, setRefreshing] = useState(false);
@@ -231,8 +231,8 @@ const HomeScreen = ({ navigation }) => {
         contentContainerStyle={{ paddingTop: 116 }}
       >
 
-        {/* Skeleton loading state */}
-        {user && groups.length === 0 && activity.length === 0 && !refreshing && (
+        {/* Skeleton loading state — only show during initial data fetch, not after data has loaded */}
+        {user && groups.length === 0 && activity.length === 0 && !refreshing && lastLoadTimestamp?.current === 0 && (
           <View style={{ padding: 16 }}>
             <Skeleton width="100%" height={120} borderRadius={20} style={{ marginBottom: 12 }} />
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
