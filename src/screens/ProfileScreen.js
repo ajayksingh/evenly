@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, TextInput, Modal, Switch, Animated as RNAnimated, Platform,
+  TextInput, Modal, Switch, Animated as RNAnimated, Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, withDelay,
@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+import { themedAlert } from '../components/ThemedAlert';
 import Avatar from '../components/Avatar';
 import { updateUserProfile } from '../services/storage';
 import { formatAmount, SUPPORTED_CURRENCIES } from '../services/currency';
@@ -89,7 +90,7 @@ const ProfileScreen = ({ navigation }) => {
       setShowEdit(false);
       refresh();
     } catch (e) {
-      Alert.alert('Error', e.message);
+      themedAlert('Error', e.message, 'error');
     } finally {
       setSaving(false);
     }
@@ -171,7 +172,7 @@ const ProfileScreen = ({ navigation }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         <MenuRow icon="person-outline" iconColor="#00d4aa" title="Edit Profile" subtitle="Name, phone number" onPress={() => setShowEdit(true)} />
-        <MenuRow icon="lock-closed-outline" iconColor="#00d4aa" title="Change Password" subtitle="Update your password" onPress={() => Alert.alert('Coming Soon', 'Password change coming soon')} />
+        <MenuRow icon="lock-closed-outline" iconColor="#00d4aa" title="Change Password" subtitle="Update your password" onPress={() => themedAlert('Coming Soon', 'Password change coming soon', 'info')} />
         <MenuRow icon="mail-outline" iconColor="#00d4aa" title="Email" subtitle={user?.email} />
       </View>
 
@@ -208,8 +209,8 @@ const ProfileScreen = ({ navigation }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>About</Text>
         <MenuRow icon="information-circle-outline" iconColor="#a78bfa" title="Version" subtitle="1.0.0" />
-        <MenuRow icon="shield-checkmark-outline" iconColor="#a78bfa" title="Privacy Policy" onPress={() => Alert.alert('Privacy Policy', 'Your data is stored locally on your device. No data is shared with third parties.')} />
-        <MenuRow icon="star-outline" iconColor="#ffd93d" title="Rate the App" onPress={() => Alert.alert('Thank you!', 'Rating feature coming soon!')} />
+        <MenuRow icon="shield-checkmark-outline" iconColor="#a78bfa" title="Privacy Policy" onPress={() => themedAlert('Privacy Policy', 'Your data is stored locally on your device. No data is shared with third parties.', 'info')} />
+        <MenuRow icon="star-outline" iconColor="#ffd93d" title="Rate the App" onPress={() => themedAlert('Thank you!', 'Rating feature coming soon!', 'info')} />
       </View>
 
       {/* Sign Out */}

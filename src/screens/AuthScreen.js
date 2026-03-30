@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Platform, ScrollView, Alert, ActivityIndicator, Animated, Image as RNImage,
+  Platform, ScrollView, ActivityIndicator, Animated, Image as RNImage,
 } from 'react-native';
 
 const AppLogo = require('../../assets/icon.png');
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
+import { themedAlert } from '../components/ThemedAlert';
 
 import { COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
@@ -65,7 +66,7 @@ const AuthScreen = () => {
     try {
       await signInWithOAuth(provider);
     } catch (e) {
-      Alert.alert('Sign In Error', e.message || 'Something went wrong. Please try again.');
+      themedAlert('Sign In Error', e.message || 'Something went wrong. Please try again.', 'error');
     } finally {
       setLoading(false);
       setLoadingProvider(null);
@@ -77,7 +78,7 @@ const AuthScreen = () => {
     try {
       await login(demoEmail, 'demo123');
     } catch (e) {
-      Alert.alert('Error', e.message);
+      themedAlert('Error', e.message, 'error');
     } finally {
       setLoading(false);
     }

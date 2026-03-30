@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, Modal, TextInput, ActivityIndicator, Platform, StatusBar, Animated,
+  Modal, TextInput, ActivityIndicator, Platform, StatusBar, Animated,
   Image, FlatList,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS, CATEGORIES } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+import { themedAlert } from '../components/ThemedAlert';
 import Avatar from '../components/Avatar';
 import { getGroup, getExpenses, calculateGroupBalances, searchUsersByEmail, deleteExpense, sendGroupInvite, addExpenseComment, getActivity, removeMemberFromGroup, updateExpense, recordSettlement } from '../services/storage';
 import { supabase } from '../services/supabase';
@@ -122,7 +123,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     try {
       const result = await shareOrCopy({ message: text });
       if (result === 'copied') {
-        Alert.alert('Link copied!', 'Share it with your friends');
+        themedAlert('Link copied!', 'Share it with your friends', 'success');
       }
     } catch {}
   };
@@ -143,7 +144,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       setExpenses(prev => prev.map(e =>
         e.id === expenseId ? { ...e, comments: (e.comments || []).filter(c => c.date !== comment.date) } : e
       ));
-      Alert.alert('Error', 'Failed to add comment');
+      themedAlert('Error', 'Failed to add comment', 'error');
     }
   };
 
@@ -187,7 +188,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const handleSettleAll = () => {
     if (settlingAll) return;
     const debts = getSimplifiedDebts(memberBalances.map(m => ({ userId: m.id, name: m.name, amount: m.balance })));
-    if (debts.length === 0) { Alert.alert('All settled', 'No outstanding balances.'); return; }
+    if (debts.length === 0) { themedAlert('All settled', 'No outstanding balances.', 'success'); return; }
     confirmAlert({
       title: 'Settle All Debts',
       message: `This will record ${debts.length} settlement${debts.length > 1 ? 's' : ''} to clear all balances. Continue?`,
@@ -206,9 +207,9 @@ const GroupDetailScreen = ({ route, navigation }) => {
           await notifyWrite('settle_all');
           globalRefresh();
           loadData();
-          Alert.alert('Done', 'All balances have been settled.');
+          themedAlert('Done', 'All balances have been settled.', 'success');
         } catch (e) {
-          Alert.alert('Error', e.message || 'Failed to settle');
+          themedAlert('Error', e.message || 'Failed to settle', 'error');
         } finally {
           setSettlingAll(false);
         }
@@ -220,7 +221,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const handleRemoveMember = (member) => {
     const memberBal = memberBalances.find(b => b.id === member.id);
     if (memberBal && Math.abs(memberBal.balance) > 0.01) {
-      Alert.alert('Cannot Remove', `${member.name} has an outstanding balance. Settle up first.`);
+      themedAlert('Cannot Remove', `${member.name} has an outstanding balance. Settle up first.`, 'warning');
       return;
     }
     confirmAlert({
@@ -235,7 +236,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           globalRefresh();
           loadData();
         } catch (e) {
-          Alert.alert('Error', e.message || 'Failed to remove member');
+          themedAlert('Error', e.message || 'Failed to remove member', 'error');
         }
       },
     });
@@ -247,7 +248,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     try {
       const result = await shareOrCopy({ message: `Join my group "${group.name}" on Evenly!\n${link}` });
       if (result === 'copied') {
-        Alert.alert('Link copied!', 'Share it with your friends');
+        themedAlert('Link copied!', 'Share it with your friends', 'success');
       }
     } catch {}
   };

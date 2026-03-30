@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Image,
-  RefreshControl, StatusBar, Alert, ActivityIndicator,
+  RefreshControl, StatusBar, ActivityIndicator,
   Animated as RNAnimated, Platform, FlatList,
 } from 'react-native';
 import Animated, {
@@ -13,6 +13,7 @@ import { useApp } from '../context/AppContext';
 import { respondToGroupInvite } from '../services/storage';
 import { COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+import { themedAlert } from '../components/ThemedAlert';
 import Avatar from '../components/Avatar';
 import BackgroundOrbs from '../components/BackgroundOrbs';
 import PressableScale from '../components/PressableScale';
@@ -83,7 +84,7 @@ const HomeScreen = ({ navigation }) => {
       await respondToGroupInvite(invite.id, accept, user.id);
       await notifyWrite(accept ? 'accept_invite' : 'reject_invite');
     } catch (e) {
-      Alert.alert('Error', e.message);
+      themedAlert('Error', e.message, 'error');
     } finally {
       setRespondingInvite(null);
     }

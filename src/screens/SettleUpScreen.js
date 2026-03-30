@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  TextInput, Alert, KeyboardAvoidingView, Platform,
+  TextInput, KeyboardAvoidingView, Platform,
   ActivityIndicator, Animated as RNAnimated,
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
@@ -18,6 +18,7 @@ import { sendWhatsAppMessage, buildSettlementWhatsAppMessage } from '../services
 import { formatAmount, getCurrencySymbol } from '../services/currency';
 import { formatCurrency, getSimplifiedDebts } from '../utils/splitCalculator';
 import { confirmAlert } from '../utils/alert';
+import { themedAlert } from '../components/ThemedAlert';
 import { isNarrow, rFontSize, rWidth } from '../utils/responsive';
 import { showInterstitial } from '../services/ads';
 import ShakeView from '../components/ShakeView';
@@ -143,10 +144,10 @@ const SettleUpScreen = ({ route, navigation }) => {
   });
 
   const handleSettle = async () => {
-    if (!payer || !receiver) { Alert.alert('Error', 'Select payer and receiver'); return; }
-    if (payer.id === receiver.id) { Alert.alert('Error', 'Payer and receiver must be different'); return; }
+    if (!payer || !receiver) { themedAlert('Error', 'Select payer and receiver', 'error'); return; }
+    if (payer.id === receiver.id) { themedAlert('Error', 'Payer and receiver must be different', 'error'); return; }
     const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0) { amountShakeRef.current?.shake(); Alert.alert('Error', 'Enter a valid amount'); return; }
+    if (isNaN(amt) || amt <= 0) { amountShakeRef.current?.shake(); themedAlert('Error', 'Enter a valid amount', 'error'); return; }
 
     setSaving(true);
     try {
@@ -187,7 +188,7 @@ const SettleUpScreen = ({ route, navigation }) => {
         }, 1500);
       }, 1000);
     } catch (e) {
-      Alert.alert('Error', e.message);
+      themedAlert('Error', e.message, 'error');
       setSaving(false);
     }
   };

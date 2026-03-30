@@ -6,11 +6,12 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Alert, Modal, TextInput, ActivityIndicator, Platform, StatusBar, Image, ScrollView,
+  Modal, TextInput, ActivityIndicator, Platform, StatusBar, Image, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { themedAlert } from './ThemedAlert';
 import Avatar from './Avatar';
 import ShakeView from './ShakeView';
 import {
@@ -193,33 +194,34 @@ const AddPeopleModal = ({
       if (isGroupMode) {
         await addToGroup(item);
         const isFriend = friends.some(f => f.id === item.id);
-        Alert.alert(
+        themedAlert(
           isFriend ? 'Member Added' : 'Invite Sent',
           isFriend
             ? `${item.name} has been added to "${groupName}".`
-            : `${item.name} will receive an invite to join "${groupName}".`
+            : `${item.name} will receive an invite to join "${groupName}".`,
+          'success'
         );
       } else {
         if (!item.email) {
-          Alert.alert('No Email', `${item.name || 'This contact'} doesn't have an email address. Share your invite link instead.`);
+          themedAlert('No Email', `${item.name || 'This contact'} doesn't have an email address. Share your invite link instead.`, 'warning');
           setAdding(false);
           return;
         }
         const result = await addFriend(user.id, item.email);
         if (result?.requested) {
-          Alert.alert('Request Sent', `Friend request sent to ${item.name || item.email}.`);
+          themedAlert('Request Sent', `Friend request sent to ${item.name || item.email}.`, 'success');
         } else {
-          Alert.alert('Friend Added', `${item.name || item.email} has been added!`);
+          themedAlert('Friend Added', `${item.name || item.email} has been added!`, 'success');
         }
       }
       onPersonAdded?.();
     } catch (e) {
       if (e.message?.includes('No user found') && !isGroupMode) {
         await savePendingInvite(item.email, user.id);
-        Alert.alert('Invited', `${item.email} isn't on Evenly yet. We'll notify you when they join.`);
+        themedAlert('Invited', `${item.email} isn't on Evenly yet. We'll notify you when they join.`, 'info');
         onPersonAdded?.();
       } else {
-        Alert.alert('Error', e.message);
+        themedAlert('Error', e.message, 'error');
       }
     }
     setAdding(false);
@@ -235,24 +237,24 @@ const AddPeopleModal = ({
         const found = results.find(u => u.email.toLowerCase() === searchQuery.trim().toLowerCase());
         if (found) {
           await sendGroupInvite(groupId, groupName, found.id, user.id, user.name);
-          Alert.alert('Invite Sent', `${found.name} will receive a request to join "${groupName}".`);
+          themedAlert('Invite Sent', `${found.name} will receive a request to join "${groupName}".`, 'success');
         } else {
-          Alert.alert('Not Found', 'No user found with that email. Share the group link instead.');
+          themedAlert('Not Found', 'No user found with that email. Share the group link instead.', 'warning');
         }
       } else {
         const result = await addFriend(user.id, searchQuery.trim());
         if (result?.requested) {
-          Alert.alert('Request Sent', 'Friend request sent!');
+          themedAlert('Request Sent', 'Friend request sent!', 'success');
         }
       }
       onPersonAdded?.();
     } catch (e) {
       if (e.message?.includes('No user found') && !isGroupMode) {
         await savePendingInvite(searchQuery.trim(), user.id);
-        Alert.alert('Invited', `${searchQuery.trim()} isn't on Evenly yet. We'll notify you when they join.`);
+        themedAlert('Invited', `${searchQuery.trim()} isn't on Evenly yet. We'll notify you when they join.`, 'info');
         onPersonAdded?.();
       } else {
-        Alert.alert('Error', e.message);
+        themedAlert('Error', e.message, 'error');
       }
     }
     setAdding(false);
@@ -304,7 +306,7 @@ const AddPeopleModal = ({
     if (added > 0) parts.push(`${added} ${isGroupMode ? 'invited' : 'added'}`);
     if (invited > 0) parts.push(`${invited} not on Evenly`);
     if (failed > 0) parts.push(`${failed} failed`);
-    Alert.alert('Batch Add Complete', parts.join(', '));
+    themedAlert('Batch Add Complete', parts.join(', '), 'success');
     setSelectedItems({});
     onPersonAdded?.();
     setBatchAdding(false);

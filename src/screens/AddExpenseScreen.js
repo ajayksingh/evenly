@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform, Animated as RNAnimated,
+  StyleSheet, Modal, KeyboardAvoidingView, Platform, Animated as RNAnimated,
   Switch, Image, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +18,7 @@ import { sendWhatsAppMessage, buildExpenseWhatsAppMessage } from '../services/co
 import { SPLIT_TYPES, calculateEqualSplit, calculatePercentageSplit, calculateSharesSplit, formatCurrency } from '../utils/splitCalculator';
 import { formatAmount, getCurrencySymbol } from '../services/currency';
 import { confirmAlert } from '../utils/alert';
+import { themedAlert } from '../components/ThemedAlert';
 import { hapticMedium, hapticSuccess, hapticError } from '../utils/haptics';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
@@ -177,30 +178,30 @@ const AddExpenseScreen = ({ route, navigation }) => {
   };
 
   const validate = () => {
-    if (!descriptionRef.current.trim()) { descriptionShakeRef.current?.shake(); Alert.alert('Missing description', 'What was this expense for?'); return false; }
+    if (!descriptionRef.current.trim()) { descriptionShakeRef.current?.shake(); themedAlert('Missing description', 'What was this expense for?', 'warning'); return false; }
     const amt = parseFloat(amountRef.current);
-    if (isNaN(amt) || amt <= 0) { amountShakeRef.current?.shake(); Alert.alert('Missing amount', 'Enter how much was spent'); return false; }
-    if (amt > 10000000) { amountShakeRef.current?.shake(); Alert.alert('Amount too large', 'Maximum expense amount is ₹1,00,00,000 (1 Crore)'); return false; }
-    if (!selectedGroup) { Alert.alert('No group selected', 'Pick a group to split this expense with'); return false; }
-    if (!paidBy) { Alert.alert('Who paid?', 'Select the person who paid for this'); return false; }
+    if (isNaN(amt) || amt <= 0) { amountShakeRef.current?.shake(); themedAlert('Missing amount', 'Enter how much was spent', 'warning'); return false; }
+    if (amt > 10000000) { amountShakeRef.current?.shake(); themedAlert('Amount too large', 'Maximum expense amount is ₹1,00,00,000 (1 Crore)', 'warning'); return false; }
+    if (!selectedGroup) { themedAlert('No group selected', 'Pick a group to split this expense with', 'warning'); return false; }
+    if (!paidBy) { themedAlert('Who paid?', 'Select the person who paid for this', 'warning'); return false; }
     if (splitType === SPLIT_TYPES.EXACT) {
       const total = Object.values(exactAmounts).reduce((s, v) => s + parseFloat(v || 0), 0);
       if (Math.abs(total - amt) > 0.01) {
-        Alert.alert('Amounts don\'t add up', `The split totals ${formatCurrency(total, currency)} but the expense is ${formatCurrency(amt, currency)}`);
+        themedAlert('Amounts don\'t add up', `The split totals ${formatCurrency(total, currency)} but the expense is ${formatCurrency(amt, currency)}`, 'warning');
         return false;
       }
     }
     if (splitType === SPLIT_TYPES.PERCENTAGE) {
       const total = Object.values(percentages).reduce((s, v) => s + parseFloat(v || 0), 0);
       if (Math.abs(total - 100) > 0.01) {
-        Alert.alert('Percentages don\'t add up', `Currently at ${total.toFixed(1)}% — needs to be exactly 100%`);
+        themedAlert('Percentages don\'t add up', `Currently at ${total.toFixed(1)}% — needs to be exactly 100%`, 'warning');
         return false;
       }
     }
     if (splitType === SPLIT_TYPES.SHARES) {
       const total = Object.values(shares).reduce((s, v) => s + (v || 0), 0);
       if (total === 0) {
-        Alert.alert('No shares assigned', 'Give at least 1 share to each person');
+        themedAlert('No shares assigned', 'Give at least 1 share to each person', 'warning');
         return false;
       }
     }
@@ -305,7 +306,7 @@ if (!validate()) { hapticError(); return; }
       }
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', e.message);
+      themedAlert('Error', e.message, 'error');
     } finally {
       setSaving(false);
     }

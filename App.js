@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider } from './src/context/AppContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import ThemedAlert from './src/components/ThemedAlert';
 import { initAds } from './src/services/ads';
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
         <AppProvider>
           <StatusBar style="auto" />
           <AppNavigator />
+          <ThemedAlert />
         </AppProvider>
       </ThemeProvider>
     </SafeAreaProvider>

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Alert, Modal, SectionList, Platform, StatusBar,
+  Modal, SectionList, Platform, StatusBar,
   Animated, Image, ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+import { themedAlert } from '../components/ThemedAlert';
 import Avatar from '../components/Avatar';
 import BackgroundOrbs from '../components/BackgroundOrbs';
 import { addFriend, respondToFriendRequest, getSuggestedFriendsFromGroups, getPendingInvites, savePendingInvite } from '../services/storage';
@@ -75,14 +76,14 @@ const FriendsScreen = ({ navigation }) => {
       await addFriend(user.id, targetEmail);
       refresh();
       loadPendingInvites();
-      Alert.alert('Request Sent!', 'They will be notified and can accept your friend request.');
+      themedAlert('Request Sent!', 'They will be notified and can accept your friend request.', 'success');
     } catch (e) {
       if (e.message?.includes('No user found') || e.message?.includes('not found')) {
         await savePendingInvite(targetEmail, user.id);
         loadPendingInvites();
-        Alert.alert('User Not Found', `${targetEmail} hasn't joined Evenly yet. Saved as pending invite.`);
+        themedAlert('User Not Found', `${targetEmail} hasn't joined Evenly yet. Saved as pending invite.`, 'warning');
       } else {
-        Alert.alert('Error', e.message);
+        themedAlert('Error', e.message, 'error');
       }
     }
   };
@@ -92,9 +93,9 @@ const FriendsScreen = ({ navigation }) => {
     try {
       await respondToFriendRequest(requestId, accept, user.id);
       refresh();
-      if (accept) Alert.alert('Friend Added!', 'You are now friends and can split expenses together.');
+      if (accept) themedAlert('Friend Added!', 'You are now friends and can split expenses together.', 'success');
     } catch (e) {
-      Alert.alert('Error', e.message);
+      themedAlert('Error', e.message, 'error');
     } finally {
       setRespondingTo(null);
     }
@@ -108,10 +109,10 @@ const FriendsScreen = ({ navigation }) => {
         title: 'Join me on Evenly',
       });
       if (result === 'copied') {
-        Alert.alert('Link copied!', 'Share it with your friends');
+        themedAlert('Link copied!', 'Share it with your friends', 'success');
       }
     } catch (e) {
-      Alert.alert('Error', 'Could not share invite link');
+      themedAlert('Error', 'Could not share invite link', 'error');
     }
   };
 
@@ -135,7 +136,7 @@ const FriendsScreen = ({ navigation }) => {
   const handleWhatsAppBalance = (friend) => {
     const balance = getFriendBalance(friend.id);
     if (!friend.phone) {
-      Alert.alert('No Phone', `No phone number for ${friend.name}`);
+      themedAlert('No Phone', `No phone number for ${friend.name}`, 'warning');
       return;
     }
     const amount = Math.abs(balance?.amount || 0);

@@ -1,11 +1,12 @@
 import React, { useState, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform, Modal,
+  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Platform, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS, GROUP_TYPES } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+import { themedAlert } from '../components/ThemedAlert';
 import Avatar from '../components/Avatar';
 import { createGroup, searchUsers, getSuggestedFriendsFromGroups } from '../services/storage';
 import { getContacts, requestContactsPermission } from '../services/contacts';
@@ -108,7 +109,7 @@ const CreateGroupScreen = ({ navigation }) => {
 
   const handleCreate = async () => {
     const groupName = groupNameRef.current;
-    if (!groupName.trim()) { groupNameShakeRef.current?.shake(); hapticError(); Alert.alert('Error', 'Enter group name'); return; }
+    if (!groupName.trim()) { groupNameShakeRef.current?.shake(); hapticError(); themedAlert('Error', 'Enter group name', 'error'); return; }
     hapticMedium();
     setCreating(true);
     try {
@@ -122,7 +123,7 @@ const CreateGroupScreen = ({ navigation }) => {
       navigation.goBack();
     } catch (e) {
       hapticError();
-      Alert.alert('Error', e.message || 'Failed to create group');
+      themedAlert('Error', e.message || 'Failed to create group', 'error');
     } finally {
       setCreating(false);
     }
@@ -157,7 +158,7 @@ const CreateGroupScreen = ({ navigation }) => {
         setDeviceContacts(contacts);
         setShowContacts(true);
       } else {
-        Alert.alert('Permission Required', 'Allow contacts access to import members');
+        themedAlert('Permission Required', 'Allow contacts access to import members', 'warning');
       }
     } catch (e) {
       console.error('loadDeviceContacts error:', e);

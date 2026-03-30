@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, Animated as RNAnimated, Platform,
+  ActivityIndicator, Animated as RNAnimated, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+import { themedAlert } from '../components/ThemedAlert';
 import { SUPPORTED_CURRENCIES, fetchExchangeRates, formatAmount, detectDefaultCurrency } from '../services/currency';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
@@ -50,7 +51,7 @@ const CurrencyScreen = ({ navigation }) => {
       const r = await fetchExchangeRates(baseCurrency);
       setRates(r);
     } catch (e) {
-      Alert.alert('Error', 'Could not load exchange rates');
+      themedAlert('Error', 'Could not load exchange rates', 'error');
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,7 @@ const CurrencyScreen = ({ navigation }) => {
 
   const handleSelect = async (code) => {
     await setCurrency(code);
-    Alert.alert('Currency Updated', `Default currency set to ${code}`);
+    themedAlert('Currency Updated', `Default currency set to ${code}`, 'success');
     navigation.goBack();
   };
 
