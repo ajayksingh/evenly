@@ -18,7 +18,7 @@ import BackgroundOrbs from '../components/BackgroundOrbs';
 import PressableScale from '../components/PressableScale';
 import FadeInView from '../components/FadeInView';
 import Skeleton from '../components/Skeleton';
-import { formatDate } from '../utils/splitCalculator';
+import { formatDate, getSimplifiedDebts } from '../utils/splitCalculator';
 import { formatAmount } from '../services/currency';
 import { isNarrow, rPadding, rFontSize, rWidth } from '../utils/responsive';
 import { BannerAd, BannerAdSize, AD_UNIT_IDS } from '../services/ads';
@@ -29,6 +29,15 @@ const HomeScreen = ({ navigation }) => {
   const styles = useMemo(() => getStyles(theme), [theme]);
   const [refreshing, setRefreshing] = useState(false);
   const [respondingInvite, setRespondingInvite] = useState(null);
+
+  // Cross-group simplified debts — nets balances across ALL groups
+  const globalDebts = useMemo(() => {
+    if (!user || balances.length === 0) return [];
+    return getSimplifiedDebts(
+      balances.map(b => ({ userId: b.userId, name: b.name, amount: -b.amount }))
+        .concat([{ userId: user.id, name: user.name, amount: balances.reduce((s, b) => s + b.amount, 0) }])
+    );
+  }, [balances, user]);
 
   // Balance card entrance animation (disabled on web to prevent flicker)
   const isWeb = Platform.OS === 'web';
@@ -484,6 +493,49 @@ const HomeScreen = ({ navigation }) => {
           </View>
         )}
 
+        {/* Cross-Group Simplified Settlements */}
+        {globalDebts.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Settle Up</Text>
+              <Text style={styles.sectionSubtitle}>{globalDebts.length} payment{globalDebts.length > 1 ? 's' : ''} to clear all debts</Text>
+            </View>
+            {globalDebts.map((d, idx) => {
+              const isYouPaying = d.from === user.id;
+              const isYouReceiving = d.to === user.id;
+              return (
+                <FadeInView key={`${d.from}-${d.to}`} index={idx}>
+                  <TouchableOpacity
+                    accessibilityLabel={`${isYouPaying ? 'You' : d.fromName} pays ${isYouReceiving ? 'you' : d.toName} ${formatAmount(d.amount, currency)}`}
+                    activeOpacity={0.7}
+                    style={styles.debtRow}
+                    onPress={() => navigation.navigate('SettleUp', {
+                      preselectedPayer: d.from,
+                      preselectedReceiver: d.to,
+                      prefilledAmount: d.amount,
+                    })}
+                  >
+                    <Avatar name={isYouPaying ? user.name : d.fromName} size={36} />
+                    <View style={styles.debtInfo}>
+                      <Text style={styles.debtNames} numberOfLines={1}>
+                        {isYouPaying ? 'You' : d.fromName} → {isYouReceiving ? 'You' : d.toName}
+                      </Text>
+                      <Text style={[styles.debtAmount, { color: isYouPaying ? theme.negative : theme.primary }]}>
+                        {formatAmount(d.amount, currency)}
+                      </Text>
+                    </View>
+                    <View style={[styles.debtAction, { backgroundColor: (isYouPaying ? theme.negative : theme.primary) + '18' }]}>
+                      <Text style={[styles.debtActionText, { color: isYouPaying ? theme.negative : theme.primary }]}>
+                        {isYouPaying ? 'Pay' : 'Collect'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </FadeInView>
+              );
+            })}
+          </View>
+        )}
+
         {/* Recent Activity */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -697,6 +749,20 @@ const getStyles = (theme) => StyleSheet.create({
   balanceName: { fontSize: 15, fontWeight: '600', color: theme.text, flex: 1, minWidth: 0 },
   balanceSub: { fontSize: 12, marginTop: 1, fontWeight: '500' },
   balanceValue: { fontSize: 16, fontWeight: '800', fontVariant: ['tabular-nums'] },
+
+  // Simplified settlements
+  sectionSubtitle: { fontSize: 11, color: theme.textMuted, fontWeight: '500' },
+  debtRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
+    borderRadius: 16, paddingHorizontal: 4,
+  },
+  debtInfo: { flex: 1, marginLeft: 12 },
+  debtNames: { fontSize: 14, fontWeight: '600', color: theme.text },
+  debtAmount: { fontSize: 13, fontWeight: '800', marginTop: 2, fontVariant: ['tabular-nums'] },
+  debtAction: {
+    borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  debtActionText: { fontSize: 12, fontWeight: '700' },
 
   // Activity
   activityList: {},
