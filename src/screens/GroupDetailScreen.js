@@ -130,15 +130,19 @@ const GroupDetailScreen = ({ route, navigation }) => {
   // Feature 6: Add comment
   const handleAddComment = async (expenseId) => {
     if (!commentText.trim()) return;
+    const comment = { author: user.name, text: commentText.trim(), date: new Date().toISOString() };
+    // Optimistic update — show comment immediately without reloading
+    setExpenses(prev => prev.map(e =>
+      e.id === expenseId ? { ...e, comments: [...(e.comments || []), comment] } : e
+    ));
+    setCommentText('');
     try {
-      await addExpenseComment(expenseId, {
-        author: user.name,
-        text: commentText.trim(),
-        date: new Date().toISOString(),
-      });
-      setCommentText('');
-      loadData();
+      await addExpenseComment(expenseId, comment);
     } catch (e) {
+      // Revert on failure
+      setExpenses(prev => prev.map(e =>
+        e.id === expenseId ? { ...e, comments: (e.comments || []).filter(c => c.date !== comment.date) } : e
+      ));
       Alert.alert('Error', 'Failed to add comment');
     }
   };
