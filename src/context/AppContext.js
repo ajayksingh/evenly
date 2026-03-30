@@ -51,16 +51,15 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { userRef.current = user; }, [user]);
 
   useEffect(() => {
-    seedDemoData();
     loadSelectedCurrency().then(c => setCurrencyState(c));
-  }, []);
-
-  useEffect(() => {
     const restore = async () => {
       const currentUser = await getCurrentUser();
       if (currentUser) {
         setUser(currentUser);
         setAnalyticsUser(currentUser.id);
+      } else {
+        // Only seed demo data if no authenticated user — saves startup time for real users
+        await seedDemoData();
       }
       setLoading(false);
     };
@@ -212,10 +211,12 @@ export const AppProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (force = false) => {
     // Deduplicate: if already loading, return the existing promise
     if (loadingRef.current) return loadingRef.current;
     if (!userRef.current) return;
+    // Stale-time gate: skip if last load was within 5 seconds (unless forced)
+    if (!force && Date.now() - lastLoadTimestampRef.current < 5000) return;
     loadingRef.current = (async () => {
       try {
         const { id, email } = userRef.current;
@@ -270,7 +271,7 @@ export const AppProvider = ({ children }) => {
   }, [loadData]);
 
   const triggerSync = useCallback(async () => {
-    await loadData();
+    await loadData(true);
   }, [loadData]);
 
   const clearSyncStatusAfter = (ms) => {
@@ -286,7 +287,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     try {
-      await loadData();
+      await loadData(true);
       setSyncStatus('synced');
       clearSyncStatusAfter(1500);
     } catch (e) {

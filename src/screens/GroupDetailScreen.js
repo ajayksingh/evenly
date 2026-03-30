@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Alert, Modal, TextInput, ActivityIndicator, Platform, StatusBar, Animated,
-  Image,
+  Image, FlatList,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -441,117 +441,123 @@ const GroupDetailScreen = ({ route, navigation }) => {
                     ))}
                   </View>
                 )}
-                {sortedFilteredExpenses.map(exp => {
-                  const catInfo = getCategoryInfo(exp.category);
-                  const myShare = exp.splits.find(s => s.userId === user.id);
-                  const iPaid = exp.paidBy.id === user.id;
-                  const isExpanded = expandedExpenseId === exp.id;
-                  const expComments = exp.comments || [];
-                  const isLongPressed = longPressExpenseId === exp.id;
-                  return (
-                    <View key={exp.id}>
-                      <TouchableOpacity
-                        testID={`expense-item-${exp.id}`}
-                        accessibilityLabel={`Expense: ${exp.description}, ${formatCurrency(exp.amount, currency)}`}
-                        activeOpacity={0.7}
-                        style={styles.expenseCard}
-                        onPress={() => {
-                          if (longPressExpenseId) { setLongPressExpenseId(null); return; }
-                          setExpandedExpenseId(isExpanded ? null : exp.id);
-                        }}
-                        onLongPress={() => setLongPressExpenseId(isLongPressed ? null : exp.id)}
-                      >
-                        <View style={[styles.expCatIcon, { backgroundColor: catInfo.color + '20' }]}>
-                          <Ionicons name={catInfo.icon} size={20} color={catInfo.color} />
-                        </View>
-                        <View style={styles.expInfo}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.expName} numberOfLines={1}>{exp.description}</Text>
-
+                <FlatList
+                  data={sortedFilteredExpenses}
+                  keyExtractor={exp => exp.id}
+                  scrollEnabled={false}
+                  removeClippedSubviews={Platform.OS !== 'web'}
+                  initialNumToRender={10}
+                  maxToRenderPerBatch={10}
+                  windowSize={5}
+                  extraData={`${expandedExpenseId}-${longPressExpenseId}`}
+                  renderItem={({ item: exp }) => {
+                    const catInfo = getCategoryInfo(exp.category);
+                    const myShare = exp.splits.find(s => s.userId === user.id);
+                    const iPaid = exp.paidBy.id === user.id;
+                    const isExpanded = expandedExpenseId === exp.id;
+                    const expComments = exp.comments || [];
+                    const isLongPressed = longPressExpenseId === exp.id;
+                    return (
+                      <View>
+                        <TouchableOpacity
+                          testID={`expense-item-${exp.id}`}
+                          accessibilityLabel={`Expense: ${exp.description}, ${formatCurrency(exp.amount, currency)}`}
+                          activeOpacity={0.7}
+                          style={styles.expenseCard}
+                          onPress={() => {
+                            if (longPressExpenseId) { setLongPressExpenseId(null); return; }
+                            setExpandedExpenseId(isExpanded ? null : exp.id);
+                          }}
+                          onLongPress={() => setLongPressExpenseId(isLongPressed ? null : exp.id)}
+                        >
+                          <View style={[styles.expCatIcon, { backgroundColor: catInfo.color + '20' }]}>
+                            <Ionicons name={catInfo.icon} size={20} color={catInfo.color} />
                           </View>
-                          {/* Feature 6: Split preview on cards */}
-                          <Text style={styles.expMeta}>
-                            {iPaid
-                              ? `You paid ${formatCurrency(exp.amount, currency)}${myShare ? ` · Your share ${formatCurrency(myShare.amount, currency)}` : ''}`
-                              : `${exp.paidBy.name} paid ${formatCurrency(exp.amount, currency)}${myShare ? ` · Your share ${formatCurrency(myShare.amount, currency)}` : ''}`
-                            }
-                          </Text>
-                          <Text style={[styles.expMeta, { fontSize: 11, color: theme.textMuted }]}>{formatDate(exp.expenseDate || exp.date || exp.createdAt)}</Text>
-                        </View>
-                        <View style={styles.expRight}>
-                          {iPaid ? (
-                            <>
-                              <Text style={styles.expLabelGreen}>you paid</Text>
-                              <Text style={[styles.expAmount, { color: theme.success }]} numberOfLines={1}>{formatCurrency(exp.amount, currency)}</Text>
-                            </>
-                          ) : myShare ? (
-                            <>
-                              <Text style={styles.expLabelRed}>your share</Text>
-                              <Text style={[styles.expAmount, { color: theme.negative }]} numberOfLines={1}>{formatCurrency(myShare.amount, currency)}</Text>
-                            </>
-                          ) : (
-                            <Text style={styles.expLabelNeutral}>not involved</Text>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                      {/* Feature 3,4,8: Action buttons on long press */}
-                      {isLongPressed && (
-                        <View style={styles.expenseActions}>
-                          <TouchableOpacity testID={`edit-expense-${exp.id}`} accessibilityLabel={`Edit ${exp.description}`} activeOpacity={0.7} style={styles.expActionBtn} onPress={() => { setLongPressExpenseId(null); handleEditExpense(exp); }}>
-                            <Ionicons name="create-outline" size={16} color={theme.primary} />
-                            <Text style={styles.expActionText}>Edit</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity testID={`duplicate-expense-${exp.id}`} accessibilityLabel={`Duplicate ${exp.description}`} activeOpacity={0.7} style={styles.expActionBtn} onPress={() => { setLongPressExpenseId(null); handleDuplicateExpense(exp); }}>
-                            <Ionicons name="copy-outline" size={16} color={theme.primary} />
-                            <Text style={styles.expActionText}>Duplicate</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity testID={`delete-expense-${exp.id}`} accessibilityLabel={`Delete ${exp.description}`} activeOpacity={0.7} style={[styles.expActionBtn, { borderColor: 'rgba(255,107,107,0.3)' }]} onPress={() => { setLongPressExpenseId(null); handleDeleteExpense(exp); }}>
-                            <Ionicons name="trash-outline" size={16} color={theme.negative} />
-                            <Text style={[styles.expActionText, { color: theme.negative }]}>Delete</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                      {/* Expandable comments section */}
-                      {isExpanded && (
-                        <View style={styles.commentsSection}>
-                          {exp.notes ? (
-                            <View style={{ marginBottom: 8 }}>
-                              <Text style={{ fontSize: 11, color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700', marginBottom: 4 }}>Notes</Text>
-                              <Text style={{ fontSize: 13, color: theme.textLight }}>{exp.notes}</Text>
+                          <View style={styles.expInfo}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={styles.expName} numberOfLines={1}>{exp.description}</Text>
                             </View>
-                          ) : null}
-                          {expComments.length > 0 && expComments.map((c, idx) => (
-                            <View key={idx} style={styles.commentRow}>
-                              <Text style={styles.commentAuthor}>{c.author}</Text>
-                              <Text style={styles.commentText}>{c.text}</Text>
-                              <Text style={styles.commentDate}>{formatDate(c.date)}</Text>
-                            </View>
-                          ))}
-                          <View style={styles.commentInputRow}>
-                            <TextInput
-                              testID={`comment-input-${exp.id}`}
-                              accessibilityLabel="Add a comment"
-                              style={styles.commentInput}
-                              placeholder="Add a comment..."
-                              placeholderTextColor={theme.textMuted}
-                              value={commentText}
-                              onChangeText={setCommentText}
-                            />
-                            <TouchableOpacity
-                              testID={`comment-send-${exp.id}`}
-                              accessibilityLabel="Send comment"
-                              activeOpacity={0.7}
-                              style={styles.commentSendBtn}
-                              onPress={() => handleAddComment(exp.id)}
-                            >
-                              <Ionicons name="send" size={16} color={theme.primary} />
+                            <Text style={styles.expMeta}>
+                              {iPaid
+                                ? `You paid ${formatCurrency(exp.amount, currency)}${myShare ? ` · Your share ${formatCurrency(myShare.amount, currency)}` : ''}`
+                                : `${exp.paidBy.name} paid ${formatCurrency(exp.amount, currency)}${myShare ? ` · Your share ${formatCurrency(myShare.amount, currency)}` : ''}`
+                              }
+                            </Text>
+                            <Text style={[styles.expMeta, { fontSize: 11, color: theme.textMuted }]}>{formatDate(exp.expenseDate || exp.date || exp.createdAt)}</Text>
+                          </View>
+                          <View style={styles.expRight}>
+                            {iPaid ? (
+                              <>
+                                <Text style={styles.expLabelGreen}>you paid</Text>
+                                <Text style={[styles.expAmount, { color: theme.success }]} numberOfLines={1}>{formatCurrency(exp.amount, currency)}</Text>
+                              </>
+                            ) : myShare ? (
+                              <>
+                                <Text style={styles.expLabelRed}>your share</Text>
+                                <Text style={[styles.expAmount, { color: theme.negative }]} numberOfLines={1}>{formatCurrency(myShare.amount, currency)}</Text>
+                              </>
+                            ) : (
+                              <Text style={styles.expLabelNeutral}>not involved</Text>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                        {isLongPressed && (
+                          <View style={styles.expenseActions}>
+                            <TouchableOpacity testID={`edit-expense-${exp.id}`} accessibilityLabel={`Edit ${exp.description}`} activeOpacity={0.7} style={styles.expActionBtn} onPress={() => { setLongPressExpenseId(null); handleEditExpense(exp); }}>
+                              <Ionicons name="create-outline" size={16} color={theme.primary} />
+                              <Text style={styles.expActionText}>Edit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity testID={`duplicate-expense-${exp.id}`} accessibilityLabel={`Duplicate ${exp.description}`} activeOpacity={0.7} style={styles.expActionBtn} onPress={() => { setLongPressExpenseId(null); handleDuplicateExpense(exp); }}>
+                              <Ionicons name="copy-outline" size={16} color={theme.primary} />
+                              <Text style={styles.expActionText}>Duplicate</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity testID={`delete-expense-${exp.id}`} accessibilityLabel={`Delete ${exp.description}`} activeOpacity={0.7} style={[styles.expActionBtn, { borderColor: 'rgba(255,107,107,0.3)' }]} onPress={() => { setLongPressExpenseId(null); handleDeleteExpense(exp); }}>
+                              <Ionicons name="trash-outline" size={16} color={theme.negative} />
+                              <Text style={[styles.expActionText, { color: theme.negative }]}>Delete</Text>
                             </TouchableOpacity>
                           </View>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
+                        )}
+                        {isExpanded && (
+                          <View style={styles.commentsSection}>
+                            {exp.notes ? (
+                              <View style={{ marginBottom: 8 }}>
+                                <Text style={{ fontSize: 11, color: theme.textMuted, textTransform: 'uppercase', fontWeight: '700', marginBottom: 4 }}>Notes</Text>
+                                <Text style={{ fontSize: 13, color: theme.textLight }}>{exp.notes}</Text>
+                              </View>
+                            ) : null}
+                            {expComments.length > 0 && expComments.map((c, idx) => (
+                              <View key={idx} style={styles.commentRow}>
+                                <Text style={styles.commentAuthor}>{c.author}</Text>
+                                <Text style={styles.commentText}>{c.text}</Text>
+                                <Text style={styles.commentDate}>{formatDate(c.date)}</Text>
+                              </View>
+                            ))}
+                            <View style={styles.commentInputRow}>
+                              <TextInput
+                                testID={`comment-input-${exp.id}`}
+                                accessibilityLabel="Add a comment"
+                                style={styles.commentInput}
+                                placeholder="Add a comment..."
+                                placeholderTextColor={theme.textMuted}
+                                value={commentText}
+                                onChangeText={setCommentText}
+                              />
+                              <TouchableOpacity
+                                testID={`comment-send-${exp.id}`}
+                                accessibilityLabel="Send comment"
+                                activeOpacity={0.7}
+                                style={styles.commentSendBtn}
+                                onPress={() => handleAddComment(exp.id)}
+                              >
+                                <Ionicons name="send" size={16} color={theme.primary} />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  }}
+                />
               </View>
             )}
           </View>
