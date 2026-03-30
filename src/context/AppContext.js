@@ -53,7 +53,9 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     loadSelectedCurrency().then(c => setCurrencyState(c));
     const restore = async () => {
+      const t0 = Date.now();
       const currentUser = await getCurrentUser();
+      __DEV__ && console.log(`[perf] getCurrentUser: ${Date.now() - t0}ms, found: ${!!currentUser}`);
       if (currentUser) {
         setUser(currentUser);
         setAnalyticsUser(currentUser.id);
@@ -176,6 +178,11 @@ export const AppProvider = ({ children }) => {
         window.history.replaceState({}, '', window.location.pathname);
       }
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
+        // Skip if user is already restored from cache — avoid duplicate loadData
+        if (event === 'INITIAL_SESSION' && userRef.current) {
+          __DEV__ && console.log('[perf] Skipping INITIAL_SESSION — user already restored from cache');
+          return;
+        }
         try {
           __DEV__ && console.log('Handling OAuth session for event:', event);
           // Race against a timeout — if Supabase upsert hangs, use basic profile
@@ -185,7 +192,6 @@ export const AppProvider = ({ children }) => {
             profile = await Promise.race([handleOAuthSession(session), timeoutPromise]);
           } catch (e) {
             console.warn('handleOAuthSession timed out or failed, using basic profile:', e.message);
-            // Fallback: create profile from session data without Supabase upsert
             const { user: authUser } = session;
             profile = {
               id: authUser.id,
@@ -219,6 +225,7 @@ export const AppProvider = ({ children }) => {
     if (!force && Date.now() - lastLoadTimestampRef.current < 5000) return;
     loadingRef.current = (async () => {
       try {
+        const t0 = Date.now();
         const { id, email } = userRef.current;
         // Phase 1: Fetch groups + independent queries in parallel
         const [g, f, inv, fr] = await Promise.all([
@@ -227,15 +234,18 @@ export const AppProvider = ({ children }) => {
           getGroupInvites(id),
           getFriendRequests(id),
         ]);
+        __DEV__ && console.log(`[perf] Phase 1 done: ${Date.now() - t0}ms`);
         // Set phase 1 data immediately so UI renders with groups/friends
         setGroups(g); setFriends(f); setGroupInvites(inv); setFriendRequests(fr);
 
         // Phase 2: Queries that depend on groupIds
+        const t1 = Date.now();
         const groupIds = g.map(gr => gr.id);
         const [b, a] = await Promise.all([
           calculateBalances(id, email, groupIds),
           getActivity(id, groupIds),
         ]);
+        __DEV__ && console.log(`[perf] Phase 2 done: ${Date.now() - t1}ms (total: ${Date.now() - t0}ms)`);
         setBalances(b); setActivity(a);
         lastLoadTimestampRef.current = Date.now();
       } catch (e) {
