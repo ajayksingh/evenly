@@ -4,12 +4,13 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { APP_URL, loginAsDemo, logout } from './helpers/auth.js';
+import { APP_URL, loginAsDemo, logout, skipOnboardingIfPresent } from './helpers/auth.js';
 
 test.describe('Auth screen', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(APP_URL);
+    await skipOnboardingIfPresent(page);
     await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
   });
 

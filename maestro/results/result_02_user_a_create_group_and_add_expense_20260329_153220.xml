@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RZCW71FAAHM" tests="1" failures="1" time="1.0">
+    <testcase id="02_user_a_create_group_and_add_expense" name="02_user_a_create_group_and_add_expense" classname="02_user_a_create_group_and_add_expense" time="1.0" status="ERROR">
+      <failure>Unable to launch app com.ajayksingh.evenly</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

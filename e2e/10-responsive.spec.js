@@ -8,7 +8,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { APP_URL, loginAsDemo } from './helpers/auth.js';
+import { APP_URL, loginAsDemo, skipOnboardingIfPresent } from './helpers/auth.js';
 
 const VIEWPORTS = {
   mobile:  { width: 390,  height: 844  },
@@ -35,6 +35,7 @@ test.describe('Mobile viewport (390×844)', () => {
 
   test('auth screen renders at mobile size', async ({ page }) => {
     await page.goto(APP_URL);
+    await skipOnboardingIfPresent(page);
     await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
     await expect(page.getByText('Continue with Google')).toBeVisible();
     await expect(page.locator('[data-testid="auth-google-btn"]')).toBeVisible();
@@ -81,6 +82,7 @@ test.describe('Tablet viewport (768×1024)', () => {
 
   test('auth screen renders at tablet size', async ({ page }) => {
     await page.goto(APP_URL);
+    await skipOnboardingIfPresent(page);
     await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
     await expect(page.getByText('Continue with Google')).toBeVisible();
   });
@@ -126,6 +128,7 @@ test.describe('Desktop viewport (1440×900)', () => {
 
   test('auth screen is centred at desktop size', async ({ page }) => {
     await page.goto(APP_URL);
+    await skipOnboardingIfPresent(page);
     await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
     await expect(page.getByText('Continue with Google')).toBeVisible();
     const heading = page.getByText('Evenly');

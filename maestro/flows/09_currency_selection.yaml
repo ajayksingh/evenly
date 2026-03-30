@@ -58,7 +58,8 @@ appId: com.ajayksingh.evenly
 - waitForAnimationToEnd
 
 # Navigate back to home to verify symbol update
-- pressKey: Back
+- pressKey:
+    key: Back
     optional: true
 - tapOn:
     text: "Back"
@@ -107,7 +108,8 @@ appId: com.ajayksingh.evenly
 - waitForAnimationToEnd
 
 # Navigate back to Home
-- pressKey: Back
+- pressKey:
+    key: Back
     optional: true
 - tapOn:
     text: "Back"
@@ -154,7 +156,8 @@ appId: com.ajayksingh.evenly
 - waitForAnimationToEnd
 
 # Navigate back to Home and confirm INR / ₹ symbol restored
-- pressKey: Back
+- pressKey:
+    key: Back
     optional: true
 - tapOn:
     text: "Back"

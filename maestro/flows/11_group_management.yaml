@@ -61,7 +61,8 @@ env:
     timeout: 15000
 
 # Navigate back to Groups list for second group creation
-- pressKey: Back
+- pressKey:
+    key: Back
     optional: true
 - tapOn:
     text: "Back"
@@ -106,7 +107,8 @@ env:
     timeout: 15000
 
 # Navigate back to Groups list
-- pressKey: Back
+- pressKey:
+    key: Back
     optional: true
 - tapOn:
     text: "Back"

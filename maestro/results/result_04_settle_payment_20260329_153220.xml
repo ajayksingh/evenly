@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RZCW71FAAHM" tests="1" failures="1" time="1.0">
+    <testcase id="04_settle_payment" name="04_settle_payment" classname="04_settle_payment" time="1.0" status="ERROR">
+      <failure>Unable to launch app com.ajayksingh.evenly</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

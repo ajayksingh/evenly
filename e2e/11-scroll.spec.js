@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { APP_URL, loginAsDemo } from './helpers/auth.js';
+import { APP_URL, loginAsDemo, skipOnboardingIfPresent } from './helpers/auth.js';
 import { goHome, goActivity, goGroups, goFriends } from './helpers/tabs.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -51,6 +51,7 @@ test.describe('Viewport & Zoom Prevention', () => {
 
   test('viewport meta disables user scaling', async ({ page }) => {
     await page.goto(APP_URL);
+    await skipOnboardingIfPresent(page);
     await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
 
     const viewportContent = await page.evaluate(() => {
@@ -70,6 +71,7 @@ test.describe('Viewport & Zoom Prevention', () => {
 
   test('touch-action prevents zoom gestures on body', async ({ page }) => {
     await page.goto(APP_URL);
+    await skipOnboardingIfPresent(page);
     await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
 
     const touchAction = await page.evaluate(() => {
@@ -87,6 +89,7 @@ test.describe('Auth screen scroll', () => {
 
   test('auth screen content is visible without clipping', async ({ page }) => {
     await page.goto(APP_URL);
+    await skipOnboardingIfPresent(page);
     await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
 
     // Both the Google button and demo card should be reachable
@@ -99,6 +102,7 @@ test.describe('Auth screen scroll', () => {
   test('auth screen scrolls on small viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 500 });
     await page.goto(APP_URL);
+    await skipOnboardingIfPresent(page);
     await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
 
     // On a small viewport, content should be scrollable to reach demo card

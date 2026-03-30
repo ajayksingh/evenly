@@ -147,7 +147,8 @@ env:
 - tapOn:
     text: "Cancel"
     optional: true
-- pressKey: Back
+- pressKey:
+    key: Back
     optional: true
 - waitForAnimationToEnd
 
@@ -198,7 +199,8 @@ env:
 # ============================================================
 # Section 8: Navigate back to Friends
 # ============================================================
-- pressKey: Back
+- pressKey:
+    key: Back
     optional: true
 - tapOn:
     text: "Back"

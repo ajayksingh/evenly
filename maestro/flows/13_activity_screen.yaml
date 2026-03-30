@@ -125,7 +125,8 @@ appId: com.ajayksingh.evenly
     optional: true
 
 # Navigate back to Activity screen
-- pressKey: Back
+- pressKey:
+    key: Back
     optional: true
 - tapOn:
     text: "Back"

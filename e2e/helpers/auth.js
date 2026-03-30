@@ -8,6 +8,32 @@
 export const APP_URL = '/evenly/';
 
 /**
+ * Skip onboarding if it appears (first-time visit with no localStorage).
+ */
+export async function skipOnboardingIfPresent(page) {
+  // Wait for the page to render something meaningful
+  await Promise.race([
+    page.waitForSelector('text=Skip', { timeout: 10000 }),
+    page.waitForSelector('text=Continue with Google', { timeout: 10000 }),
+    page.waitForSelector('text=Get Started', { timeout: 10000 }),
+  ]).catch(() => {});
+  // If onboarding "Skip" button is visible, click it
+  const skipBtn = page.getByText('Skip');
+  if (await skipBtn.isVisible().catch(() => false)) {
+    await skipBtn.click();
+    // Wait for auth screen to appear
+    await page.waitForSelector('text=Continue with Google', { timeout: 15000 }).catch(() => {});
+    return;
+  }
+  // If on last onboarding page, click Get Started
+  const getStartedBtn = page.getByText('Get Started');
+  if (await getStartedBtn.isVisible().catch(() => false)) {
+    await getStartedBtn.click();
+    await page.waitForSelector('text=Continue with Google', { timeout: 15000 }).catch(() => {});
+  }
+}
+
+/**
  * Login using the quick demo shortcut for alice@demo.com.
  * Taps the "Alice Demo" row in the Demo Access card.
  *
@@ -15,6 +41,9 @@ export const APP_URL = '/evenly/';
  */
 export async function loginAsDemo(page) {
   await page.goto(APP_URL);
+
+  // Handle onboarding if first visit
+  await skipOnboardingIfPresent(page);
 
   // Wait for auth screen — Google button signals it's ready
   await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
@@ -37,6 +66,7 @@ export async function loginAsDemo(page) {
 export async function loginAsDemoB(page) {
   await page.goto(APP_URL);
 
+  await skipOnboardingIfPresent(page);
   await page.waitForSelector('text=Continue with Google', { timeout: 30000 });
   await page.waitForSelector('text=Quick Demo Access', { timeout: 30000 });
 

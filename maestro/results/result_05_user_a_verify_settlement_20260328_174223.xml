@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="Medium_Phone_API_36.1" tests="1" failures="1" time="23.0">
+    <testcase id="05_user_a_verify_settlement" name="05_user_a_verify_settlement" classname="05_user_a_verify_settlement" time="23.0" status="ERROR">
+      <failure>Element not found: Id matching regex: header-avatar</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
