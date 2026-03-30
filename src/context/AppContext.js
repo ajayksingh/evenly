@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 let NetInfo;
 try { NetInfo = require('@react-native-community/netinfo').default; } catch (_) {}
 import {
@@ -179,33 +180,30 @@ export const AppProvider = ({ children }) => {
       }
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
         // Skip if user is already restored from cache — avoid duplicate loadData
-        if (event === 'INITIAL_SESSION' && userRef.current) {
-          __DEV__ && console.log('[perf] Skipping INITIAL_SESSION — user already restored from cache');
+        if (userRef.current) {
+          __DEV__ && console.log('[perf] Skipping auth event — user already set');
           return;
         }
         try {
-          __DEV__ && console.log('Handling OAuth session for event:', event);
-          // Race against a timeout — if Supabase upsert hangs, use basic profile
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
-          let profile;
-          try {
-            profile = await Promise.race([handleOAuthSession(session), timeoutPromise]);
-          } catch (e) {
-            console.warn('handleOAuthSession timed out or failed, using basic profile:', e.message);
-            const { user: authUser } = session;
-            profile = {
-              id: authUser.id,
-              name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-              email: authUser.email,
-              avatar: authUser.user_metadata?.avatar_url || null,
-              phone: '',
-              createdAt: new Date().toISOString(),
-            };
-          }
-          __DEV__ && console.log('OAuth profile set:', profile?.name);
+          // Build profile instantly from JWT metadata — no network call needed
+          const { user: authUser } = session;
+          const profile = {
+            id: authUser.id,
+            name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+            email: authUser.email,
+            avatar: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
+            phone: '',
+            createdAt: new Date().toISOString(),
+          };
+          // Set user immediately — no waiting for Supabase
           setUser(profile);
           setAnalyticsUser(profile.id);
-          Analytics.login(session.user.app_metadata?.provider || 'oauth');
+          AsyncStorage.setItem('sw_current_user', JSON.stringify(profile)).catch(() => {});
+          // Upsert to Supabase in background (don't block UI)
+          if (event === 'SIGNED_IN') {
+            handleOAuthSession(session).catch(() => {});
+            Analytics.login(session.user.app_metadata?.provider || 'oauth');
+          }
         } catch (e) {
           console.error('OAuth session handling failed completely:', e);
         }

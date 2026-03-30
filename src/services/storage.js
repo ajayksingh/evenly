@@ -114,27 +114,24 @@ export const getCurrentUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
 
-    const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).single();
-    let profile;
-    if (userData) {
-      profile = {
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        avatar: userData.avatar || null,
-        phone: userData.phone || '',
-        createdAt: userData.created_at,
-      };
-    } else {
-      // Auth session exists but users row was deleted — recreate it using metadata
-      const email = session.user.email;
-      const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
-      const avatar = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
-      const provider = session.user.app_metadata?.provider || 'oauth';
-      profile = { id: session.user.id, name, email, avatar, phone: '', createdAt: new Date().toISOString() };
-      await supabase.from('users').upsert({ id: profile.id, name: profile.name, email: profile.email, avatar: profile.avatar, phone: '', provider, created_at: profile.createdAt });
-    }
+    // Build profile from JWT metadata instantly — no DB query needed for login
+    const { user } = session;
+    const profile = {
+      id: user.id,
+      name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+      email: user.email,
+      avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+      phone: '',
+      createdAt: new Date().toISOString(),
+    };
     await AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(profile));
+    // Sync full profile from DB in background (don't block)
+    supabase.from('users').select('*').eq('id', user.id).single().then(({ data }) => {
+      if (data && (data.phone || data.name !== profile.name)) {
+        const updated = { ...profile, name: data.name, phone: data.phone || '', avatar: data.avatar || profile.avatar };
+        AsyncStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(updated));
+      }
+    }).catch(() => {});
     return profile;
   } catch { return null; }
 };
