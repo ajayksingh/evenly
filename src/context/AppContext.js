@@ -220,19 +220,23 @@ export const AppProvider = ({ children }) => {
     loadingRef.current = (async () => {
       try {
         const { id, email } = userRef.current;
-        // Fetch groups + independent queries in parallel; group-dependent queries wait for groupIds
+        // Phase 1: Fetch groups + independent queries in parallel
         const [g, f, inv, fr] = await Promise.all([
           getGroups(id, email),
           getFriends(id),
           getGroupInvites(id),
           getFriendRequests(id),
         ]);
+        // Set phase 1 data immediately so UI renders with groups/friends
+        setGroups(g); setFriends(f); setGroupInvites(inv); setFriendRequests(fr);
+
+        // Phase 2: Queries that depend on groupIds
         const groupIds = g.map(gr => gr.id);
         const [b, a] = await Promise.all([
           calculateBalances(id, email, groupIds),
           getActivity(id, groupIds),
         ]);
-        setGroups(g); setFriends(f); setBalances(b); setActivity(a); setGroupInvites(inv); setFriendRequests(fr);
+        setBalances(b); setActivity(a);
         lastLoadTimestampRef.current = Date.now();
       } catch (e) {
         console.error('Load data error:', e);
@@ -298,19 +302,17 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      loadData().then(() => {
-        try {
-          requestNotificationPermission().then(() => {
-            // Schedule weekly reminder based on current balances
-            const owedBalances = (balances || []).filter(b => b.amount > 0);
-            const totalOwed = owedBalances.reduce((s, b) => s + b.amount, 0);
-            const friendCount = owedBalances.length;
-            scheduleWeeklyReminder(totalOwed, friendCount);
-          });
-        } catch (e) {
-          console.warn('Notification setup error:', e);
-        }
-      });
+      // Load data first — don't block on notification permission
+      loadData();
+      // Request notification permission AFTER a delay so it doesn't block the home screen render
+      const notifTimer = setTimeout(() => {
+        requestNotificationPermission().then(() => {
+          const owedBalances = (balances || []).filter(b => b.amount > 0);
+          const totalOwed = owedBalances.reduce((s, b) => s + b.amount, 0);
+          scheduleWeeklyReminder(totalOwed, owedBalances.length);
+        }).catch(() => {});
+      }, 3000);
+      return () => clearTimeout(notifTimer);
     } else {
       setGroups([]); setFriends([]); setBalances([]); setActivity([]); setGroupInvites([]); setFriendRequests([]);
     }
