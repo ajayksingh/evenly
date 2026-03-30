@@ -95,7 +95,7 @@ export async function logout(page) {
   await avatarBtn.waitFor({ state: 'visible', timeout: 10000 });
   await avatarBtn.click();
 
-  await page.waitForSelector('text=Profile', { timeout: 15000 });
+  await page.waitForSelector('text=Edit Profile', { timeout: 15000 });
 
   page.once('dialog', async (dialog) => {
     await dialog.accept();

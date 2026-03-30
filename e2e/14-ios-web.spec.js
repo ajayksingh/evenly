@@ -19,7 +19,8 @@ async function openProfile(page) {
   const avatarBtn = page.locator('[data-testid="header-avatar"]');
   await avatarBtn.waitFor({ state: 'visible', timeout: 10000 });
   await avatarBtn.click();
-  await page.waitForSelector('text=Profile', { timeout: 15000 });
+  // Wait for Edit Profile row — unique to the Profile screen
+  await page.waitForSelector('text=Edit Profile', { timeout: 15000 });
 }
 
 async function openGroupDetail(page) {
@@ -27,11 +28,14 @@ async function openGroupDetail(page) {
   const isEmpty = await page.getByText('No groups yet').isVisible({ timeout: 2000 }).catch(() => false);
   if (isEmpty) return false;
 
-  const memberText = page.getByText(/\d+ member/i).first();
-  if (!await memberText.isVisible({ timeout: 5000 }).catch(() => false)) return false;
-  await memberText.click();
-  await page.waitForTimeout(2000);
-  return true;
+  // Click a group card using its accessibility label to avoid matching Home screen text
+  const groupCard = page.locator('[aria-label*="Group:"]').first();
+  if (!await groupCard.isVisible({ timeout: 5000 }).catch(() => false)) return false;
+  await groupCard.click();
+  await page.waitForTimeout(3000);
+  // Verify GroupDetail loaded (has tabs)
+  const loaded = await page.locator('[data-testid="tab-expenses"]').isVisible({ timeout: 10000 }).catch(() => false);
+  return loaded;
 }
 
 async function openAddFriendModal(page) {
@@ -46,7 +50,7 @@ async function openAddFriendModal(page) {
     if (await el.isVisible({ timeout: 1500 }).catch(() => false)) {
       await el.click();
       await page.waitForTimeout(800);
-      const searchInput = page.getByPlaceholder(/search by name|email/i);
+      const searchInput = page.locator('[data-testid="member-search-input"]');
       if (await searchInput.isVisible({ timeout: 4000 }).catch(() => false)) return true;
     }
   }
@@ -54,24 +58,29 @@ async function openAddFriendModal(page) {
 }
 
 async function navigateToSettleUp(page) {
-  // Try Friends tab first
+  // Try Friends tab first — pill button says "Settle" (not "Settle Up")
   await goFriends(page);
   await page.waitForTimeout(1000);
 
-  const settleLinks = page.getByText('Settle Up');
-  if (await settleLinks.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-    await settleLinks.first().click();
+  const settlePill = page.getByText('Settle', { exact: true }).first();
+  if (await settlePill.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await settlePill.click();
     await page.waitForTimeout(2000);
     return true;
   }
 
-  // Try Groups -> GroupDetail -> Settle Up
+  // Try Groups -> GroupDetail -> Balances tab -> Settle button
   await goGroups(page);
   const memberText = page.getByText(/\d+ member/i).first();
   if (await memberText.isVisible({ timeout: 5000 }).catch(() => false)) {
     await memberText.click();
     await page.waitForTimeout(2000);
-    const settleBtn = page.getByText('Settle Up').first();
+    const balancesTab = page.locator('[data-testid="tab-balances"]');
+    if (await balancesTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await balancesTab.click();
+      await page.waitForTimeout(1000);
+    }
+    const settleBtn = page.locator('[data-testid^="settle-btn-"]').first();
     if (await settleBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await settleBtn.click();
       await page.waitForTimeout(2000);
@@ -86,12 +95,21 @@ async function navigateToAddExpense(page) {
   const opened = await openGroupDetail(page);
   if (!opened) return false;
 
-  const addExpBtn = page.getByText('Add Expense').first();
-  if (!await addExpBtn.isVisible({ timeout: 5000 }).catch(() => false)) return false;
-
-  await addExpBtn.click();
-  await page.waitForTimeout(2000);
-  return true;
+  // The GroupDetail "Add" button has accessibilityLabel="Add expense" and text "Add"
+  const addExpBtn = page.locator('[aria-label="Add expense"]').first();
+  if (await addExpBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await addExpBtn.click();
+    await page.waitForTimeout(2000);
+    return true;
+  }
+  // Fallback: try the text "Add"
+  const addText = page.getByText('Add', { exact: true }).first();
+  if (await addText.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await addText.click();
+    await page.waitForTimeout(2000);
+    return true;
+  }
+  return false;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,7 +164,8 @@ test.describe('Navigation - No Blank Screens', () => {
     const ready = await navigateToAddExpense(page);
     if (!ready) { test.skip(true, 'No groups available for expense test'); return; }
 
-    await expect(page.getByText('Add Expense').first()).toBeVisible({ timeout: 10000 });
+    // AddExpenseScreen header title is "Add Expense"
+    await expect(page.getByText('Add Expense', { exact: true }).first()).toBeVisible({ timeout: 10000 });
 
     // Fill expense form
     const amountInput = page.getByPlaceholder(/0\.00|amount/i);
@@ -222,14 +241,15 @@ test.describe('Navigation - No Blank Screens', () => {
     await goGroups(page);
 
     await page.locator('[data-testid="fab-add-group"]').click();
-    await expect(page.getByText('New Group')).toBeVisible({ timeout: 10000 });
+    // Wait for the create group form to load
+    await expect(page.locator('[data-testid="group-name-input"]')).toBeVisible({ timeout: 10000 });
 
     const groupName = `iOS-PW-${Date.now()}`;
     await page.locator('[data-testid="group-name-input"]').fill(groupName);
     await page.locator('[data-testid="group-type-trip"]').click();
 
     page.once('dialog', async (dialog) => { await dialog.accept(); });
-    await page.getByText('Create', { exact: true }).click();
+    await page.getByText('Create', { exact: true }).first().click();
 
     await page.waitForTimeout(4000);
 
@@ -264,7 +284,7 @@ test.describe('Navigation - No Blank Screens', () => {
     await page.waitForTimeout(5000);
 
     // Verify NOT blank — should be on Profile or Home or still on Currency
-    const onProfile     = await page.getByText('Profile').isVisible({ timeout: 5000 }).catch(() => false);
+    const onProfile     = await page.getByText('Profile', { exact: true }).first().isVisible({ timeout: 5000 }).catch(() => false);
     const onHome        = await page.getByText('Total balance').isVisible({ timeout: 3000 }).catch(() => false);
     const stillCurrency = await page.getByText('Currency Settings').isVisible().catch(() => false);
     const bodyLen       = await page.evaluate(() => document.body.innerText.length);
@@ -275,7 +295,7 @@ test.describe('Navigation - No Blank Screens', () => {
     await loginAsDemo(page);
     await openProfile(page);
 
-    await expect(page.getByText('Profile')).toBeVisible();
+    await expect(page.getByText('Profile', { exact: true }).first()).toBeVisible();
 
     // Navigate back — try the back button or go to Home tab
     await goHome(page);
@@ -302,14 +322,14 @@ test.describe('AddPeopleModal (Friend Mode)', () => {
     const opened = await openAddFriendModal(page);
     if (!opened) { test.skip(true, 'Add Friend button not found'); return; }
 
-    await expect(page.getByPlaceholder(/search by name|email/i)).toBeVisible();
+    await expect(page.locator('[data-testid="member-search-input"]')).toBeVisible();
   });
 
   test('9. Type in search -> verify debounced search works (no crash)', async ({ page }) => {
     const opened = await openAddFriendModal(page);
     if (!opened) { test.skip(true, 'Add Friend button not found'); return; }
 
-    const searchInput = page.getByPlaceholder(/search by name|email/i);
+    const searchInput = page.locator('[data-testid="member-search-input"]');
     await searchInput.fill('test');
     await page.waitForTimeout(1500); // debounce wait
 
@@ -325,7 +345,7 @@ test.describe('AddPeopleModal (Friend Mode)', () => {
     const opened = await openAddFriendModal(page);
     if (!opened) { test.skip(true, 'Add Friend button not found'); return; }
 
-    const searchInput = page.getByPlaceholder(/search by name|email/i);
+    const searchInput = page.locator('[data-testid="member-search-input"]');
     await searchInput.fill('bob@demo.com');
     await page.waitForTimeout(1500); // debounce
 
@@ -362,7 +382,7 @@ test.describe('AddPeopleModal (Friend Mode)', () => {
     const opened = await openAddFriendModal(page);
     if (!opened) { test.skip(true, 'Add Friend button not found'); return; }
 
-    const searchInput = page.getByPlaceholder(/search by name|email/i);
+    const searchInput = page.locator('[data-testid="member-search-input"]');
     await expect(searchInput).toBeVisible();
 
     const cancelBtn = page.getByText(/cancel/i).last();

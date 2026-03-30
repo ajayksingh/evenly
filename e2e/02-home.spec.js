@@ -26,11 +26,11 @@ test.describe('Home screen', () => {
 
   test('hero card shows a balance status badge', async ({ page }) => {
     const anyVisible =
-      (await page.getByText('All square').isVisible().catch(() => false)) ||
-      (await page.getByText('Ready to split').isVisible().catch(() => false)) ||
-      (await page.getByText('Friends owe you').isVisible().catch(() => false)) ||
-      (await page.getByText('You owe friends').isVisible().catch(() => false)) ||
-      (await page.getByText('owe').isVisible().catch(() => false));
+      (await page.getByText('All square').first().isVisible().catch(() => false)) ||
+      (await page.getByText('Ready to split').first().isVisible().catch(() => false)) ||
+      (await page.getByText('Friends owe you').first().isVisible().catch(() => false)) ||
+      (await page.getByText('You owe friends').first().isVisible().catch(() => false)) ||
+      (await page.getByText(/owe/i).first().isVisible().catch(() => false));
 
     expect(anyVisible).toBe(true);
   });
@@ -66,7 +66,7 @@ test.describe('Home screen', () => {
     const avatarBtn = page.locator('[data-testid="header-avatar"]');
     await expect(avatarBtn).toBeVisible();
     await avatarBtn.click();
-    await expect(page.getByText('Profile')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Edit Profile')).toBeVisible({ timeout: 15000 });
   });
 
   test('all four bottom tabs have role="tab" and are visible', async ({ page }) => {

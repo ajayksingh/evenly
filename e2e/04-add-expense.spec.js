@@ -14,16 +14,23 @@ async function navigateToAddExpense(page) {
   const isEmpty = await page.getByText('No groups yet').isVisible({ timeout: 2000 }).catch(() => false);
   if (isEmpty) return false;
 
-  const memberText = page.getByText(/\d+ member/i).first();
-  if (!await memberText.isVisible({ timeout: 5000 }).catch(() => false)) return false;
-
-  await memberText.click();
+  // Click first group card using testID pattern
+  const groupCard = page.locator('[data-testid^="group-card-"]').first();
+  if (!await groupCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+    // Fallback: click group by name
+    const groupName = page.getByText(/Goa Trip|Flat Expenses/i).first();
+    if (!await groupName.isVisible({ timeout: 3000 }).catch(() => false)) return false;
+    await groupName.click();
+  } else {
+    await groupCard.click();
+  }
   await page.waitForTimeout(2000);
 
-  const addExpBtn = page.getByText('Add Expense').first();
-  if (!await addExpBtn.isVisible({ timeout: 5000 }).catch(() => false)) return false;
+  // Look for Add button in group detail
+  const addBtn = page.locator('[data-testid="add-expense-btn"]').or(page.getByText('Add', { exact: true })).first();
+  if (!await addBtn.isVisible({ timeout: 5000 }).catch(() => false)) return false;
 
-  await addExpBtn.click();
+  await addBtn.click();
   await page.waitForTimeout(2000);
   return true;
 }

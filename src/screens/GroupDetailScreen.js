@@ -252,7 +252,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
   const getCategoryInfo = (cat) => CATEGORIES.find(c => c.id === cat) || CATEGORIES[8];
 
-  const { totalSpending, perPersonAvg, topSpender, topCategories } = useMemo(() => {
+  const { totalSpending, memberCount, perPersonAvg, topSpender, topCategories } = useMemo(() => {
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
     const mc = group ? group.members.length : 0;
     const avg = mc > 0 ? total / mc : 0;
@@ -269,7 +269,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       const catInfo = CATEGORIES.find(c => c.id === catId) || CATEGORIES[8];
       return { emoji: catInfo.emoji, label: catInfo.label, amount };
     });
-    return { totalSpending: total, perPersonAvg: avg, topSpender: ts, topCategories: tc };
+    return { totalSpending: total, memberCount: mc, perPersonAvg: avg, topSpender: ts, topCategories: tc };
   }, [expenses, group]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={theme.primary} size="large" /></View>;

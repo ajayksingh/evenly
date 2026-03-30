@@ -13,13 +13,15 @@ import { APP_URL } from './helpers/auth.js';
 test.describe('Onboarding Flow', () => {
 
   test('onboarding screen or auth screen loads on fresh visit', async ({ page }) => {
-    await page.goto(APP_URL);
+    test.setTimeout(120000); // extend timeout for cold start (large bundle)
+    await page.goto(APP_URL, { waitUntil: 'networkidle' });
     // On a fresh state the user should see either the onboarding screen
     // or the auth screen (if onboarding was already completed in a prior run).
     const onboarding = page.locator('[data-testid="onboarding-screen"]');
     const auth = page.getByText('Continue with Google');
-    const visible = await onboarding.isVisible({ timeout: 15000 }).catch(() => false)
-      || await auth.isVisible({ timeout: 5000 }).catch(() => false);
+    // The app can take a while to load on first visit (lazy loading, bundle parsing)
+    const visible = await onboarding.isVisible({ timeout: 60000 }).catch(() => false)
+      || await auth.isVisible({ timeout: 20000 }).catch(() => false);
     expect(visible).toBe(true);
   });
 

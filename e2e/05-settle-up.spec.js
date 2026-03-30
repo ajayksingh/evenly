@@ -10,26 +10,41 @@ import { goFriends, goGroups } from './helpers/tabs.js';
 async function navigateToSettleUp(page) {
   await loginAs(page);
 
-  // Try Friends tab
+  // Try Friends tab — the pill button says "Settle" (not "Settle Up")
   await goFriends(page);
   await page.waitForTimeout(1000);
 
-  const settleLinks = page.getByText('Settle Up');
-  if (await settleLinks.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-    await settleLinks.first().click();
+  const settlePill = page.getByText('Settle', { exact: true }).first();
+  if (await settlePill.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await settlePill.click();
     await page.waitForTimeout(2000);
     return true;
   }
 
-  // Try Groups → GroupDetail → Settle Up
+  // Try Groups → GroupDetail → Settle Up button
   await goGroups(page);
-  const memberText = page.getByText(/\d+ member/i).first();
-  if (await memberText.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await memberText.click();
+  // Click first group card
+  const groupCard = page.locator('[data-testid^="group-card-"]').first();
+  if (await groupCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await groupCard.click();
     await page.waitForTimeout(2000);
-    const settleBtn = page.getByText('Settle Up').first();
+    // In GroupDetail, the "Settle Up" text appears in the balances tab settle button
+    const balancesTab = page.locator('[data-testid="tab-balances"]');
+    if (await balancesTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await balancesTab.click();
+      await page.waitForTimeout(1000);
+    }
+    // Look for any settle button in the group detail
+    const settleBtn = page.locator('[data-testid^="settle-btn-"]').first();
     if (await settleBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await settleBtn.click();
+      await page.waitForTimeout(2000);
+      return true;
+    }
+    // Also try the "Settle All" button
+    const settleAllBtn = page.locator('[data-testid="settle-all-btn"]');
+    if (await settleAllBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await settleAllBtn.click();
       await page.waitForTimeout(2000);
       return true;
     }
