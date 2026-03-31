@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
+import { getFlagSync } from '../services/flags';
 
-const safe = (fn) => { try { fn(); } catch {} };
+const safe = (fn) => { try { if (getFlagSync('haptic_feedback')) fn(); } catch {} };
 
 export const hapticLight = () => safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
 export const hapticMedium = () => safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));

@@ -6,9 +6,13 @@ import { ThemeProvider } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import ThemedAlert from './src/components/ThemedAlert';
 import { initAds } from './src/services/ads';
+import { initFlags } from './src/services/flags';
 
 export default function App() {
-  useEffect(() => { setTimeout(() => initAds(), 3000); }, []);
+  useEffect(() => {
+    initFlags();
+    setTimeout(() => initAds(), 3000);
+  }, []);
 
   return (
     <SafeAreaProvider>

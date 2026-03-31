@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getFlagSync } from './flags';
 
 // Only load AdMob on native — not available on web
 let MobileAds, BannerAd, BannerAdSize, InterstitialAd, AdEventType, TestIds;
@@ -35,8 +36,13 @@ export const initAds = async () => {
 };
 
 // Load and show an interstitial — call after settlement success
+let _interstitialCount = 0;
 export const showInterstitial = () => {
   if (Platform.OS === 'web' || !InterstitialAd || !AdEventType) return;
+  if (!getFlagSync('ads_enabled') || !getFlagSync('interstitial_after_settle')) return;
+  const freq = getFlagSync('interstitial_frequency') || 1;
+  _interstitialCount++;
+  if (_interstitialCount % freq !== 0) return;
   try {
     const interstitial = InterstitialAd.createForAdRequest(AD_UNIT_IDS.interstitial, {
       requestNonPersonalizedAdsOnly: false,
