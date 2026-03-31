@@ -192,21 +192,11 @@ const ActivityScreen = ({ navigation }) => {
 
   // ─── Nudge actions ─────────────────────────────────────────
   const handleNudge = (nudge) => {
-    if (nudge.type === 'settle') {
-      // You owe them — you are the payer
-      navigation.navigate('SettleUp', {
-        preselectedPayer: user.id,
-        preselectedReceiver: nudge.friend.id,
-        prefilledAmount: nudge.amount,
-      });
-    } else if (nudge.type === 'collect') {
-      // They owe you — they are the payer
-      navigation.navigate('SettleUp', {
-        preselectedPayer: nudge.friend.id,
-        preselectedReceiver: user.id,
-        prefilledAmount: nudge.amount,
-      });
-    }
+    const params = nudge.type === 'settle'
+      ? { preselectedPayer: user.id, preselectedReceiver: nudge.friend.id, prefilledAmount: nudge.amount }
+      : { preselectedPayer: nudge.friend.id, preselectedReceiver: user.id, prefilledAmount: nudge.amount };
+    // ActivityScreen is a standalone tab (no Stack), so navigate to Home tab's SettleUp
+    navigation.navigate('Home', { screen: 'SettleUp', params });
   };
 
   // ─── Render functions ──────────────────────────────────────
