@@ -1,5 +1,7 @@
 # Evenly — Project Spec for Claude Code
 
+**See also:** `docs/PRD.md` (product requirements), `docs/DEV-ONBOARDING.md` (developer guide)
+
 ## Overview
 
 Evenly is a production expense-splitting app (React Native + Expo SDK 55 + Supabase). Version 1.0.3, versionCode 4. Live on web (GitHub Pages) and Android (Play Store).
