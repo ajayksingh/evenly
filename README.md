@@ -23,6 +23,16 @@ A production-grade, offline-first expense splitting and settlement app. Track sh
 
 ---
 
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [Product Requirements (PRD)](docs/PRD.md) | Feature matrix, data model, monetization, roadmap |
+| [Developer Onboarding](docs/DEV-ONBOARDING.md) | Local setup, navigation map, how to modify any screen/feature |
+| [Command Reference](docs/COMMANDS.md) | Every build, deploy, debug, and maintenance command |
+| [Test Documentation](docs/TESTING.md) | Playwright + Maestro + Jest guide with debugging |
+| [CLAUDE.md](CLAUDE.md) | Compact project spec for AI-assisted development |
+
 ## Table of Contents
 
 - [Features](#-features)
