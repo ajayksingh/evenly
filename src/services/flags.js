@@ -42,6 +42,12 @@ const DEFAULTS = {
   recurring_expenses: false,
   spending_analytics: false,
   upi_deep_link: false,
+
+  // Expense Tracker
+  sms_expense_tracking: false,
+  email_expense_tracking: false,
+  statement_reconciliation: false,
+  spending_dashboard: false,
 };
 
 // ── In-memory cache ────────────────────────────────────────────────────────
