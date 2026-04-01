@@ -341,6 +341,17 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <Text style={styles.quickActionLabel}>Settle Up</Text>
           </PressableScale>
+          <PressableScale
+            testID="quick-track-expenses"
+            accessibilityLabel="Track expenses"
+            style={styles.quickActionBtn}
+            onPress={() => navigation.navigate('ExpenseTracker')}
+          >
+            <View style={styles.quickActionIcon}>
+              <Ionicons name="receipt" size={26} color={theme.primary} />
+            </View>
+            <Text style={styles.quickActionLabel}>Track</Text>
+          </PressableScale>
         </ScrollView>
 
         {/* Feature 3: Outstanding Debts Summary */}

@@ -28,6 +28,9 @@ const SettleUpScreen = lazy(() => import('../screens/SettleUpScreen'));
 const ProfileScreen = lazy(() => import('../screens/ProfileScreen'));
 const CurrencyScreen = lazy(() => import('../screens/CurrencyScreen'));
 const CreateGroupScreen = lazy(() => import('../screens/CreateGroupScreen'));
+const ExpenseTrackerScreen = lazy(() => import('../screens/ExpenseTrackerScreen'));
+const ReconciliationScreen = lazy(() => import('../screens/ReconciliationScreen'));
+const ConnectedAccountsScreen = lazy(() => import('../screens/ConnectedAccountsScreen'));
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -44,6 +47,9 @@ const HomeStack = () => {
       <Stack.Screen name="SettleUp"   component={SettleUpScreen}  options={modalOptions} />
       <Stack.Screen name="Profile"    component={ProfileScreen} />
       <Stack.Screen name="Currency"   component={CurrencyScreen} />
+      <Stack.Screen name="ExpenseTracker" component={ExpenseTrackerScreen} />
+      <Stack.Screen name="Reconciliation" component={ReconciliationScreen} />
+      <Stack.Screen name="ConnectedAccounts" component={ConnectedAccountsScreen} />
     </Stack.Navigator>
   );
 };
